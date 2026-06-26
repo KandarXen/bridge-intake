@@ -640,10 +640,10 @@
     <div class="welcome-steps">
       <p>How this works</p>
       <ul class="step-list">
-        <li><span class="step-num">1</span> You'll be asked one question at a time across 8 areas of your business.</li>
+        <li><span class="step-num">1</span> You'll be guided through 8 areas of your business, then a short reflection on you as the owner.</li>
         <li><span class="step-num">2</span> Speak your answer using the microphone, or type it directly.</li>
         <li><span class="step-num">3</span> Review what was captured, edit if needed, then hit Continue.</li>
-        <li><span class="step-num">4</span> When you're done, your answers go straight to Darren — not to the internet.</li>
+        <li><span class="step-num">4</span> A few questions may have a quick follow-up. When you're done, your answers go straight to Darren.</li>
       </ul>
     </div>
 
@@ -804,71 +804,158 @@ const CONFIG = {
 };
 
 // ── Questions ──────────────────────────────────────────────────────────────
+// section: 'business' = 8-domain questions (eligible for AI probing at domain end)
+// section: 'mastery'  = owner self-assessment (fixed AI-future follow-up, no probing)
 const QUESTIONS = [
-  {
-    domain: 'Business Model & Direction',
-    text: 'What does your business sell, who do you sell it to, and how does money actually come in?',
-    hint: 'Think about your core product or service, your best customers, and whether revenue is one-time, recurring, or project-based.'
-  },
-  {
-    domain: 'Business Model & Direction',
-    text: 'Where is your business stuck or growing slower than you want it to — and what\'s getting in the way?',
-    hint: 'Be honest here. Growth blockers could be time, money, systems, people, or clarity about direction.'
-  },
-  {
-    domain: 'Customer Reality',
-    text: 'Describe your best customer in detail — who are they, what do they care about, and why do they choose you over anyone else?',
-    hint: 'Think about 2 or 3 real clients you love working with. What do they have in common?'
-  },
-  {
-    domain: 'Customer Reality',
-    text: 'What do your customers complain about most — and where do relationships go wrong or clients leave?',
-    hint: 'Every business has friction points. Where do things break down in the customer experience?'
-  },
-  {
-    domain: 'Revenue Engine',
-    text: 'Walk me through what happens from the moment someone hears about you to the moment money changes hands.',
-    hint: 'Every step — how they find you, the first conversation, the proposal, the decision, the payment.'
-  },
-  {
-    domain: 'Operations & Delivery',
-    text: 'After a client says yes, what happens? Walk me through how the work actually gets done, step by step.',
-    hint: 'Who does what, in what order? What are the handoffs? Where do things slow down or go wrong?'
-  },
-  {
-    domain: 'People & Decision-Making',
-    text: 'What would stop working or slow down immediately if you were unavailable for two weeks?',
-    hint: 'Think about what lives only in your head, what only you can approve, and what your team couldn\'t do without you.'
-  },
-  {
-    domain: 'Information & Systems',
-    text: 'Where does the important information in your business actually live right now — client details, job history, communications, finances?',
-    hint: 'Think about your tools: email, spreadsheets, CRM, accounting software, paper files, people\'s heads.'
-  },
-  {
-    domain: 'AI Opportunity',
-    text: 'What tasks do you or your team do repeatedly that feel like they shouldn\'t require this much time or brainpower?',
-    hint: 'Think about what you do more than 5 times a week that involves reading, writing, searching, formatting, or copying information.'
-  },
-  {
-    domain: 'Risk & Adoption',
-    text: 'What concerns do you have about bringing AI into your business — and what has blocked new technology from sticking in the past?',
-    hint: 'Privacy, accuracy, cost, team resistance, compliance — what would make you hesitate or say no?'
-  },
-  {
-    domain: 'Closing',
-    text: 'If you could fix one thing in your business in the next 90 days — and everything else stayed the same — what would it be?',
-    hint: 'The single most important change. Don\'t overthink it — your first instinct is usually right.'
-  }
+  // ════ DOMAIN 1: Business Model & Direction ════
+  { section: 'business', domain: 'Business Model & Direction', type: 'Current Reality',
+    text: 'How does your business make money today?',
+    hint: 'Your core products or services, who pays for them, and whether the money is one-time, recurring, or project-based.' },
+  { section: 'business', domain: 'Business Model & Direction', type: 'Pain & Cost',
+    text: 'Where is growth stuck, unpredictable, or slower than you want?',
+    hint: 'What priorities keep getting ignored because there isn\'t enough time, money, or bandwidth?' },
+  { section: 'business', domain: 'Business Model & Direction', type: 'Desired Future',
+    text: 'What does success look like 12 months from now?',
+    hint: 'Revenue, customers, reach, product mix — paint the picture of where you want to be.' },
+  { section: 'business', domain: 'Business Model & Direction', type: 'AI Fit',
+    text: 'Which parts of your business run on manual knowledge work that eats your time?',
+    hint: 'Reporting, forecasting, writing proposals, research — the thinking-and-typing work behind the scenes.' },
+
+  // ════ DOMAIN 2: Customer Reality ════
+  { section: 'business', domain: 'Customer Reality', type: 'Current Reality',
+    text: 'Describe your best customers — who are they and why do they choose you?',
+    hint: 'Think of 2 or 3 clients you love working with. What do they have in common?' },
+  { section: 'business', domain: 'Customer Reality', type: 'Pain & Cost',
+    text: 'What do customers complain about most, and where do relationships break down?',
+    hint: 'Where do accounts churn, go quiet, or get frustrated?' },
+  { section: 'business', domain: 'Customer Reality', type: 'Desired Future',
+    text: 'What would a best-in-class customer experience look like for your business?',
+    hint: 'What would make clients stay longer, spend more, and refer you without being asked?' },
+  { section: 'business', domain: 'Customer Reality', type: 'AI Fit',
+    text: 'Which customer touchpoints are slow, repetitive, or inconsistent?',
+    hint: 'Responses, follow-ups, updates, onboarding — where could faster or more personal help win loyalty?' },
+
+  // ════ DOMAIN 3: Revenue Engine ════
+  { section: 'business', domain: 'Revenue Engine', type: 'Current Reality',
+    text: 'Walk through what happens from first contact to signed deal.',
+    hint: 'How leads arrive, the first conversation, the proposal, how pricing is set and communicated.' },
+  { section: 'business', domain: 'Revenue Engine', type: 'Pain & Cost',
+    text: 'Where do deals stall, leak, or fall through the cracks?',
+    hint: 'What follow-up gets dropped? Where does the sales process lose people?' },
+  { section: 'business', domain: 'Revenue Engine', type: 'Desired Future',
+    text: 'What would a more predictable, consistent sales process look like?',
+    hint: 'If leads and follow-up just happened reliably, what would change?' },
+  { section: 'business', domain: 'Revenue Engine', type: 'AI Fit',
+    text: 'Which parts of selling are information-heavy and repeatable?',
+    hint: 'Proposals, prospect research, objection responses, CRM updates, follow-up sequences.' },
+
+  // ════ DOMAIN 4: Operations & Delivery ════
+  { section: 'business', domain: 'Operations & Delivery', type: 'Current Reality',
+    text: 'After a client says yes, how does the work actually get done?',
+    hint: 'Step by step — who does what, in what order, and where the handoffs are.' },
+  { section: 'business', domain: 'Operations & Delivery', type: 'Pain & Cost',
+    text: 'Where does delivery slow down, require rework, or blow past budget or timeline?',
+    hint: 'What recurring tasks eat the most time? Where do things most often go wrong?' },
+  { section: 'business', domain: 'Operations & Delivery', type: 'Desired Future',
+    text: 'What would smoother, faster, more consistent delivery look like?',
+    hint: 'If the same quality came out in half the time, what would have to be true?' },
+  { section: 'business', domain: 'Operations & Delivery', type: 'AI Fit',
+    text: 'Which delivery tasks involve gathering info, writing documents, or checking for errors?',
+    hint: 'The coordinating, drafting, and double-checking work that happens on every job.' },
+
+  // ════ DOMAIN 5: People & Decision-Making ════
+  { section: 'business', domain: 'People & Decision-Making', type: 'Current Reality',
+    text: 'Who are your key people, and what would break if one of them left?',
+    hint: 'What knowledge or decisions live in one person\'s head — including yours?' },
+  { section: 'business', domain: 'People & Decision-Making', type: 'Pain & Cost',
+    text: 'Where do decisions bottleneck or wait on you?',
+    hint: 'What can\'t move forward until you personally approve it or figure it out?' },
+  { section: 'business', domain: 'People & Decision-Making', type: 'Desired Future',
+    text: 'What would it look like if the team could operate more independently?',
+    hint: 'Where could documented systems replace knowledge that\'s stuck in people\'s heads?' },
+  { section: 'business', domain: 'People & Decision-Making', type: 'AI Fit',
+    text: 'Which decisions or communications depend on one person\'s knowledge that tools could support?',
+    hint: 'The judgment calls and replies that only happen when a specific person is available.' },
+
+  // ════ DOMAIN 6: Information, Data & Systems ════
+  { section: 'business', domain: 'Information & Systems', type: 'Current Reality',
+    text: 'Where does the important information in your business actually live?',
+    hint: 'Client details, job history, finances, communications — across which tools, files, and people.' },
+  { section: 'business', domain: 'Information & Systems', type: 'Pain & Cost',
+    text: 'Where is data incomplete, duplicated, or hard to find when you need it?',
+    hint: 'What decisions get made on gut feel because the real numbers aren\'t at hand?' },
+  { section: 'business', domain: 'Information & Systems', type: 'Desired Future',
+    text: 'What would "one source of truth" look like for your business?',
+    hint: 'If you opened one dashboard tomorrow, what would you want to see on it?' },
+  { section: 'business', domain: 'Information & Systems', type: 'AI Fit',
+    text: 'Which reports, summaries, or updates require manual pulling and formatting today?',
+    hint: 'The status updates and recaps someone has to assemble by hand every week.' },
+
+  // ════ DOMAIN 7: AI Opportunity & Readiness ════
+  { section: 'business', domain: 'AI Opportunity', type: 'Current Reality',
+    text: 'What tasks get done over and over, often from scratch?',
+    hint: 'Where does the most time go on low-value, repetitive work each week?' },
+  { section: 'business', domain: 'AI Opportunity', type: 'Pain & Cost',
+    text: 'Which repetitive tasks create the most frustration or delay?',
+    hint: 'What would 10 hours a week of saved time actually make possible for you?' },
+  { section: 'business', domain: 'AI Opportunity', type: 'Desired Future',
+    text: 'If AI handled the most repetitive 20% of work perfectly, what would you focus on instead?',
+    hint: 'The higher-value work you never get to because the busywork crowds it out.' },
+  { section: 'business', domain: 'AI Opportunity', type: 'AI Fit',
+    text: 'Which tasks involve reading, writing, summarizing, or researching — done many times a week?',
+    hint: 'The language-and-information work that repeats constantly.' },
+
+  // ════ DOMAIN 8: Risk, Constraints & Adoption ════
+  { section: 'business', domain: 'Risk & Adoption', type: 'Current Reality',
+    text: 'What privacy, compliance, or confidentiality constraints apply to your business?',
+    hint: 'Client data, regulated information, industry rules — and how comfortable your team is with new tech.' },
+  { section: 'business', domain: 'Risk & Adoption', type: 'Pain & Cost',
+    text: 'What has blocked new technology from sticking in the past?',
+    hint: 'Where does fear of error, cost, or disruption create hesitation?' },
+  { section: 'business', domain: 'Risk & Adoption', type: 'Desired Future',
+    text: 'What would a successful AI rollout look and feel like for your team?',
+    hint: 'What would change, and how would the people around you feel about it?' },
+  { section: 'business', domain: 'Risk & Adoption', type: 'AI Fit',
+    text: 'Which low-risk, reversible AI uses could you try first to build confidence?',
+    hint: 'Something easy to pilot and easy to undo, with no sensitive data exposed.' },
+
+  // ════ SECTION 9: OWNER MASTERY (6 categories, two-part) ════
+  { section: 'mastery', domain: 'Personal Productivity & Mastery',
+    text: 'Where are you right now with personal productivity and mastery?',
+    hint: 'This might mean focus, energy, how you structure your days, the systems you rely on, how on-top-of-things you feel — or whatever it means to you.' },
+  { section: 'mastery', domain: 'Strategy & Decision-Making',
+    text: 'Where are you right now with strategy and decision-making?',
+    hint: 'This might mean clarity of direction, how confidently you choose, how often you second-guess, how you weigh options — interpret it your own way.' },
+  { section: 'mastery', domain: 'Time & Leverage',
+    text: 'Where are you right now with time and leverage?',
+    hint: 'Leverage could mean leveraging your time, your money, your people, your tools, your reputation — wherever a little effort creates a lot of output for you.' },
+  { section: 'mastery', domain: 'Sales & Influence',
+    text: 'Where are you right now with sales and influence?',
+    hint: 'This might mean closing deals, persuading a room, building trust, negotiating, or simply getting people to say yes — whatever influence means in your world.' },
+  { section: 'mastery', domain: 'Marketing & Messaging',
+    text: 'Where are you right now with marketing and messaging?',
+    hint: 'This might mean how clearly you explain what you do, your visibility, your brand, your content, how well people "get it" — your call on what counts.' },
+  { section: 'mastery', domain: 'Operations & Efficiency',
+    text: 'Where are you right now with operations and efficiency?',
+    hint: 'Efficiency might be about operations, or it might be about time, money, or energy somewhere else entirely. Take it wherever it fits for you.' }
 ];
+
+// Fixed follow-up shown after every mastery question
+const MASTERY_FOLLOWUP = 'And if AI quietly handled this area for you — what would that free you up to do, or how would it change things?';
 
 // ── State ──────────────────────────────────────────────────────────────────
 let currentQ = 0;
-let answers = [];
+let answers = [];              // base answer per question index
+let masteryFollowups = [];     // mastery follow-up answer per question index (only mastery uses it)
+let domainProbes = {};         // { domainName: { question: '...', answer: '...' } }
 let clientName = '';
 let businessCategory = '';
 let recognition = null;
 let isRecording = false;
+
+// Sub-step within a question: 'main' = base question, 'followup' = mastery AI-future Q, 'probe' = AI probe
+let subStep = 'main';
+let activeProbe = null;        // { domain, question } when a probe is showing
 
 // ── Screen management ──────────────────────────────────────────────────────
 function showScreen(id) {
@@ -889,6 +976,10 @@ function startInterview() {
   }
   err.style.display = 'none';
   answers = new Array(QUESTIONS.length).fill('');
+  masteryFollowups = new Array(QUESTIONS.length).fill('');
+  domainProbes = {};
+  currentQ = 0;
+  subStep = 'main';
   showScreen('screen-interview');
   renderQuestion();
 }
@@ -899,18 +990,63 @@ function renderQuestion() {
   const total = QUESTIONS.length;
   const pct = Math.round(((currentQ + 1) / total) * 100);
 
-  document.getElementById('q-domain').textContent = q.domain;
-  document.getElementById('q-text').textContent = q.text;
-  document.getElementById('q-hint').textContent = q.hint;
-  document.getElementById('progress-label').textContent = q.domain;
-  document.getElementById('progress-count').textContent = `Question ${currentQ + 1} of ${total}`;
+  // Default progress + nav
   document.getElementById('progress-fill').style.width = pct + '%';
-  document.getElementById('btn-back').style.visibility = currentQ === 0 ? 'hidden' : 'visible';
-  document.getElementById('btn-next').textContent = currentQ === total - 1 ? 'Submit answers →' : 'Continue →';
+  document.getElementById('btn-back').style.visibility = (currentQ === 0 && subStep === 'main') ? 'hidden' : 'visible';
   document.getElementById('answer-error').style.display = 'none';
 
+  let domainLabel = q.domain;
+  let qText = q.text;
+  let qHint = q.hint;
+  let countText = '';
+  let savedValue = answers[currentQ] || '';
+
+  if (subStep === 'followup') {
+    // Mastery second beat — the AI-future question
+    domainLabel = q.domain + ' — looking ahead';
+    qText = MASTERY_FOLLOWUP;
+    qHint = 'There\'s no wrong answer. Picture it actually handled, and tell us what changes.';
+    savedValue = masteryFollowups[currentQ] || '';
+    countText = 'Follow-up';
+  } else if (subStep === 'probe' && activeProbe) {
+    // AI-generated probe at end of a business domain
+    domainLabel = activeProbe.domain + ' — one more thing';
+    qText = activeProbe.question;
+    qHint = 'A quick follow-up to make sure we capture this accurately.';
+    savedValue = (domainProbes[activeProbe.domain] && domainProbes[activeProbe.domain].answer) || '';
+    countText = 'Follow-up';
+  } else {
+    // Main question
+    if (q.section === 'mastery') {
+      domainLabel = q.domain;
+      countText = 'About you';
+    } else {
+      countText = q.type;
+    }
+  }
+
+  document.getElementById('q-domain').textContent = domainLabel;
+  document.getElementById('q-text').textContent = qText;
+  document.getElementById('q-hint').textContent = qHint;
+  document.getElementById('progress-label').textContent = domainLabel;
+  document.getElementById('progress-count').textContent =
+    countText ? `${countText} · ${currentQ + 1} of ${total}` : `Question ${currentQ + 1} of ${total}`;
+
+  // Button label: "Submit" only on the very last sub-step of the whole interview
+  const isLastItem = (currentQ === total - 1);
+  const lastQ = QUESTIONS[total - 1];
+  let isFinalSubStep = false;
+  if (isLastItem) {
+    if (lastQ.section === 'mastery') {
+      isFinalSubStep = (subStep === 'followup'); // mastery: submit after the AI-future follow-up
+    } else {
+      isFinalSubStep = (subStep === 'probe' || subStep === 'main'); // business: submit after main or its probe
+    }
+  }
+  document.getElementById('btn-next').textContent = isFinalSubStep ? 'Submit answers →' : 'Continue →';
+
   const box = document.getElementById('transcript');
-  box.textContent = answers[currentQ] || '';
+  box.textContent = savedValue;
   updateWordCount();
 
   if (isRecording) stopRecording();
@@ -918,30 +1054,129 @@ function renderQuestion() {
 
 // ── Navigation ─────────────────────────────────────────────────────────────
 function saveCurrentAnswer() {
-  answers[currentQ] = document.getElementById('transcript').innerText.trim();
+  const val = document.getElementById('transcript').innerText.trim();
+  if (subStep === 'followup') {
+    masteryFollowups[currentQ] = val;
+  } else if (subStep === 'probe' && activeProbe) {
+    if (!domainProbes[activeProbe.domain]) domainProbes[activeProbe.domain] = { question: activeProbe.question, answer: '' };
+    domainProbes[activeProbe.domain].answer = val;
+  } else {
+    answers[currentQ] = val;
+  }
 }
 
-function nextQuestion() {
+async function nextQuestion() {
   saveCurrentAnswer();
-  const answer = answers[currentQ];
-  if (!answer || answer.length < 5) {
+  const val = document.getElementById('transcript').innerText.trim();
+  if (!val || val.length < 3) {
     document.getElementById('answer-error').style.display = 'block';
     return;
   }
   document.getElementById('answer-error').style.display = 'none';
 
-  if (currentQ < QUESTIONS.length - 1) {
-    currentQ++;
+  const q = QUESTIONS[currentQ];
+  const total = QUESTIONS.length;
+
+  // ── Handle sub-steps first ──
+  if (subStep === 'followup') {
+    // finished a mastery follow-up → advance to next question
+    subStep = 'main';
+    if (currentQ < total - 1) { currentQ++; renderQuestion(); }
+    else { submitInterview(); }
+    return;
+  }
+  if (subStep === 'probe') {
+    // finished a domain probe → advance to next question (or submit)
+    subStep = 'main';
+    activeProbe = null;
+    if (currentQ < total - 1) { currentQ++; renderQuestion(); }
+    else { submitInterview(); }
+    return;
+  }
+
+  // ── Main step ──
+  if (q.section === 'mastery') {
+    // every mastery question gets its fixed AI-future follow-up
+    subStep = 'followup';
+    renderQuestion();
+    return;
+  }
+
+  // Business question: check if this is the LAST question of its domain
+  const isDomainEnd = (currentQ === total - 1) || (QUESTIONS[currentQ + 1].domain !== q.domain) || (QUESTIONS[currentQ + 1].section !== 'business');
+  if (isDomainEnd) {
+    // attempt an AI probe for this domain
+    await runDomainProbe(q.domain);
+    return;
+  }
+
+  // otherwise just advance
+  if (currentQ < total - 1) { currentQ++; renderQuestion(); }
+  else { submitInterview(); }
+}
+
+// ── AI probe: ask Claude if this domain's answers need one follow-up ────────
+async function runDomainProbe(domainName) {
+  // Gather this domain's Q&A
+  const domainQA = QUESTIONS
+    .map((q, i) => ({ q, i }))
+    .filter(x => x.q.section === 'business' && x.q.domain === domainName)
+    .map(x => `Q (${x.q.type}): ${x.q.text}\nA: ${answers[x.i] || ''}`)
+    .join('\n\n');
+
+  // Show a brief inline "thinking" state on the button
+  const btn = document.getElementById('btn-next');
+  const originalLabel = btn.textContent;
+  btn.textContent = 'One moment…';
+  btn.disabled = true;
+
+  let probeQuestion = null;
+  try {
+    const resp = await fetch('/api/probe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ domain: domainName, qa: domainQA, businessCategory })
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.followup && data.followup.trim() && data.followup.trim().toUpperCase() !== 'NONE') {
+        probeQuestion = data.followup.trim();
+      }
+    }
+  } catch (e) {
+    probeQuestion = null; // fail gracefully — just skip the probe
+  }
+
+  btn.disabled = false;
+  btn.textContent = originalLabel;
+
+  const total = QUESTIONS.length;
+
+  if (probeQuestion) {
+    activeProbe = { domain: domainName, question: probeQuestion };
+    domainProbes[domainName] = { question: probeQuestion, answer: '' };
+    subStep = 'probe';
     renderQuestion();
   } else {
-    submitInterview();
+    // no probe needed — advance
+    subStep = 'main';
+    if (currentQ < total - 1) { currentQ++; renderQuestion(); }
+    else { submitInterview(); }
   }
 }
 
 function prevQuestion() {
   saveCurrentAnswer();
+  // From a sub-step, go back to the main question of the current item
+  if (subStep === 'followup' || subStep === 'probe') {
+    subStep = 'main';
+    activeProbe = null;
+    renderQuestion();
+    return;
+  }
   if (currentQ > 0) {
     currentQ--;
+    subStep = 'main';
     renderQuestion();
   }
 }
@@ -1060,22 +1295,54 @@ function animateProcessingSteps() {
 
 // ── Build prompt for Claude ────────────────────────────────────────────────
 function buildPrompt() {
-  let qa = '';
+  // ── Business answers, grouped by domain, with any AI probe appended ──
+  let businessBlock = '';
+  let lastDomain = null;
   QUESTIONS.forEach((q, i) => {
-    qa += `\nDOMAIN: ${q.domain}\nQUESTION: ${q.text}\nANSWER: ${answers[i] || '(no answer provided)'}\n`;
+    if (q.section !== 'business') return;
+    if (q.domain !== lastDomain) {
+      // close previous domain's probe
+      if (lastDomain && domainProbes[lastDomain] && domainProbes[lastDomain].answer) {
+        businessBlock += `  FOLLOW-UP: ${domainProbes[lastDomain].question}\n  ANSWER: ${domainProbes[lastDomain].answer}\n`;
+      }
+      businessBlock += `\n### DOMAIN: ${q.domain}\n`;
+      lastDomain = q.domain;
+    }
+    businessBlock += `[${q.type}] ${q.text}\n→ ${answers[i] || '(no answer provided)'}\n`;
+  });
+  // close the final domain's probe
+  if (lastDomain && domainProbes[lastDomain] && domainProbes[lastDomain].answer) {
+    businessBlock += `  FOLLOW-UP: ${domainProbes[lastDomain].question}\n  ANSWER: ${domainProbes[lastDomain].answer}\n`;
+  }
+
+  // ── Owner-mastery answers, each with its AI-future follow-up ──
+  let masteryBlock = '';
+  QUESTIONS.forEach((q, i) => {
+    if (q.section !== 'mastery') return;
+    masteryBlock += `\n### ${q.domain}\n`;
+    masteryBlock += `Where they are now: ${answers[i] || '(no answer provided)'}\n`;
+    masteryBlock += `If AI handled it: ${masteryFollowups[i] || '(no answer provided)'}\n`;
   });
 
   return `You are a business analyst for Bridge To AI, an AI implementation consulting firm run by Darren Randles (Kandar Consulting, Alberta, Canada).
 
-A new client has just completed their Business DNA Discovery Interview. Your job is to produce a complete, structured Business DNA file from their answers. This file is CONFIDENTIAL — it goes directly to Darren, not to the client.
+A new client has just completed their Business DNA Discovery Interview — a deep 8-domain business diagnostic plus a 6-part owner self-assessment. Your job is to produce a complete, structured Business DNA file from their answers. This file is CONFIDENTIAL — it goes directly to Darren, not to the client.
 
 CLIENT INFORMATION:
 Name / Business: ${clientName}
 Business Category: ${businessCategory}
 Interview Date: ${new Date().toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' })}
 
-INTERVIEW ANSWERS:
-${qa}
+═══════════════════════════════════════
+PART A — BUSINESS DIAGNOSTIC (8 domains)
+═══════════════════════════════════════
+${businessBlock}
+
+═══════════════════════════════════════
+PART B — OWNER SELF-ASSESSMENT (6 areas)
+Each area: where the owner is today, and what they'd want AI to free up.
+═══════════════════════════════════════
+${masteryBlock}
 
 Produce a complete Business DNA file in markdown format with these sections:
 
@@ -1103,29 +1370,32 @@ Where data lives, what tools are in use, data quality issues, what decisions are
 ### SECTION 7: PEOPLE & DECISION-MAKING
 Who owns what, where tribal knowledge is locked, where decisions require the owner, what would break without them.
 
-### SECTION 8: AI OPPORTUNITY PORTFOLIO
-List 5–8 specific AI opportunities ranked by Impact × Feasibility (both scored 1–5, multiply). Format as a table.
+### SECTION 8: OWNER MASTERY PROFILE
+Synthesize Part B. For each of the 6 areas (Personal Productivity, Strategy & Decision-Making, Time & Leverage, Sales & Influence, Marketing & Messaging, Operations & Efficiency): where the owner currently stands, and — critically — where THEY said they want AI to help. This is the owner telling you in their own words where AI should go. Treat it as high-signal.
 
-### SECTION 9: READINESS SCORECARD
+### SECTION 9: AI OPPORTUNITY PORTFOLIO
+List 6–10 specific AI opportunities ranked by Impact × Feasibility (both scored 1–5, multiply). Format as a table. Draw from BOTH the business diagnostic and the owner's stated AI wishes in Part B.
+
+### SECTION 10: READINESS SCORECARD
 Score these 5 dimensions 1–5 with one-line finding each:
 - Data & Information Quality
 - Workflow Documentation
 - Tools & Tech Stack
 - People & Change Readiness
 - Risk & Compliance Posture
-Total score out of 25. Assign a readiness tier: Launch-Ready (21-25), Near-Ready (16-20), Foundation First (11-15), Rebuild Required (6-10).
+Total score out of 25. Assign a readiness tier: Launch-Ready (21-25), Near-Ready (16-20), Foundation First (11-15), Rebuild Required (6-10), Not Ready (1-5).
 
-### SECTION 10: DO NOW / BUILD NEXT / AVOID FOR NOW
+### SECTION 11: DO NOW / BUILD NEXT / AVOID FOR NOW
 Three clear boxes. Each action includes what to do and why.
 
-### SECTION 11: 30–60–90 DAY ROADMAP
+### SECTION 12: 30–60–90 DAY ROADMAP
 Three phases with specific tasks, owners, effort estimates, and outputs. Include 90-day success metrics.
 
-### SECTION 12: KEY QUOTES
-Capture 3–5 direct quotes from the client's answers that reveal their mindset, priorities, or hidden constraints.
+### SECTION 13: KEY QUOTES
+Capture 4–6 direct quotes from the client's answers (business or owner sections) that reveal their mindset, priorities, or hidden constraints.
 
-### SECTION 13: CONSULTANT NOTES FOR DARREN
-What stood out. What the client didn't say but implied. What to probe in the next conversation. Any risks or red flags.
+### SECTION 14: CONSULTANT NOTES FOR DARREN
+What stood out. What the client didn't say but implied. What to probe in the next conversation. Any risks or red flags. Note especially any mismatch between where the business needs AI and where the OWNER wants AI — that gap is where engagements succeed or fail.
 
 Be specific, direct, and honest. Do not soften constraints or inflate readiness scores. Use the client's actual language where it reveals something true about how they think.`;
 }
