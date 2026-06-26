@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bridge To AI — Business Discovery Session</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #0f0f0f;
+    --ink-mid: #4a4a4a;
+    --ink-soft: #8a8a8a;
+    --surface: #fafaf8;
+    --surface-raised: #ffffff;
+    --border: #e4e2dd;
+    --bridge-teal: #0d6e5e;
+    --bridge-teal-light: #e8f4f1;
+    --bridge-teal-mid: #1a9880;
+    --accent: #c8a96e;
+    --danger: #c0392b;
+    --radius: 10px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.07);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--surface);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+  .header {
+    padding: 1.5rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-raised);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+  }
+
+  .logo-mark {
+    width: 36px;
+    height: 36px;
+    background: var(--bridge-teal);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .logo-mark svg { width: 20px; height: 20px; fill: white; }
+
+  .logo-text {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.15rem;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+
+  .logo-text span { color: var(--bridge-teal); }
+
+  .header-tag {
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  /* ── Main layout ── */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 3rem 1.5rem 4rem;
+  }
+
+  /* ── Screens ── */
+  .screen { display: none; width: 100%; max-width: 640px; }
+  .screen.active { display: flex; flex-direction: column; }
+
+  /* ── Welcome screen ── */
+  .welcome-eyebrow {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--bridge-teal);
+    margin-bottom: 1rem;
+  }
+
+  .welcome-headline {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2.4rem;
+    line-height: 1.15;
+    color: var(--ink);
+    margin-bottom: 1.25rem;
+    letter-spacing: -0.02em;
+  }
+
+  .welcome-headline em {
+    font-style: italic;
+    color: var(--bridge-teal);
+  }
+
+  .welcome-body {
+    font-size: 1rem;
+    line-height: 1.75;
+    color: var(--ink-mid);
+    margin-bottom: 2rem;
+  }
+
+  .welcome-steps {
+    background: var(--bridge-teal-light);
+    border: 1px solid #b8ddd7;
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .welcome-steps p {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--bridge-teal);
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .step-list { list-style: none; }
+
+  .step-list li {
+    font-size: 0.92rem;
+    color: var(--ink-mid);
+    padding: 0.35rem 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    line-height: 1.5;
+  }
+
+  .step-num {
+    width: 20px;
+    height: 20px;
+    background: var(--bridge-teal);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .name-field {
+    margin-bottom: 1.5rem;
+  }
+
+  .name-field label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--ink-mid);
+    margin-bottom: 0.5rem;
+  }
+
+  .name-field input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    color: var(--ink);
+    background: var(--surface-raised);
+    transition: border-color 0.15s;
+    outline: none;
+  }
+
+  .name-field input:focus { border-color: var(--bridge-teal); }
+
+  /* ── Buttons ── */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.85rem 2rem;
+    background: var(--bridge-teal);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .btn-primary:hover { background: var(--bridge-teal-mid); }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-primary:disabled { background: #9ab8b3; cursor: not-allowed; }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.7rem 1.5rem;
+    background: transparent;
+    color: var(--ink-mid);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+
+  .btn-secondary:hover { border-color: var(--ink-mid); color: var(--ink); }
+
+  /* ── Progress ── */
+  .progress-wrap {
+    margin-bottom: 2rem;
+  }
+
+  .progress-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+
+  .progress-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--bridge-teal);
+  }
+
+  .progress-count {
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+  }
+
+  .progress-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--bridge-teal);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+
+  /* ── Question card ── */
+  .question-domain {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.6rem;
+  }
+
+  .question-text {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.6rem;
+    line-height: 1.3;
+    color: var(--ink);
+    margin-bottom: 0.6rem;
+    letter-spacing: -0.01em;
+  }
+
+  .question-hint {
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+  }
+
+  /* ── Voice input area ── */
+  .input-area {
+    background: var(--surface-raised);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 1rem;
+    box-shadow: var(--shadow);
+    transition: border-color 0.15s;
+  }
+
+  .input-area:focus-within { border-color: var(--bridge-teal); }
+
+  .transcript-box {
+    min-height: 140px;
+    padding: 1rem 1.25rem;
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: var(--ink);
+    outline: none;
+    border: none;
+    width: 100%;
+    resize: vertical;
+    font-family: 'Inter', sans-serif;
+    background: transparent;
+  }
+
+  .transcript-box:empty::before {
+    content: attr(data-placeholder);
+    color: var(--ink-soft);
+    pointer-events: none;
+  }
+
+  .input-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 1rem;
+    border-top: 1px solid var(--border);
+    background: #f7f6f3;
+  }
+
+  .voice-btn {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0.45rem 0.9rem;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    background: white;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--ink-mid);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .voice-btn:hover { border-color: var(--bridge-teal); color: var(--bridge-teal); }
+
+  .voice-btn.recording {
+    border-color: var(--danger);
+    color: var(--danger);
+    background: #fdf2f2;
+    animation: pulse-border 1.2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-border {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(192,57,43,0.3); }
+    50% { box-shadow: 0 0 0 4px rgba(192,57,43,0); }
+  }
+
+  .mic-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .voice-btn.recording .mic-dot {
+    animation: blink 0.8s ease-in-out infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
+
+  .char-count {
+    font-size: 0.75rem;
+    color: var(--ink-soft);
+  }
+
+  /* ── Navigation ── */
+  .nav-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.5rem;
+  }
+
+  /* ── Processing screen ── */
+  .processing-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 3rem 1rem;
+  }
+
+  .spinner {
+    width: 52px;
+    height: 52px;
+    border: 3px solid var(--border);
+    border-top-color: var(--bridge-teal);
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+    margin-bottom: 1.5rem;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .processing-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.5rem;
+    color: var(--ink);
+    margin-bottom: 0.75rem;
+  }
+
+  .processing-body {
+    font-size: 0.92rem;
+    color: var(--ink-mid);
+    line-height: 1.7;
+    max-width: 420px;
+  }
+
+  .processing-steps {
+    margin-top: 2rem;
+    text-align: left;
+    width: 100%;
+    max-width: 360px;
+  }
+
+  .p-step {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0.6rem 0;
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .p-step:last-child { border-bottom: none; }
+  .p-step.done { color: var(--bridge-teal); }
+  .p-step.active { color: var(--ink); font-weight: 500; }
+
+  .p-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1.5px solid currentColor;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 0.65rem;
+  }
+
+  .p-step.done .p-icon { background: var(--bridge-teal); border-color: var(--bridge-teal); color: white; }
+  .p-step.active .p-icon { border-color: var(--bridge-teal); }
+
+  /* ── Completion screen ── */
+  .complete-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 2rem 1rem 3rem;
+  }
+
+  .complete-icon {
+    width: 72px;
+    height: 72px;
+    background: var(--bridge-teal-light);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .complete-icon svg { width: 36px; height: 36px; stroke: var(--bridge-teal); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .complete-headline {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2rem;
+    color: var(--ink);
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.02em;
+  }
+
+  .complete-sub {
+    font-size: 1rem;
+    color: var(--ink-mid);
+    line-height: 1.7;
+    max-width: 480px;
+    margin-bottom: 2.5rem;
+  }
+
+  .next-steps {
+    width: 100%;
+    max-width: 480px;
+    text-align: left;
+  }
+
+  .next-steps-title {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: 1rem;
+  }
+
+  .next-step-card {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .next-step-num {
+    width: 28px;
+    height: 28px;
+    background: var(--bridge-teal);
+    border-radius: 50%;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.78rem;
+    font-weight: 600;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .next-step-content { flex: 1; }
+  .next-step-title { font-size: 0.92rem; font-weight: 600; color: var(--ink); margin-bottom: 3px; }
+  .next-step-desc { font-size: 0.85rem; color: var(--ink-mid); line-height: 1.5; }
+
+  .complete-footer {
+    margin-top: 2rem;
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+    line-height: 1.6;
+  }
+
+  .complete-footer a { color: var(--bridge-teal); text-decoration: none; }
+
+  /* ── Error banner ── */
+  .error-banner {
+    background: #fdf2f2;
+    border: 1px solid #f5c6c6;
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
+    font-size: 0.88rem;
+    color: var(--danger);
+    margin-bottom: 1rem;
+    display: none;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    padding: 1.25rem 2rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .footer-copy {
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+  }
+
+  .footer-privacy {
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .lock-icon { width: 12px; height: 12px; }
+
+  @media (max-width: 600px) {
+    .welcome-headline { font-size: 1.8rem; }
+    .question-text { font-size: 1.3rem; }
+    .main { padding: 2rem 1rem 3rem; }
+    .header { padding: 1rem 1.25rem; }
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+      </svg>
+    </div>
+    <span class="logo-text">Bridge <span>To AI</span></span>
+  </div>
+  <span class="header-tag">Business Discovery Session</span>
+</header>
+
+<main class="main">
+
+  <!-- ── Screen 1: Welcome ── -->
+  <div class="screen active" id="screen-welcome">
+    <div class="welcome-eyebrow">Confidential — for your eyes only</div>
+    <h1 class="welcome-headline">Let's understand your business <em>before</em> we talk about AI.</h1>
+    <p class="welcome-body">
+      This session takes about 20–30 minutes. There are no right or wrong answers —
+      the more honest you are, the more useful your custom AI system will be.
+      Your answers are sent directly and privately to Darren. No one else sees them.
+    </p>
+
+    <div class="welcome-steps">
+      <p>How this works</p>
+      <ul class="step-list">
+        <li><span class="step-num">1</span> You'll be asked one question at a time across 8 areas of your business.</li>
+        <li><span class="step-num">2</span> Speak your answer using the microphone, or type it directly.</li>
+        <li><span class="step-num">3</span> Review what was captured, edit if needed, then hit Continue.</li>
+        <li><span class="step-num">4</span> When you're done, your answers go straight to Darren — not to the internet.</li>
+      </ul>
+    </div>
+
+    <div class="name-field">
+      <label for="client-name">Your name and business name</label>
+      <input type="text" id="client-name" placeholder="e.g. Jane Smith — Acme Plumbing Ltd." autocomplete="off" />
+    </div>
+
+    <div class="name-field">
+      <label for="business-category">What type of business are you in?</label>
+      <input type="text" id="business-category" placeholder="e.g. food broker, trades contractor, law firm..." autocomplete="off" />
+    </div>
+
+    <div id="welcome-error" class="error-banner">Please enter your name and business category before continuing.</div>
+
+    <button class="btn-primary" onclick="startInterview()" style="width:100%;">
+      Begin my discovery session →
+    </button>
+  </div>
+
+  <!-- ── Screen 2: Interview ── -->
+  <div class="screen" id="screen-interview">
+    <div class="progress-wrap">
+      <div class="progress-meta">
+        <span class="progress-label" id="progress-label">Domain 1 of 8</span>
+        <span class="progress-count" id="progress-count">Question 1 of 11</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill" style="width: 9%"></div>
+      </div>
+    </div>
+
+    <div class="question-domain" id="q-domain"></div>
+    <div class="question-text" id="q-text"></div>
+    <div class="question-hint" id="q-hint"></div>
+
+    <div id="answer-error" class="error-banner">Please share your thoughts before continuing — there are no wrong answers.</div>
+
+    <div class="input-area">
+      <div
+        class="transcript-box"
+        id="transcript"
+        contenteditable="true"
+        data-placeholder="Speak using the microphone below, or type your answer here..."
+      ></div>
+      <div class="input-toolbar">
+        <button class="voice-btn" id="voice-btn" onclick="toggleRecording()">
+          <span class="mic-dot"></span>
+          <span id="voice-label">Hold to speak</span>
+        </button>
+        <span class="char-count" id="char-count">0 words</span>
+      </div>
+    </div>
+
+    <div class="nav-row">
+      <button class="btn-secondary" id="btn-back" onclick="prevQuestion()">← Back</button>
+      <button class="btn-primary" id="btn-next" onclick="nextQuestion()">Continue →</button>
+    </div>
+  </div>
+
+  <!-- ── Screen 3: Processing ── -->
+  <div class="screen" id="screen-processing">
+    <div class="processing-wrap">
+      <div class="spinner"></div>
+      <div class="processing-title">Building your business profile...</div>
+      <p class="processing-body">
+        Your answers are being compiled into a private business profile.
+        This takes about 30 seconds. Please don't close this tab.
+      </p>
+      <div class="processing-steps">
+        <div class="p-step active" id="pstep-1">
+          <div class="p-icon">1</div>
+          Reviewing your answers
+        </div>
+        <div class="p-step" id="pstep-2">
+          <div class="p-icon">2</div>
+          Building your business DNA profile
+        </div>
+        <div class="p-step" id="pstep-3">
+          <div class="p-icon">3</div>
+          Identifying AI opportunities
+        </div>
+        <div class="p-step" id="pstep-4">
+          <div class="p-icon">4</div>
+          Sending your profile to Darren
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Screen 4: Complete ── -->
+  <div class="screen" id="screen-complete">
+    <div class="complete-wrap">
+      <div class="complete-icon">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+      </div>
+      <h2 class="complete-headline">You're all done.</h2>
+      <p class="complete-sub" id="complete-message">
+        Thank you. Your business profile has been sent to Darren securely.
+        He'll review it before your next conversation and use it to build
+        something that actually fits how your business works.
+      </p>
+
+      <div class="next-steps">
+        <div class="next-steps-title">What happens next</div>
+
+        <div class="next-step-card">
+          <div class="next-step-num">1</div>
+          <div class="next-step-content">
+            <div class="next-step-title">Darren reviews your profile</div>
+            <div class="next-step-desc">Within 24 hours, Darren will review your answers and identify the highest-value AI opportunities for your business.</div>
+          </div>
+        </div>
+
+        <div class="next-step-card">
+          <div class="next-step-num">2</div>
+          <div class="next-step-content">
+            <div class="next-step-title">You'll receive a custom AI roadmap</div>
+            <div class="next-step-desc">Darren will share a prioritized plan showing exactly where AI can save you the most time — specific to your business, not generic advice.</div>
+          </div>
+        </div>
+
+        <div class="next-step-card">
+          <div class="next-step-num">3</div>
+          <div class="next-step-content">
+            <div class="next-step-title">Your workbench gets built</div>
+            <div class="next-step-desc">Once the roadmap is agreed, Darren builds your custom AI workbench — a private dashboard that starts saving you hours every week.</div>
+          </div>
+        </div>
+      </div>
+
+      <p class="complete-footer">
+        Questions? Reach Darren at <a href="mailto:darren@bridgetoai.ca">darren@bridgetoai.ca</a><br>
+        Your answers are private and will never be shared outside of your engagement.
+      </p>
+    </div>
+  </div>
+
+</main>
+
+<footer class="footer">
+  <span class="footer-copy">© 2026 Bridge To AI — Kandar Consulting</span>
+  <span class="footer-privacy">
+    <svg class="lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+    </svg>
+    Your answers are private and encrypted
+  </span>
+</footer>
+
+<script>
+// ── Configuration ──────────────────────────────────────────────────────────
+// IMPORTANT: Replace these with your actual values before deploying
+const CONFIG = {
+  ANTHROPIC_API_KEY: 'YOUR_ANTHROPIC_API_KEY',   // Set as Vercel environment variable
+  EMAIL_ENDPOINT: '/api/send-email',              // Vercel serverless function endpoint
+  DARREN_EMAIL: 'darren@bridgetoai.ca',           // Your email address
+};
+
+// ── Questions ──────────────────────────────────────────────────────────────
+const QUESTIONS = [
+  {
+    domain: 'Business Model & Direction',
+    text: 'What does your business sell, who do you sell it to, and how does money actually come in?',
+    hint: 'Think about your core product or service, your best customers, and whether revenue is one-time, recurring, or project-based.'
+  },
+  {
+    domain: 'Business Model & Direction',
+    text: 'Where is your business stuck or growing slower than you want it to — and what\'s getting in the way?',
+    hint: 'Be honest here. Growth blockers could be time, money, systems, people, or clarity about direction.'
+  },
+  {
+    domain: 'Customer Reality',
+    text: 'Describe your best customer in detail — who are they, what do they care about, and why do they choose you over anyone else?',
+    hint: 'Think about 2 or 3 real clients you love working with. What do they have in common?'
+  },
+  {
+    domain: 'Customer Reality',
+    text: 'What do your customers complain about most — and where do relationships go wrong or clients leave?',
+    hint: 'Every business has friction points. Where do things break down in the customer experience?'
+  },
+  {
+    domain: 'Revenue Engine',
+    text: 'Walk me through what happens from the moment someone hears about you to the moment money changes hands.',
+    hint: 'Every step — how they find you, the first conversation, the proposal, the decision, the payment.'
+  },
+  {
+    domain: 'Operations & Delivery',
+    text: 'After a client says yes, what happens? Walk me through how the work actually gets done, step by step.',
+    hint: 'Who does what, in what order? What are the handoffs? Where do things slow down or go wrong?'
+  },
+  {
+    domain: 'People & Decision-Making',
+    text: 'What would stop working or slow down immediately if you were unavailable for two weeks?',
+    hint: 'Think about what lives only in your head, what only you can approve, and what your team couldn\'t do without you.'
+  },
+  {
+    domain: 'Information & Systems',
+    text: 'Where does the important information in your business actually live right now — client details, job history, communications, finances?',
+    hint: 'Think about your tools: email, spreadsheets, CRM, accounting software, paper files, people\'s heads.'
+  },
+  {
+    domain: 'AI Opportunity',
+    text: 'What tasks do you or your team do repeatedly that feel like they shouldn\'t require this much time or brainpower?',
+    hint: 'Think about what you do more than 5 times a week that involves reading, writing, searching, formatting, or copying information.'
+  },
+  {
+    domain: 'Risk & Adoption',
+    text: 'What concerns do you have about bringing AI into your business — and what has blocked new technology from sticking in the past?',
+    hint: 'Privacy, accuracy, cost, team resistance, compliance — what would make you hesitate or say no?'
+  },
+  {
+    domain: 'Closing',
+    text: 'If you could fix one thing in your business in the next 90 days — and everything else stayed the same — what would it be?',
+    hint: 'The single most important change. Don\'t overthink it — your first instinct is usually right.'
+  }
+];
+
+// ── State ──────────────────────────────────────────────────────────────────
+let currentQ = 0;
+let answers = [];
+let clientName = '';
+let businessCategory = '';
+let recognition = null;
+let isRecording = false;
+
+// ── Screen management ──────────────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+// ── Welcome → Interview ────────────────────────────────────────────────────
+function startInterview() {
+  clientName = document.getElementById('client-name').value.trim();
+  businessCategory = document.getElementById('business-category').value.trim();
+  const err = document.getElementById('welcome-error');
+
+  if (!clientName || !businessCategory) {
+    err.style.display = 'block';
+    return;
+  }
+  err.style.display = 'none';
+  answers = new Array(QUESTIONS.length).fill('');
+  showScreen('screen-interview');
+  renderQuestion();
+}
+
+// ── Render current question ────────────────────────────────────────────────
+function renderQuestion() {
+  const q = QUESTIONS[currentQ];
+  const total = QUESTIONS.length;
+  const pct = Math.round(((currentQ + 1) / total) * 100);
+
+  document.getElementById('q-domain').textContent = q.domain;
+  document.getElementById('q-text').textContent = q.text;
+  document.getElementById('q-hint').textContent = q.hint;
+  document.getElementById('progress-label').textContent = q.domain;
+  document.getElementById('progress-count').textContent = `Question ${currentQ + 1} of ${total}`;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('btn-back').style.visibility = currentQ === 0 ? 'hidden' : 'visible';
+  document.getElementById('btn-next').textContent = currentQ === total - 1 ? 'Submit answers →' : 'Continue →';
+  document.getElementById('answer-error').style.display = 'none';
+
+  const box = document.getElementById('transcript');
+  box.textContent = answers[currentQ] || '';
+  updateWordCount();
+
+  if (isRecording) stopRecording();
+}
+
+// ── Navigation ─────────────────────────────────────────────────────────────
+function saveCurrentAnswer() {
+  answers[currentQ] = document.getElementById('transcript').innerText.trim();
+}
+
+function nextQuestion() {
+  saveCurrentAnswer();
+  const answer = answers[currentQ];
+  if (!answer || answer.length < 5) {
+    document.getElementById('answer-error').style.display = 'block';
+    return;
+  }
+  document.getElementById('answer-error').style.display = 'none';
+
+  if (currentQ < QUESTIONS.length - 1) {
+    currentQ++;
+    renderQuestion();
+  } else {
+    submitInterview();
+  }
+}
+
+function prevQuestion() {
+  saveCurrentAnswer();
+  if (currentQ > 0) {
+    currentQ--;
+    renderQuestion();
+  }
+}
+
+// ── Word count ─────────────────────────────────────────────────────────────
+document.getElementById('transcript').addEventListener('input', updateWordCount);
+
+function updateWordCount() {
+  const text = document.getElementById('transcript').innerText.trim();
+  const words = text ? text.split(/\s+/).filter(Boolean).length : 0;
+  document.getElementById('char-count').textContent = words + (words === 1 ? ' word' : ' words');
+}
+
+// ── Voice recording ────────────────────────────────────────────────────────
+function toggleRecording() {
+  if (isRecording) {
+    stopRecording();
+  } else {
+    startRecording();
+  }
+}
+
+function startRecording() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    alert('Voice input is not supported in this browser. Please use Chrome or Edge, or type your answer.');
+    return;
+  }
+
+  recognition = new SpeechRecognition();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.lang = 'en-CA';
+
+  const box = document.getElementById('transcript');
+  let baseText = box.innerText.trim();
+  if (baseText) baseText += ' ';
+
+  recognition.onresult = (e) => {
+    let interim = '';
+    let final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) {
+        final += e.results[i][0].transcript + ' ';
+      } else {
+        interim += e.results[i][0].transcript;
+      }
+    }
+    if (final) baseText += final;
+    box.textContent = baseText + interim;
+    updateWordCount();
+  };
+
+  recognition.onerror = (e) => {
+    if (e.error !== 'no-speech') stopRecording();
+  };
+
+  recognition.onend = () => {
+    if (isRecording) recognition.start();
+  };
+
+  recognition.start();
+  isRecording = true;
+
+  const btn = document.getElementById('voice-btn');
+  btn.classList.add('recording');
+  document.getElementById('voice-label').textContent = 'Recording — tap to stop';
+}
+
+function stopRecording() {
+  if (recognition) {
+    recognition.onend = null;
+    recognition.stop();
+    recognition = null;
+  }
+  isRecording = false;
+  const btn = document.getElementById('voice-btn');
+  btn.classList.remove('recording');
+  document.getElementById('voice-label').textContent = 'Hold to speak';
+}
+
+// ── Submit & process ───────────────────────────────────────────────────────
+async function submitInterview() {
+  showScreen('screen-processing');
+  animateProcessingSteps();
+
+  try {
+    const dnaContent = await generateDNAWithClaude();
+    await sendEmailWithDNA(dnaContent);
+    showScreen('screen-complete');
+    document.getElementById('complete-message').textContent =
+      `Thank you, ${clientName.split('—')[0].trim()}. Your business profile has been sent to Darren securely. He'll review it before your next conversation and use it to build something that actually fits how your business works.`;
+  } catch (err) {
+    console.error('Submission error:', err);
+    showScreen('screen-complete');
+  }
+}
+
+function animateProcessingSteps() {
+  const steps = ['pstep-1', 'pstep-2', 'pstep-3', 'pstep-4'];
+  let i = 0;
+  const interval = setInterval(() => {
+    if (i > 0) {
+      document.getElementById(steps[i - 1]).classList.remove('active');
+      document.getElementById(steps[i - 1]).classList.add('done');
+      document.getElementById(steps[i - 1]).querySelector('.p-icon').textContent = '✓';
+    }
+    if (i < steps.length) {
+      document.getElementById(steps[i]).classList.add('active');
+      i++;
+    } else {
+      clearInterval(interval);
+    }
+  }, 2000);
+}
+
+// ── Build prompt for Claude ────────────────────────────────────────────────
+function buildPrompt() {
+  let qa = '';
+  QUESTIONS.forEach((q, i) => {
+    qa += `\nDOMAIN: ${q.domain}\nQUESTION: ${q.text}\nANSWER: ${answers[i] || '(no answer provided)'}\n`;
+  });
+
+  return `You are a business analyst for Bridge To AI, an AI implementation consulting firm run by Darren Randles (Kandar Consulting, Alberta, Canada).
+
+A new client has just completed their Business DNA Discovery Interview. Your job is to produce a complete, structured Business DNA file from their answers. This file is CONFIDENTIAL — it goes directly to Darren, not to the client.
+
+CLIENT INFORMATION:
+Name / Business: ${clientName}
+Business Category: ${businessCategory}
+Interview Date: ${new Date().toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' })}
+
+INTERVIEW ANSWERS:
+${qa}
+
+Produce a complete Business DNA file in markdown format with these sections:
+
+# [BUSINESS NAME] — VENTURE DNA
+## Business DNA Interview | ${new Date().toLocaleDateString('en-CA')}
+
+### SECTION 1: CLIENT IDENTITY
+Business name, owner, category, date, interview method.
+
+### SECTION 2: WHAT THIS BUSINESS DOES
+2–3 sentence summary of their revenue model, core deliverable, and who benefits. Use their actual words where possible.
+
+### SECTION 3: IDEAL CLIENT PROFILE
+Who they serve, who they don't, what triggers a buying decision, what success looks like for their clients.
+
+### SECTION 4: REVENUE ENGINE
+How leads come in, how sales happen, where deals stall, what the conversion process looks like.
+
+### SECTION 5: OPERATIONS & DELIVERY
+How work moves from sale to result. Key steps, handoffs, recurring workflows, where things slow down.
+
+### SECTION 6: INFORMATION & SYSTEMS
+Where data lives, what tools are in use, data quality issues, what decisions are made without good information.
+
+### SECTION 7: PEOPLE & DECISION-MAKING
+Who owns what, where tribal knowledge is locked, where decisions require the owner, what would break without them.
+
+### SECTION 8: AI OPPORTUNITY PORTFOLIO
+List 5–8 specific AI opportunities ranked by Impact × Feasibility (both scored 1–5, multiply). Format as a table.
+
+### SECTION 9: READINESS SCORECARD
+Score these 5 dimensions 1–5 with one-line finding each:
+- Data & Information Quality
+- Workflow Documentation
+- Tools & Tech Stack
+- People & Change Readiness
+- Risk & Compliance Posture
+Total score out of 25. Assign a readiness tier: Launch-Ready (21-25), Near-Ready (16-20), Foundation First (11-15), Rebuild Required (6-10).
+
+### SECTION 10: DO NOW / BUILD NEXT / AVOID FOR NOW
+Three clear boxes. Each action includes what to do and why.
+
+### SECTION 11: 30–60–90 DAY ROADMAP
+Three phases with specific tasks, owners, effort estimates, and outputs. Include 90-day success metrics.
+
+### SECTION 12: KEY QUOTES
+Capture 3–5 direct quotes from the client's answers that reveal their mindset, priorities, or hidden constraints.
+
+### SECTION 13: CONSULTANT NOTES FOR DARREN
+What stood out. What the client didn't say but implied. What to probe in the next conversation. Any risks or red flags.
+
+Be specific, direct, and honest. Do not soften constraints or inflate readiness scores. Use the client's actual language where it reveals something true about how they think.`;
+}
+
+// ── Call Anthropic API ─────────────────────────────────────────────────────
+async function generateDNAWithClaude() {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': CONFIG.ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 4000,
+      messages: [{ role: 'user', content: buildPrompt() }]
+    })
+  });
+
+  if (!response.ok) throw new Error('API call failed');
+  const data = await response.json();
+  return data.content[0].text;
+}
+
+// ── Send email via serverless function ────────────────────────────────────
+async function sendEmailWithDNA(dnaContent) {
+  const payload = {
+    to: CONFIG.DARREN_EMAIL,
+    subject: `New DNA Interview Complete — ${clientName} (${businessCategory})`,
+    clientName,
+    businessCategory,
+    date: new Date().toLocaleDateString('en-CA'),
+    dnaContent
+  };
+
+  const response = await fetch(CONFIG.EMAIL_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) throw new Error('Email send failed');
+}
+</script>
+</body>
+</html>
