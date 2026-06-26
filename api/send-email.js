@@ -78,7 +78,7 @@ ${dnaContent}
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: 'Bridge To AI <intake@bridgetoai.ca>',
+        from: 'Bridge To AI <onboarding@resend.dev>',
         to: [to],
         subject: subject,
         html: htmlBody,
