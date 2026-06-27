@@ -1,0 +1,54 @@
+// api/mastery-followup.js
+// Generates a reflective follow-up for an owner-mastery answer: picks up
+// something specific the client said and asks what AI handling it would change.
+// Returns the follow-up text, or "NONE" to fall back to the generic line.
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const { area, answer, businessCategory } = req.body;
+  if (!answer) return res.status(400).json({ error: 'Missing answer' });
+
+  const prompt = `You are conducting a warm, professional business discovery interview for a ${businessCategory || 'small business'} owner. You just asked them where they are with "${area}". They answered:
+
+"${answer}"
+
+Write ONE short follow-up question that:
+- Picks up a SPECIFIC thing they actually said (name it, quote a phrase or detail from their answer)
+- Then asks what it would free them up to do, or how it would change things, if AI quietly handled that specific thing for them
+- Sounds human and conversational, not robotic — one sentence, no preamble
+
+If their answer is too vague or thin to reflect anything specific back, respond with exactly: NONE
+
+Output ONLY the question, or "NONE". Nothing else.`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 150,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!response.ok) {
+      return res.status(200).json({ followup: 'NONE' });
+    }
+
+    const data = await response.json();
+    const followup = (data.content && data.content[0] && data.content[0].text) ? data.content[0].text.trim() : 'NONE';
+    return res.status(200).json({ followup });
+
+  } catch (err) {
+    console.error('Mastery follow-up error:', err);
+    return res.status(200).json({ followup: 'NONE' });
+  }
+}

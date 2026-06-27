@@ -82,6 +82,20 @@
     color: var(--ink-soft);
   }
 
+  .header-tag-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+  }
+
+  .header-version {
+    font-size: 0.6rem;
+    color: var(--ink-soft);
+    opacity: 0.5;
+    letter-spacing: 0.04em;
+  }
+
   /* ── Main layout ── */
   .main {
     flex: 1;
@@ -196,6 +210,39 @@
   }
 
   .name-field input:focus { border-color: var(--bridge-teal); }
+
+  .dept-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .dept-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0.5rem 0.85rem;
+    border: 1.5px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface-raised);
+    font-size: 0.85rem;
+    color: var(--ink-mid);
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+
+  .dept-pill:hover { border-color: var(--bridge-teal-mid); }
+
+  .dept-pill input { accent-color: var(--bridge-teal); cursor: pointer; margin: 0; }
+
+  .dept-pill:has(input:checked) {
+    border-color: var(--bridge-teal);
+    background: var(--bridge-teal-light);
+    color: var(--bridge-teal);
+    font-weight: 500;
+  }
 
   /* ── Buttons ── */
   .btn-primary {
@@ -402,6 +449,18 @@
     justify-content: space-between;
     align-items: center;
     margin-top: 0.5rem;
+    gap: 1rem;
+  }
+
+  .nav-reassure {
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    text-align: center;
+    flex: 1;
+  }
+
+  @media (max-width: 600px) {
+    .nav-reassure { display: none; }
   }
 
   /* ── Processing screen ── */
@@ -622,7 +681,10 @@
     </div>
     <span class="logo-text">Bridge <span>To AI</span></span>
   </div>
-  <span class="header-tag">Business Discovery Session</span>
+  <div class="header-tag-wrap">
+    <span class="header-tag">Business Discovery Session</span>
+    <span class="header-version">v1.41</span>
+  </div>
 </header>
 
 <main class="main">
@@ -634,22 +696,27 @@
     <p class="welcome-body">
       This session takes about 20–30 minutes. There are no right or wrong answers —
       the more honest you are, the more useful your custom AI system will be.
-      Your answers are sent directly and privately to Darren. No one else sees them.
+      Your answers are kept private and secure, used only to prepare your custom AI plan.
     </p>
 
     <div class="welcome-steps">
       <p>How this works</p>
       <ul class="step-list">
-        <li><span class="step-num">1</span> You'll be guided through 8 areas of your business, then a short reflection on you as the owner.</li>
+        <li><span class="step-num">1</span> You'll start with a quick scenario, then move through 8 areas of your business and a short reflection on you as the owner.</li>
         <li><span class="step-num">2</span> Speak your answer using the microphone, or type it directly.</li>
         <li><span class="step-num">3</span> Review what was captured, edit if needed, then hit Continue.</li>
-        <li><span class="step-num">4</span> A few questions may have a quick follow-up. When you're done, your answers go straight to Darren.</li>
+        <li><span class="step-num">4</span> A few questions may have a quick follow-up. When you're done, your answers are encrypted and used only to build your profile — never shared, never sold, never made public.</li>
       </ul>
     </div>
 
     <div class="name-field">
-      <label for="client-name">Your name and business name</label>
-      <input type="text" id="client-name" placeholder="e.g. Jane Smith — Acme Plumbing Ltd." autocomplete="off" />
+      <label for="client-name">Your name</label>
+      <input type="text" id="client-name" placeholder="e.g. Jane Smith" autocomplete="off" />
+    </div>
+
+    <div class="name-field">
+      <label for="business-name">Your business name</label>
+      <input type="text" id="business-name" placeholder="e.g. Acme Plumbing Ltd." autocomplete="off" />
     </div>
 
     <div class="name-field">
@@ -657,7 +724,28 @@
       <input type="text" id="business-category" placeholder="e.g. food broker, trades contractor, law firm..." autocomplete="off" />
     </div>
 
-    <div id="welcome-error" class="error-banner">Please enter your name and business category before continuing.</div>
+    <div class="name-field">
+      <label for="company-size">Roughly how many people work in your business?</label>
+      <input type="text" id="company-size" placeholder="e.g. 1, 8, 45..." autocomplete="off" inputmode="numeric" />
+    </div>
+
+    <div class="name-field">
+      <label>Which departments or functions does your business have? <span style="font-weight:400;color:var(--ink-soft);">(tap all that apply)</span></label>
+      <div class="dept-grid">
+        <label class="dept-pill"><input type="checkbox" value="Sales"><span>Sales</span></label>
+        <label class="dept-pill"><input type="checkbox" value="Marketing"><span>Marketing</span></label>
+        <label class="dept-pill"><input type="checkbox" value="Operations"><span>Operations</span></label>
+        <label class="dept-pill"><input type="checkbox" value="Finance / Accounting"><span>Finance / Accounting</span></label>
+        <label class="dept-pill"><input type="checkbox" value="Customer Service"><span>Customer Service</span></label>
+        <label class="dept-pill"><input type="checkbox" value="Production / Fulfillment"><span>Production / Fulfillment</span></label>
+        <label class="dept-pill"><input type="checkbox" value="HR / People"><span>HR / People</span></label>
+        <label class="dept-pill"><input type="checkbox" value="IT / Tech"><span>IT / Tech</span></label>
+        <label class="dept-pill"><input type="checkbox" value="Admin"><span>Admin</span></label>
+        <label class="dept-pill"><input type="checkbox" value="It's mostly just me"><span>It's mostly just me</span></label>
+      </div>
+    </div>
+
+    <div id="welcome-error" class="error-banner">Please fill in your name, business name, and business type before continuing.</div>
 
     <button class="btn-primary" onclick="startInterview()" style="width:100%;">
       Begin my discovery session →
@@ -687,7 +775,7 @@
         class="transcript-box"
         id="transcript"
         contenteditable="true"
-        data-placeholder="Speak using the microphone below, or type your answer here..."
+        data-placeholder="Tap the mic and speak your answer. To fix or change anything, pause the mic first, then type — turn it back on to keep talking."
       ></div>
       <div class="input-toolbar">
         <button class="voice-btn" id="voice-btn" onclick="toggleRecording()">
@@ -700,6 +788,7 @@
 
     <div class="nav-row">
       <button class="btn-secondary" id="btn-back" onclick="prevQuestion()">← Back</button>
+      <span class="nav-reassure">You can go back anytime to review or change an answer</span>
       <button class="btn-primary" id="btn-next" onclick="nextQuestion()">Continue →</button>
     </div>
   </div>
@@ -728,7 +817,7 @@
         </div>
         <div class="p-step" id="pstep-4">
           <div class="p-icon">4</div>
-          Sending your profile to Darren
+          Encrypting files and sending to the Bridge
         </div>
       </div>
     </div>
@@ -742,8 +831,8 @@
       </div>
       <h2 class="complete-headline">You're all done.</h2>
       <p class="complete-sub" id="complete-message">
-        Thank you. Your business profile has been sent to Darren securely.
-        He'll review it before your next conversation and use it to build
+        Thank you. Your business profile has been encrypted and sent to the Bridge Team securely.
+        They'll review it before your next conversation and use it to build
         something that actually fits how your business works.
       </p>
 
@@ -753,8 +842,8 @@
         <div class="next-step-card">
           <div class="next-step-num">1</div>
           <div class="next-step-content">
-            <div class="next-step-title">Darren reviews your profile</div>
-            <div class="next-step-desc">Within 24 hours, Darren will review your answers and identify the highest-value AI opportunities for your business.</div>
+            <div class="next-step-title">The Bridge Team reviews your profile</div>
+            <div class="next-step-desc">Within 24 hours, the Bridge Team will review your answers and identify the highest-value AI opportunities for your business.</div>
           </div>
         </div>
 
@@ -762,7 +851,7 @@
           <div class="next-step-num">2</div>
           <div class="next-step-content">
             <div class="next-step-title">You'll receive a custom AI roadmap</div>
-            <div class="next-step-desc">Darren will share a prioritized plan showing exactly where AI can save you the most time — specific to your business, not generic advice.</div>
+            <div class="next-step-desc">The Bridge Team will share a prioritized plan showing exactly where AI can save you the most time — specific to your business, not generic advice.</div>
           </div>
         </div>
 
@@ -770,13 +859,13 @@
           <div class="next-step-num">3</div>
           <div class="next-step-content">
             <div class="next-step-title">Your workbench gets built</div>
-            <div class="next-step-desc">Once the roadmap is agreed, Darren builds your custom AI workbench — a private dashboard that starts saving you hours every week.</div>
+            <div class="next-step-desc">Once the roadmap is agreed, the Bridge Team builds your custom AI workbench — a private dashboard that starts saving you hours every week.</div>
           </div>
         </div>
       </div>
 
       <p class="complete-footer">
-        Questions? Reach Darren at <a href="mailto:darren@bridgetoai.ca">darren@bridgetoai.ca</a><br>
+        Questions? Reach the Bridge Team at <a href="mailto:team@bridgetoai.ca">team@bridgetoai.ca</a><br>
         Your answers are private and will never be shared outside of your engagement.
       </p>
     </div>
@@ -785,7 +874,7 @@
 </main>
 
 <footer class="footer">
-  <span class="footer-copy">© 2026 Bridge To AI — Kandar Consulting</span>
+  <span class="footer-copy">© 2026 Bridge To AI</span>
   <span class="footer-privacy">
     <svg class="lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
@@ -947,9 +1036,19 @@ const MASTERY_FOLLOWUP = 'And if AI quietly handled this area for you — what w
 let currentQ = 0;
 let answers = [];              // base answer per question index
 let masteryFollowups = [];     // mastery follow-up answer per question index (only mastery uses it)
-let domainProbes = {};         // { domainName: { question: '...', answer: '...' } }
+let masteryFollowupQ = [];     // the follow-up QUESTION shown for each mastery item (smart or generic)
+let domainProbes = {};         // { domainName: { question: '...', answer: '' } }
+// Voice & Standards scenario (near the start, tailored to business category)
+let scenarioText = '';         // the AI-generated scenario the client reacts to
+let scenarioGood = '';         // their "best/proud" reply
+let scenarioBad = '';          // their "bad/off-brand" reply
+let scenarioStage = null;      // null | 'good' | 'bad' — which beat is showing
+let scenarioDone = false;      // true once both beats are captured
 let clientName = '';
+let businessName = '';
 let businessCategory = '';
+let companySize = '';
+let departments = [];
 let recognition = null;
 let isRecording = false;
 
@@ -965,23 +1064,127 @@ function showScreen(id) {
 }
 
 // ── Welcome → Interview ────────────────────────────────────────────────────
-function startInterview() {
+async function startInterview() {
   clientName = document.getElementById('client-name').value.trim();
+  businessName = document.getElementById('business-name').value.trim();
   businessCategory = document.getElementById('business-category').value.trim();
+  companySize = document.getElementById('company-size').value.trim();
+  departments = Array.from(document.querySelectorAll('.dept-pill input:checked')).map(cb => cb.value);
   const err = document.getElementById('welcome-error');
 
-  if (!clientName || !businessCategory) {
+  if (!clientName || !businessName || !businessCategory) {
     err.style.display = 'block';
     return;
   }
   err.style.display = 'none';
   answers = new Array(QUESTIONS.length).fill('');
   masteryFollowups = new Array(QUESTIONS.length).fill('');
+  masteryFollowupQ = new Array(QUESTIONS.length).fill('');
   domainProbes = {};
+  scenarioText = '';
+  scenarioGood = '';
+  scenarioBad = '';
+  scenarioStage = null;
+  scenarioDone = false;
   currentQ = 0;
   subStep = 'main';
+
+  // Generate the tailored scenario, then run the two writing beats before Q1.
+  const startBtn = event && event.target ? event.target : null;
+  if (startBtn) { startBtn.disabled = true; startBtn.textContent = 'Setting up your session…'; }
+  await generateScenario();
+  if (startBtn) { startBtn.disabled = false; startBtn.textContent = 'Begin my discovery session →'; }
+
   showScreen('screen-interview');
-  renderQuestion();
+  scenarioStage = 'good';
+  renderScenario();
+}
+
+// ── Generate a business-tailored scenario ───────────────────────────────────
+async function generateScenario() {
+  try {
+    const resp = await fetch('/api/scenario', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ businessCategory })
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.scenario && data.scenario.trim()) scenarioText = data.scenario.trim();
+    }
+  } catch (e) { /* fall back below */ }
+
+  if (!scenarioText) {
+    scenarioText = 'A customer reaches out, clearly frustrated that something they were expecting from you is late, and they want to know what is going on.';
+  }
+}
+
+// ── Render the scenario beats (good reply, then bad reply) ───────────────────
+function renderScenario() {
+  document.getElementById('answer-error').style.display = 'none';
+  document.getElementById('btn-back').style.visibility = (scenarioStage === 'good') ? 'hidden' : 'visible';
+  document.getElementById('btn-next').textContent = 'Continue →';
+
+  // Progress: treat the 2 scenario beats as the very first steps
+  document.getElementById('progress-fill').style.width = '2%';
+
+  let label, text, hint, saved;
+  if (scenarioStage === 'good') {
+    label = 'Your Voice & Standards';
+    text = 'Read the situation below, then write the reply you\'d be proud of — the one that shows your business at its best.';
+    hint = 'SCENARIO: ' + scenarioText + '\n\nDon\'t worry about being polished. Write it the way you actually would, in your own words.';
+    saved = scenarioGood;
+    document.getElementById('progress-count').textContent = 'Your voice · best reply';
+  } else {
+    label = 'Your Voice & Standards';
+    text = 'Now write the kind of reply you\'ve seen go wrong — rushed, dismissive, or off-brand. The kind you\'d never want sent.';
+    hint = 'Same situation as before. Showing what "bad" looks like helps us understand your standards just as much as the good version.';
+    saved = scenarioBad;
+    document.getElementById('progress-count').textContent = 'Your voice · what to avoid';
+  }
+
+  document.getElementById('q-domain').textContent = label;
+  document.getElementById('q-text').textContent = text;
+  document.getElementById('q-hint').textContent = hint;
+  document.getElementById('progress-label').textContent = label;
+
+  const box = document.getElementById('transcript');
+  box.textContent = saved || '';
+  updateWordCount();
+  if (isRecording) stopRecording();
+}
+
+// ── Advance through the scenario beats ──────────────────────────────────────
+function nextScenario() {
+  const val = document.getElementById('transcript').innerText.trim();
+  if (!val || val.length < 5) {
+    document.getElementById('answer-error').style.display = 'block';
+    return;
+  }
+  document.getElementById('answer-error').style.display = 'none';
+
+  if (scenarioStage === 'good') {
+    scenarioGood = val;
+    scenarioStage = 'bad';
+    renderScenario();
+  } else {
+    scenarioBad = val;
+    scenarioDone = true;
+    scenarioStage = null;
+    // move into the main questionnaire
+    currentQ = 0;
+    subStep = 'main';
+    renderQuestion();
+  }
+}
+
+function prevScenario() {
+  const val = document.getElementById('transcript').innerText.trim();
+  if (scenarioStage === 'bad') {
+    scenarioBad = val;
+    scenarioStage = 'good';
+    renderScenario();
+  }
 }
 
 // ── Render current question ────────────────────────────────────────────────
@@ -1002,9 +1205,9 @@ function renderQuestion() {
   let savedValue = answers[currentQ] || '';
 
   if (subStep === 'followup') {
-    // Mastery second beat — the AI-future question
+    // Mastery second beat — smart reflective question if available, else generic
     domainLabel = q.domain + ' — looking ahead';
-    qText = MASTERY_FOLLOWUP;
+    qText = masteryFollowupQ[currentQ] || MASTERY_FOLLOWUP;
     qHint = 'There\'s no wrong answer. Picture it actually handled, and tell us what changes.';
     savedValue = masteryFollowups[currentQ] || '';
     countText = 'Follow-up';
@@ -1058,14 +1261,18 @@ function saveCurrentAnswer() {
   if (subStep === 'followup') {
     masteryFollowups[currentQ] = val;
   } else if (subStep === 'probe' && activeProbe) {
-    if (!domainProbes[activeProbe.domain]) domainProbes[activeProbe.domain] = { question: activeProbe.question, answer: '' };
+    if (!domainProbes[activeProbe.domain]) domainProbes[activeProbe.domain] = { question: activeProbe.question, answer: '', asked: true };
     domainProbes[activeProbe.domain].answer = val;
+    domainProbes[activeProbe.domain].asked = true;
   } else {
     answers[currentQ] = val;
   }
 }
 
 async function nextQuestion() {
+  // If we're in the opening scenario phase, handle that separately
+  if (scenarioStage) { nextScenario(); return; }
+
   saveCurrentAnswer();
   const val = document.getElementById('transcript').innerText.trim();
   if (!val || val.length < 3) {
@@ -1096,16 +1303,21 @@ async function nextQuestion() {
 
   // ── Main step ──
   if (q.section === 'mastery') {
-    // every mastery question gets its fixed AI-future follow-up
-    subStep = 'followup';
-    renderQuestion();
+    // Generate a smart, reflective follow-up conditionally; fall back to generic.
+    await runMasteryFollowup(currentQ);
     return;
   }
 
   // Business question: check if this is the LAST question of its domain
   const isDomainEnd = (currentQ === total - 1) || (QUESTIONS[currentQ + 1].domain !== q.domain) || (QUESTIONS[currentQ + 1].section !== 'business');
   if (isDomainEnd) {
-    // attempt an AI probe for this domain
+    // Probe-guard: only probe a domain once. If already probed on a prior pass,
+    // skip straight ahead (saves API calls, avoids repetition on backtrack).
+    if (domainProbes[q.domain] && domainProbes[q.domain].asked) {
+      if (currentQ < total - 1) { currentQ++; renderQuestion(); }
+      else { submitInterview(); }
+      return;
+    }
     await runDomainProbe(q.domain);
     return;
   }
@@ -1154,18 +1366,74 @@ async function runDomainProbe(domainName) {
 
   if (probeQuestion) {
     activeProbe = { domain: domainName, question: probeQuestion };
-    domainProbes[domainName] = { question: probeQuestion, answer: '' };
+    domainProbes[domainName] = { question: probeQuestion, answer: '', asked: true };
     subStep = 'probe';
     renderQuestion();
   } else {
-    // no probe needed — advance
+    // no probe needed — mark asked so we don't retry on backtrack, then advance
+    domainProbes[domainName] = { question: null, answer: '', asked: true };
     subStep = 'main';
     if (currentQ < total - 1) { currentQ++; renderQuestion(); }
     else { submitInterview(); }
   }
 }
 
+// ── Smart mastery follow-up: reflect back what they said, conditionally ──────
+async function runMasteryFollowup(qIndex) {
+  const q = QUESTIONS[qIndex];
+  const answer = answers[qIndex] || '';
+  const total = QUESTIONS.length;
+
+  // If we already generated a follow-up for this item (e.g. on backtrack), reuse it.
+  if (masteryFollowupQ[qIndex]) {
+    subStep = 'followup';
+    renderQuestion();
+    return;
+  }
+
+  // Thin answers don't get a smart follow-up — use the generic line directly.
+  if (answer.trim().split(/\s+/).filter(Boolean).length < 12) {
+    masteryFollowupQ[qIndex] = MASTERY_FOLLOWUP;
+    subStep = 'followup';
+    renderQuestion();
+    return;
+  }
+
+  const btn = document.getElementById('btn-next');
+  const originalLabel = btn.textContent;
+  btn.textContent = 'One moment…';
+  btn.disabled = true;
+
+  let followup = null;
+  try {
+    const resp = await fetch('/api/mastery-followup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ area: q.domain, answer, businessCategory })
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.followup && data.followup.trim() && data.followup.trim().toUpperCase() !== 'NONE') {
+        followup = data.followup.trim();
+      }
+    }
+  } catch (e) {
+    followup = null;
+  }
+
+  btn.disabled = false;
+  btn.textContent = originalLabel;
+
+  // Smart follow-up if we got one; otherwise the generic AI-future line.
+  masteryFollowupQ[qIndex] = followup || MASTERY_FOLLOWUP;
+  subStep = 'followup';
+  renderQuestion();
+}
+
 function prevQuestion() {
+  // If we're in the opening scenario phase, handle that separately
+  if (scenarioStage) { prevScenario(); return; }
+
   saveCurrentAnswer();
   // From a sub-step, go back to the main question of the current item
   if (subStep === 'followup' || subStep === 'probe') {
@@ -1268,7 +1536,7 @@ async function submitInterview() {
     await sendEmailWithDNA(dnaContent);
     showScreen('screen-complete');
     document.getElementById('complete-message').textContent =
-      `Thank you, ${clientName.split('—')[0].trim()}. Your business profile has been sent to Darren securely. He'll review it before your next conversation and use it to build something that actually fits how your business works.`;
+      `Thank you, ${clientName}. Your business profile has been encrypted and securely saved. It will be used only to prepare your custom AI plan — never shared, never sold, never made public.`;
   } catch (err) {
     console.error('Submission error:', err);
     showScreen('screen-complete');
@@ -1324,14 +1592,30 @@ function buildPrompt() {
     masteryBlock += `If AI handled it: ${masteryFollowups[i] || '(no answer provided)'}\n`;
   });
 
+  // ── Voice & Standards: the good vs. bad reply contrast ──
+  const voiceBlock = `
+SCENARIO PRESENTED: ${scenarioText || '(none)'}
+
+THEIR "BEST / PROUD" REPLY:
+${scenarioGood || '(no answer provided)'}
+
+THEIR "BAD / OFF-BRAND" REPLY (what they'd never want sent):
+${scenarioBad || '(no answer provided)'}
+`;
+
   return `You are a business analyst for Bridge To AI, an AI implementation consulting firm run by Darren Randles (Kandar Consulting, Alberta, Canada).
 
 A new client has just completed their Business DNA Discovery Interview — a deep 8-domain business diagnostic plus a 6-part owner self-assessment. Your job is to produce a complete, structured Business DNA file from their answers. This file is CONFIDENTIAL — it goes directly to Darren, not to the client.
 
 CLIENT INFORMATION:
-Name / Business: ${clientName}
+Owner Name: ${clientName}
+Business Name: ${businessName}
 Business Category: ${businessCategory}
+Company Size: ${companySize ? companySize + ' people' : '(not specified)'}
+Departments / Functions: ${departments.length ? departments.join(', ') : '(not specified)'}
 Interview Date: ${new Date().toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' })}
+
+Use company size and department structure to calibrate your recommendations: a solo operator needs different AI leverage than a 50-person, multi-department business. Where departments are listed, consider whether AI opportunities should be scoped per-department.
 
 ═══════════════════════════════════════
 PART A — BUSINESS DIAGNOSTIC (8 domains)
@@ -1343,6 +1627,13 @@ PART B — OWNER SELF-ASSESSMENT (6 areas)
 Each area: where the owner is today, and what they'd want AI to free up.
 ═══════════════════════════════════════
 ${masteryBlock}
+
+═══════════════════════════════════════
+PART C — VOICE & STANDARDS
+The client reacted to a scenario twice: their best reply, and a deliberately bad one.
+The CONTRAST reveals their brand voice, tone, and the standards they hold.
+═══════════════════════════════════════
+${voiceBlock}
 
 Produce a complete Business DNA file in markdown format with these sections:
 
@@ -1373,10 +1664,13 @@ Who owns what, where tribal knowledge is locked, where decisions require the own
 ### SECTION 8: OWNER MASTERY PROFILE
 Synthesize Part B. For each of the 6 areas (Personal Productivity, Strategy & Decision-Making, Time & Leverage, Sales & Influence, Marketing & Messaging, Operations & Efficiency): where the owner currently stands, and — critically — where THEY said they want AI to help. This is the owner telling you in their own words where AI should go. Treat it as high-signal.
 
-### SECTION 9: AI OPPORTUNITY PORTFOLIO
-List 6–10 specific AI opportunities ranked by Impact × Feasibility (both scored 1–5, multiply). Format as a table. Draw from BOTH the business diagnostic and the owner's stated AI wishes in Part B.
+### SECTION 9: VOICE & STANDARDS PROFILE
+Synthesize Part C. From the contrast between their "best" and "bad" replies, capture: their brand voice and tone (the words, warmth, and style of the good reply), the specific standards they hold (what made the bad version bad in their eyes), and the dos/don'ts an AI clone must follow to sound like them. This is the raw material for matching their voice in any AI build. Quote directly where it reveals their voice.
 
-### SECTION 10: READINESS SCORECARD
+### SECTION 10: AI OPPORTUNITY PORTFOLIO
+List 6–10 specific AI opportunities ranked by Impact × Feasibility (both scored 1–5, multiply). Format as a table. Draw from the business diagnostic, the owner's stated AI wishes in Part B, and the voice/standards in Part C.
+
+### SECTION 11: READINESS SCORECARD
 Score these 5 dimensions 1–5 with one-line finding each:
 - Data & Information Quality
 - Workflow Documentation
@@ -1385,16 +1679,16 @@ Score these 5 dimensions 1–5 with one-line finding each:
 - Risk & Compliance Posture
 Total score out of 25. Assign a readiness tier: Launch-Ready (21-25), Near-Ready (16-20), Foundation First (11-15), Rebuild Required (6-10), Not Ready (1-5).
 
-### SECTION 11: DO NOW / BUILD NEXT / AVOID FOR NOW
+### SECTION 12: DO NOW / BUILD NEXT / AVOID FOR NOW
 Three clear boxes. Each action includes what to do and why.
 
-### SECTION 12: 30–60–90 DAY ROADMAP
+### SECTION 13: 30–60–90 DAY ROADMAP
 Three phases with specific tasks, owners, effort estimates, and outputs. Include 90-day success metrics.
 
-### SECTION 13: KEY QUOTES
-Capture 4–6 direct quotes from the client's answers (business or owner sections) that reveal their mindset, priorities, or hidden constraints.
+### SECTION 14: KEY QUOTES
+Capture 4–6 direct quotes from the client's answers (business, owner, or voice sections) that reveal their mindset, priorities, or hidden constraints.
 
-### SECTION 14: CONSULTANT NOTES FOR DARREN
+### SECTION 15: CONSULTANT NOTES FOR DARREN
 What stood out. What the client didn't say but implied. What to probe in the next conversation. Any risks or red flags. Note especially any mismatch between where the business needs AI and where the OWNER wants AI — that gap is where engagements succeed or fail.
 
 Be specific, direct, and honest. Do not soften constraints or inflate readiness scores. Use the client's actual language where it reveals something true about how they think.`;
@@ -1417,9 +1711,11 @@ async function generateDNAWithClaude() {
 async function sendEmailWithDNA(dnaContent) {
   const payload = {
     to: CONFIG.DARREN_EMAIL,
-    subject: `New DNA Interview Complete — ${clientName} (${businessCategory})`,
-    clientName,
+    subject: `New DNA Interview Complete — ${businessName} (${businessCategory})`,
+    clientName: `${clientName} — ${businessName}`,
     businessCategory,
+    companySize,
+    departments: departments.join(', '),
     date: new Date().toLocaleDateString('en-CA'),
     dnaContent
   };

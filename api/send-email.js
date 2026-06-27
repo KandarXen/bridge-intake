@@ -7,7 +7,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { to, subject, clientName, businessCategory, date, dnaContent } = req.body;
+  const { to, subject, clientName, businessCategory, companySize, departments, date, dnaContent } = req.body;
 
   if (!dnaContent || !clientName) {
     return res.status(400).json({ error: 'Missing required fields' });
@@ -30,6 +30,14 @@ export default async function handler(req, res) {
           <tr>
             <td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; font-size: 0.88rem; color: #8a8a8a;">Business type</td>
             <td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; font-size: 0.88rem;">${businessCategory}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; font-size: 0.88rem; color: #8a8a8a;">Size</td>
+            <td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; font-size: 0.88rem;">${companySize || '—'} people</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; font-size: 0.88rem; color: #8a8a8a;">Departments</td>
+            <td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; font-size: 0.88rem;">${departments || '—'}</td>
           </tr>
           <tr>
             <td style="padding: 8px 0; font-size: 0.88rem; color: #8a8a8a;">Date</td>
@@ -78,7 +86,7 @@ ${dnaContent}
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: 'Bridge To AI <onboarding@resend.dev>',
+        from: 'The Bridge Team <team@bridgetoai.ca>',
         to: [to],
         subject: subject,
         html: htmlBody,
