@@ -725,6 +725,11 @@
     </div>
 
     <div class="name-field">
+      <label for="website-url">Business website <span style="font-weight:400;color:var(--ink-soft);">(optional)</span></label>
+      <input type="url" id="website-url" placeholder="e.g. https://yourbusiness.ca" autocomplete="off" />
+    </div>
+
+    <div class="name-field">
       <label for="company-size">Roughly how many people work in your business?</label>
       <input type="text" id="company-size" placeholder="e.g. 1, 8, 45..." autocomplete="off" inputmode="numeric" />
     </div>
@@ -1047,8 +1052,10 @@ let scenarioDone = false;      // true once both beats are captured
 let clientName = '';
 let businessName = '';
 let businessCategory = '';
+let websiteUrl = '';
 let companySize = '';
 let departments = [];
+let businessContext = null;
 let recognition = null;
 let isRecording = false;
 
@@ -1068,6 +1075,7 @@ async function startInterview() {
   clientName = document.getElementById('client-name').value.trim();
   businessName = document.getElementById('business-name').value.trim();
   businessCategory = document.getElementById('business-category').value.trim();
+  websiteUrl = document.getElementById('website-url').value.trim();
   companySize = document.getElementById('company-size').value.trim();
   departments = Array.from(document.querySelectorAll('.dept-pill input:checked')).map(cb => cb.value);
   const err = document.getElementById('welcome-error');
@@ -1086,12 +1094,14 @@ async function startInterview() {
   scenarioBad = '';
   scenarioStage = null;
   scenarioDone = false;
+  businessContext = null;
   currentQ = 0;
   subStep = 'main';
 
   // Generate the tailored scenario, then run the two writing beats before Q1.
   const startBtn = event && event.target ? event.target : null;
   if (startBtn) { startBtn.disabled = true; startBtn.textContent = 'Setting up your session…'; }
+  await researchBusinessContext();
   await generateScenario();
   if (startBtn) { startBtn.disabled = false; startBtn.textContent = 'Begin my discovery session →'; }
 
@@ -1100,13 +1110,30 @@ async function startInterview() {
   renderScenario();
 }
 
+// ── Quiet background context research ─────────────────────────────────────
+async function researchBusinessContext() {
+  try {
+    const resp = await fetch('/api/research-business', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ businessName, businessCategory, websiteUrl, companySize, departments })
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.context) businessContext = data.context;
+    }
+  } catch (e) {
+    businessContext = null;
+  }
+}
+
 // ── Generate a business-tailored scenario ───────────────────────────────────
 async function generateScenario() {
   try {
     const resp = await fetch('/api/scenario', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ businessCategory })
+      body: JSON.stringify({ businessCategory, businessContext })
     });
     if (resp.ok) {
       const data = await resp.json();
@@ -1347,7 +1374,7 @@ async function runDomainProbe(domainName) {
     const resp = await fetch('/api/probe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ domain: domainName, qa: domainQA, businessCategory })
+      body: JSON.stringify({ domain: domainName, qa: domainQA, businessCategory, businessContext })
     });
     if (resp.ok) {
       const data = await resp.json();
@@ -1409,7 +1436,7 @@ async function runMasteryFollowup(qIndex) {
     const resp = await fetch('/api/mastery-followup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ area: q.domain, answer, businessCategory })
+      body: JSON.stringify({ area: q.domain, answer, businessCategory, businessContext })
     });
     if (resp.ok) {
       const data = await resp.json();
@@ -1622,6 +1649,22 @@ THEIR "BAD / OFF-BRAND" REPLY (what they'd never want sent):
 ${scenarioBad || '(no answer provided)'}
 `;
 
+  const contextBlock = businessContext ? `
+PRIVATE BUSINESS CONTEXT PROFILE:
+Source: ${businessContext.source || 'business type / provided website'}
+Website URL provided: ${websiteUrl || '(not provided)'}
+Summary: ${businessContext.summary || '(none)'}
+Offers / services: ${businessContext.offers && businessContext.offers.length ? businessContext.offers.join('; ') : '(none)'}
+Likely customers: ${businessContext.likelyCustomers && businessContext.likelyCustomers.length ? businessContext.likelyCustomers.join('; ') : '(none)'}
+Positioning: ${businessContext.positioning || '(none)'}
+Tone notes: ${businessContext.tone || '(none)'}
+Likely workflows: ${businessContext.likelyWorkflows && businessContext.likelyWorkflows.length ? businessContext.likelyWorkflows.join('; ') : '(none)'}
+Likely AI opportunities: ${businessContext.likelyAiOpportunities && businessContext.likelyAiOpportunities.length ? businessContext.likelyAiOpportunities.join('; ') : '(none)'}
+Question guidance used during interview: ${businessContext.questionGuidance && businessContext.questionGuidance.length ? businessContext.questionGuidance.join('; ') : '(none)'}
+
+Use this as background signal only. Do not claim that website observations are facts unless the client's own answers confirm them. Where useful, compare what the business appears to offer with what the client says they actually do.
+` : 'PRIVATE BUSINESS CONTEXT PROFILE: Not available.';
+
   return `You are a business analyst for Bridge To AI, an AI implementation consulting firm run by Darren Randles (Kandar Consulting, Alberta, Canada).
 
 A new client has just completed their Business DNA Discovery Interview — a deep 8-domain business diagnostic plus a 6-part owner self-assessment. Your job is to produce a complete, structured Business DNA file from their answers. This file is CONFIDENTIAL — it goes directly to Darren, not to the client.
@@ -1630,11 +1673,14 @@ CLIENT INFORMATION:
 Owner Name: ${clientName}
 Business Name: ${businessName}
 Business Category: ${businessCategory}
+Website URL: ${websiteUrl || '(not provided)'}
 Company Size: ${companySize ? companySize + ' people' : '(not specified)'}
 Departments / Functions: ${departments.length ? departments.join(', ') : '(not specified)'}
 Interview Date: ${new Date().toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' })}
 
 Use company size and department structure to calibrate your recommendations: a solo operator needs different AI leverage than a 50-person, multi-department business. Where departments are listed, consider whether AI opportunities should be scoped per-department.
+
+${contextBlock}
 
 ═══════════════════════════════════════
 PART A — BUSINESS DIAGNOSTIC (8 domains)
