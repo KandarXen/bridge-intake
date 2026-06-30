@@ -1,54 +1,34 @@
 // api/save-to-drive.js
-// Saves the completed DNA file to a Google Drive folder using a service account.
-// Uses direct REST + a hand-signed JWT — NO npm dependencies, so the app stays
-// dependency-free and deploys as plain files.
+// Saves the completed DNA file to Darren's own Google Drive (2TB personal storage)
+// using OAuth refresh-token delegation — NOT a service account (service accounts
+// have no Drive storage quota on regular Gmail accounts, only on Workspace).
 //
 // REQUIRED ENV VARS (set in Vercel):
-//   GOOGLE_SERVICE_ACCOUNT_EMAIL  — the service account's email
-//   GOOGLE_PRIVATE_KEY            — the service account's private key (PEM, with \n line breaks)
-//   GOOGLE_DRIVE_FOLDER_ID        — the ID of the shared Drive folder to write into
+//   GOOGLE_OAUTH_CLIENT_ID      — from Google Cloud Console > Credentials > OAuth Client
+//   GOOGLE_OAUTH_CLIENT_SECRET  — same place
+//   GOOGLE_OAUTH_REFRESH_TOKEN  — captured ONCE via the one-time authorization flow
+//                                 (see /api/oauth-authorize and /api/oauth-callback)
+//   GOOGLE_DRIVE_FOLDER_ID      — the Drive folder ID to save into (Darren's own folder,
+//                                 no sharing needed since this uses Darren's own account)
 //
-// The target Drive folder must be SHARED with the service account email (Editor).
+// NO npm dependencies — direct REST calls only.
 
-import crypto from 'crypto';
-
-// ── Build a signed JWT and exchange it for an access token ──────────────────
+// ── Exchange the long-lived refresh token for a short-lived access token ────
 async function getAccessToken() {
-  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  let key = process.env.GOOGLE_PRIVATE_KEY || '';
-  // Vercel stores the key with literal \n — convert to real newlines
-  key = key.replace(/\\n/g, '\n');
-
-  const now = Math.floor(Date.now() / 1000);
-  const header = { alg: 'RS256', typ: 'JWT' };
-  const claim = {
-    iss: email,
-    scope: 'https://www.googleapis.com/auth/drive.file',
-    aud: 'https://oauth2.googleapis.com/token',
-    iat: now,
-    exp: now + 3600
-  };
-
-  const b64 = (obj) => Buffer.from(JSON.stringify(obj)).toString('base64url');
-  const unsigned = `${b64(header)}.${b64(claim)}`;
-
-  const signer = crypto.createSign('RSA-SHA256');
-  signer.update(unsigned);
-  const signature = signer.sign(key, 'base64url');
-  const jwt = `${unsigned}.${signature}`;
-
   const resp = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-      assertion: jwt
+      client_id: process.env.GOOGLE_OAUTH_CLIENT_ID,
+      client_secret: process.env.GOOGLE_OAUTH_CLIENT_SECRET,
+      refresh_token: process.env.GOOGLE_OAUTH_REFRESH_TOKEN,
+      grant_type: 'refresh_token'
     })
   });
 
   if (!resp.ok) {
     const e = await resp.text();
-    throw new Error('Token exchange failed: ' + e);
+    throw new Error('Token refresh failed: ' + e);
   }
   const data = await resp.json();
   return data.access_token;
@@ -102,9 +82,13 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing filename or dnaContent' });
   }
 
-  // If Drive isn't configured, return gracefully so the caller can still email.
-  if (!process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || !process.env.GOOGLE_PRIVATE_KEY) {
-    return res.status(200).json({ saved: false, reason: 'Drive not configured' });
+  if (
+    !process.env.GOOGLE_OAUTH_REFRESH_TOKEN ||
+    !process.env.GOOGLE_OAUTH_CLIENT_ID ||
+    !process.env.GOOGLE_OAUTH_CLIENT_SECRET ||
+    !process.env.GOOGLE_DRIVE_FOLDER_ID
+  ) {
+    return res.status(200).json({ saved: false, reason: 'Drive OAuth not configured' });
   }
 
   try {
