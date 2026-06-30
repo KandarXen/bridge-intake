@@ -683,7 +683,7 @@
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag">Business Discovery Session</span>
-    <span class="header-version">v1.41</span>
+    <span class="header-version">v1.42</span>
   </div>
 </header>
 
@@ -1533,7 +1533,26 @@ async function submitInterview() {
 
   try {
     const dnaContent = await generateDNAWithClaude();
-    await sendEmailWithDNA(dnaContent);
+
+    // Save to Google Drive first (permanent record). Never let a Drive failure
+    // block the email — capture the link if we get one, continue regardless.
+    let driveLink = '';
+    try {
+      const safeName = (businessName || clientName || 'client').replace(/[^a-zA-Z0-9]/g, '_');
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const driveResp = await fetch('/api/save-to-drive', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: `${safeName}_VENTURE_DNA_${dateStr}.md`, dnaContent })
+      });
+      if (driveResp.ok) {
+        const d = await driveResp.json();
+        if (d.saved && d.link) driveLink = d.link;
+      }
+    } catch (e) { /* Drive failed — email still fires below */ }
+
+    await sendEmailWithDNA(dnaContent, driveLink);
+
     showScreen('screen-complete');
     document.getElementById('complete-message').textContent =
       `Thank you, ${clientName}. Your business profile has been encrypted and securely saved. It will be used only to prepare your custom AI plan — never shared, never sold, never made public.`;
@@ -1708,7 +1727,7 @@ async function generateDNAWithClaude() {
 }
 
 // ── Send email via serverless function ────────────────────────────────────
-async function sendEmailWithDNA(dnaContent) {
+async function sendEmailWithDNA(dnaContent, driveLink) {
   const payload = {
     to: CONFIG.DARREN_EMAIL,
     subject: `New DNA Interview Complete — ${businessName} (${businessCategory})`,
@@ -1716,6 +1735,7 @@ async function sendEmailWithDNA(dnaContent) {
     businessCategory,
     companySize,
     departments: departments.join(', '),
+    driveLink: driveLink || '',
     date: new Date().toLocaleDateString('en-CA'),
     dnaContent
   };

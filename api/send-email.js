@@ -7,7 +7,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { to, subject, clientName, businessCategory, companySize, departments, date, dnaContent } = req.body;
+  const { to, subject, clientName, businessCategory, companySize, departments, driveLink, date, dnaContent } = req.body;
 
   if (!dnaContent || !clientName) {
     return res.status(400).json({ error: 'Missing required fields' });
@@ -48,13 +48,21 @@ export default async function handler(req, res) {
           The full Business DNA file is attached as a <code>.md</code> file. 
           Load it into the client's Claude project to begin their workbench build.
         </p>
+        ${driveLink ? `
+        <div style="text-align: center; margin-bottom: 20px;">
+          <a href="${driveLink}" style="display: inline-block; background: #0d6e5e; color: white; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-size: 0.9rem; font-weight: 500;">📁 Open in Google Drive</a>
+          <p style="font-size: 0.78rem; color: #8a8a8a; margin-top: 8px;">A permanent copy has been saved to your Drive.</p>
+        </div>` : `
+        <div style="background: #fdf6e8; border: 1px solid #f0d9a8; border-radius: 8px; padding: 12px 16px; font-size: 0.82rem; color: #8a6d2a; margin-bottom: 20px;">
+          ⚠️ This interview was <strong>not</strong> saved to Google Drive (Drive may not be configured or was unreachable). The attached file is your only copy — save it now.
+        </div>`}
         <div style="background: #e8f4f1; border: 1px solid #b8ddd7; border-radius: 8px; padding: 16px 20px; font-size: 0.85rem; color: #0d6e5e;">
           <strong>Next step:</strong> Review the DNA file, validate the AI opportunity scores, 
           and schedule your debrief call with ${clientName.split('—')[0].trim()}.
         </div>
       </div>
       <p style="font-size: 0.75rem; color: #8a8a8a; text-align: center; margin-top: 16px;">
-        Bridge To AI — Kandar Consulting · Alberta, Canada · Confidential
+        Bridge To AI · Alberta, Canada · Confidential
       </p>
     </div>
   `;
