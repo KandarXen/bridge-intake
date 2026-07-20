@@ -1,0 +1,1805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bridge To AI — Business Discovery Session</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #0f0f0f;
+    --ink-mid: #4a4a4a;
+    --ink-soft: #8a8a8a;
+    --surface: #fafaf8;
+    --surface-raised: #ffffff;
+    --border: #e4e2dd;
+    --bridge-teal: #0d6e5e;
+    --bridge-teal-light: #e8f4f1;
+    --bridge-teal-mid: #1a9880;
+    --accent: #c8a96e;
+    --danger: #c0392b;
+    --radius: 10px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.07);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--surface);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+  .header {
+    padding: 1.5rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-raised);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+  }
+
+  .logo-mark {
+    width: 36px;
+    height: 36px;
+    background: var(--bridge-teal);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .logo-mark svg { width: 20px; height: 20px; fill: white; }
+
+  .logo-text {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.15rem;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+
+  .logo-text span { color: var(--bridge-teal); }
+
+  .header-tag {
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  .header-tag-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+  }
+
+  .header-version {
+    font-size: 0.6rem;
+    color: var(--ink-soft);
+    opacity: 0.5;
+    letter-spacing: 0.04em;
+  }
+
+  /* ── Main layout ── */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 3rem 1.5rem 4rem;
+  }
+
+  /* ── Screens ── */
+  .screen { display: none; width: 100%; max-width: 640px; }
+  .screen.active { display: flex; flex-direction: column; }
+
+  /* ── Welcome screen ── */
+  .welcome-eyebrow {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--bridge-teal);
+    margin-bottom: 1rem;
+  }
+
+  .welcome-headline {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2.4rem;
+    line-height: 1.15;
+    color: var(--ink);
+    margin-bottom: 1.25rem;
+    letter-spacing: -0.02em;
+  }
+
+  .welcome-headline em {
+    font-style: italic;
+    color: var(--bridge-teal);
+  }
+
+  .welcome-body {
+    font-size: 1rem;
+    line-height: 1.75;
+    color: var(--ink-mid);
+    margin-bottom: 2rem;
+  }
+
+  .welcome-steps {
+    background: var(--bridge-teal-light);
+    border: 1px solid #b8ddd7;
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .welcome-steps p {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--bridge-teal);
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .step-list { list-style: none; }
+
+  .step-list li {
+    font-size: 0.92rem;
+    color: var(--ink-mid);
+    padding: 0.35rem 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    line-height: 1.5;
+  }
+
+  .step-num {
+    width: 20px;
+    height: 20px;
+    background: var(--bridge-teal);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .name-field {
+    margin-bottom: 1.5rem;
+  }
+
+  .name-field label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--ink-mid);
+    margin-bottom: 0.5rem;
+  }
+
+  .name-field input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    color: var(--ink);
+    background: var(--surface-raised);
+    transition: border-color 0.15s;
+    outline: none;
+  }
+
+  .name-field input:focus { border-color: var(--bridge-teal); }
+
+  .dept-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .dept-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0.5rem 0.85rem;
+    border: 1.5px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface-raised);
+    font-size: 0.85rem;
+    color: var(--ink-mid);
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+
+  .dept-pill:hover { border-color: var(--bridge-teal-mid); }
+
+  .dept-pill input { accent-color: var(--bridge-teal); cursor: pointer; margin: 0; }
+
+  .dept-pill:has(input:checked) {
+    border-color: var(--bridge-teal);
+    background: var(--bridge-teal-light);
+    color: var(--bridge-teal);
+    font-weight: 500;
+  }
+
+  /* ── Buttons ── */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.85rem 2rem;
+    background: var(--bridge-teal);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .btn-primary:hover { background: var(--bridge-teal-mid); }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-primary:disabled { background: #9ab8b3; cursor: not-allowed; }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.7rem 1.5rem;
+    background: transparent;
+    color: var(--ink-mid);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+
+  .btn-secondary:hover { border-color: var(--ink-mid); color: var(--ink); }
+
+  /* ── Progress ── */
+  .progress-wrap {
+    margin-bottom: 2rem;
+  }
+
+  .progress-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+
+  .progress-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--bridge-teal);
+  }
+
+  .progress-count {
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+  }
+
+  .progress-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--bridge-teal);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+
+  /* ── Question card ── */
+  .question-domain {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.6rem;
+  }
+
+  .question-text {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.6rem;
+    line-height: 1.3;
+    color: var(--ink);
+    margin-bottom: 0.6rem;
+    letter-spacing: -0.01em;
+  }
+
+  .question-hint {
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+  }
+
+  /* ── Voice input area ── */
+  .input-area {
+    background: var(--surface-raised);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 1rem;
+    box-shadow: var(--shadow);
+    transition: border-color 0.15s;
+  }
+
+  .input-area:focus-within { border-color: var(--bridge-teal); }
+
+  .transcript-box {
+    min-height: 140px;
+    padding: 1rem 1.25rem;
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: var(--ink);
+    outline: none;
+    border: none;
+    width: 100%;
+    resize: vertical;
+    font-family: 'Inter', sans-serif;
+    background: transparent;
+  }
+
+  .transcript-box:empty::before {
+    content: attr(data-placeholder);
+    color: var(--ink-soft);
+    pointer-events: none;
+  }
+
+  .input-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 1rem;
+    border-top: 1px solid var(--border);
+    background: #f7f6f3;
+  }
+
+  .voice-btn {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0.45rem 0.9rem;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    background: white;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--ink-mid);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .voice-btn:hover { border-color: var(--bridge-teal); color: var(--bridge-teal); }
+
+  .voice-btn.recording {
+    border-color: var(--danger);
+    color: var(--danger);
+    background: #fdf2f2;
+    animation: pulse-border 1.2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-border {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(192,57,43,0.3); }
+    50% { box-shadow: 0 0 0 4px rgba(192,57,43,0); }
+  }
+
+  .mic-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .voice-btn.recording .mic-dot {
+    animation: blink 0.8s ease-in-out infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
+
+  .char-count {
+    font-size: 0.75rem;
+    color: var(--ink-soft);
+  }
+
+  /* ── Navigation ── */
+  .nav-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.5rem;
+    gap: 1rem;
+  }
+
+  .nav-reassure {
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    text-align: center;
+    flex: 1;
+  }
+
+  @media (max-width: 600px) {
+    .nav-reassure { display: none; }
+  }
+
+  /* ── Processing screen ── */
+  .processing-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 3rem 1rem;
+  }
+
+  .spinner {
+    width: 52px;
+    height: 52px;
+    border: 3px solid var(--border);
+    border-top-color: var(--bridge-teal);
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+    margin-bottom: 1.5rem;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .processing-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.5rem;
+    color: var(--ink);
+    margin-bottom: 0.75rem;
+  }
+
+  .processing-body {
+    font-size: 0.92rem;
+    color: var(--ink-mid);
+    line-height: 1.7;
+    max-width: 420px;
+  }
+
+  .processing-steps {
+    margin-top: 2rem;
+    text-align: left;
+    width: 100%;
+    max-width: 360px;
+  }
+
+  .p-step {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0.6rem 0;
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .p-step:last-child { border-bottom: none; }
+  .p-step.done { color: var(--bridge-teal); }
+  .p-step.active { color: var(--ink); font-weight: 500; }
+
+  .p-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1.5px solid currentColor;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 0.65rem;
+  }
+
+  .p-step.done .p-icon { background: var(--bridge-teal); border-color: var(--bridge-teal); color: white; }
+  .p-step.active .p-icon { border-color: var(--bridge-teal); }
+
+  /* ── Completion screen ── */
+  .complete-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 2rem 1rem 3rem;
+  }
+
+  .complete-icon {
+    width: 72px;
+    height: 72px;
+    background: var(--bridge-teal-light);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .complete-icon svg { width: 36px; height: 36px; stroke: var(--bridge-teal); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .complete-headline {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2rem;
+    color: var(--ink);
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.02em;
+  }
+
+  .complete-sub {
+    font-size: 1rem;
+    color: var(--ink-mid);
+    line-height: 1.7;
+    max-width: 480px;
+    margin-bottom: 2.5rem;
+  }
+
+  .next-steps {
+    width: 100%;
+    max-width: 480px;
+    text-align: left;
+  }
+
+  .next-steps-title {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: 1rem;
+  }
+
+  .next-step-card {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .next-step-num {
+    width: 28px;
+    height: 28px;
+    background: var(--bridge-teal);
+    border-radius: 50%;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.78rem;
+    font-weight: 600;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .next-step-content { flex: 1; }
+  .next-step-title { font-size: 0.92rem; font-weight: 600; color: var(--ink); margin-bottom: 3px; }
+  .next-step-desc { font-size: 0.85rem; color: var(--ink-mid); line-height: 1.5; }
+
+  .complete-footer {
+    margin-top: 2rem;
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+    line-height: 1.6;
+  }
+
+  .complete-footer a { color: var(--bridge-teal); text-decoration: none; }
+
+  /* ── Error banner ── */
+  .error-banner {
+    background: #fdf2f2;
+    border: 1px solid #f5c6c6;
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
+    font-size: 0.88rem;
+    color: var(--danger);
+    margin-bottom: 1rem;
+    display: none;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    padding: 1.25rem 2rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .footer-copy {
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+  }
+
+  .footer-privacy {
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .lock-icon { width: 12px; height: 12px; }
+
+  @media (max-width: 600px) {
+    .welcome-headline { font-size: 1.8rem; }
+    .question-text { font-size: 1.3rem; }
+    .main { padding: 2rem 1rem 3rem; }
+    .header { padding: 1rem 1.25rem; }
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+      </svg>
+    </div>
+    <span class="logo-text">Bridge <span>To AI</span></span>
+  </div>
+  <div class="header-tag-wrap">
+    <span class="header-tag">Business Discovery Session</span>
+    <span class="header-version">v1.45</span>
+  </div>
+</header>
+
+<main class="main">
+
+  <!-- ── Screen 1: Welcome ── -->
+  <div class="screen active" id="screen-welcome">
+    <div class="welcome-eyebrow">Confidential — for your eyes only</div>
+    <h1 class="welcome-headline">Let's understand your business <em>before</em> we talk about AI.</h1>
+    <p class="welcome-body">
+      This session takes about 20–30 minutes. There are no right or wrong answers —
+      the more honest you are, the more useful your custom AI system will be.
+      Your answers are kept private and secure, used only to prepare your custom AI plan.
+    </p>
+
+    <div class="welcome-steps">
+      <p>How this works</p>
+      <ul class="step-list">
+        <li><span class="step-num">1</span> You'll start with a quick scenario, then move through 8 areas of your business and a short reflection on you as the owner.</li>
+        <li><span class="step-num">2</span> Speak your answer using the microphone, or type it directly.</li>
+        <li><span class="step-num">3</span> Review what was captured, edit if needed, then hit Continue.</li>
+        <li><span class="step-num">4</span> A few questions may have a quick follow-up. When you're done, your answers are encrypted and used only to build your profile — never shared, never sold, never made public.</li>
+      </ul>
+    </div>
+
+    <div class="name-field">
+      <label for="client-name">Your name</label>
+      <input type="text" id="client-name" placeholder="e.g. Jane Smith" autocomplete="off" />
+    </div>
+
+    <div class="name-field">
+      <label for="business-name">Your business name</label>
+      <input type="text" id="business-name" placeholder="e.g. Acme Plumbing Ltd." autocomplete="off" />
+    </div>
+
+    <div class="name-field">
+      <label for="business-category">What type of business are you in?</label>
+      <input type="text" id="business-category" placeholder="e.g. food broker, trades contractor, law firm..." autocomplete="off" />
+    </div>
+
+    <div class="name-field">
+      <label for="website-url">Business website <span style="font-weight:400;color:var(--ink-soft);">(optional)</span></label>
+      <input type="url" id="website-url" placeholder="e.g. https://yourbusiness.ca" autocomplete="off" />
+    </div>
+
+    <div class="name-field">
+      <label for="company-size">Roughly how many people work in your business?</label>
+      <input type="text" id="company-size" placeholder="e.g. 1, 8, 45..." autocomplete="off" inputmode="numeric" />
+    </div>
+
+    <div class="name-field">
+      <label>Which departments or functions does your business have? <span style="font-weight:400;color:var(--ink-soft);">(tap all that apply)</span></label>
+      <div class="dept-grid">
+        <label class="dept-pill"><input type="checkbox" value="Sales"><span>Sales</span></label>
+        <label class="dept-pill"><input type="checkbox" value="Marketing"><span>Marketing</span></label>
+        <label class="dept-pill"><input type="checkbox" value="Operations"><span>Operations</span></label>
+        <label class="dept-pill"><input type="checkbox" value="Finance / Accounting"><span>Finance / Accounting</span></label>
+        <label class="dept-pill"><input type="checkbox" value="Customer Service"><span>Customer Service</span></label>
+        <label class="dept-pill"><input type="checkbox" value="Production / Fulfillment"><span>Production / Fulfillment</span></label>
+        <label class="dept-pill"><input type="checkbox" value="HR / People"><span>HR / People</span></label>
+        <label class="dept-pill"><input type="checkbox" value="IT / Tech"><span>IT / Tech</span></label>
+        <label class="dept-pill"><input type="checkbox" value="Admin"><span>Admin</span></label>
+        <label class="dept-pill"><input type="checkbox" value="It's mostly just me"><span>It's mostly just me</span></label>
+      </div>
+    </div>
+
+    <div id="welcome-error" class="error-banner">Please fill in your name, business name, and business type before continuing.</div>
+
+    <button class="btn-primary" onclick="startInterview()" style="width:100%;">
+      Begin my discovery session →
+    </button>
+  </div>
+
+  <!-- ── Screen 2: Interview ── -->
+  <div class="screen" id="screen-interview">
+    <div class="progress-wrap">
+      <div class="progress-meta">
+        <span class="progress-label" id="progress-label">Domain 1 of 8</span>
+        <span class="progress-count" id="progress-count">Question 1 of 13</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill" style="width: 9%"></div>
+      </div>
+    </div>
+
+    <div class="question-domain" id="q-domain"></div>
+    <div class="question-text" id="q-text"></div>
+    <div class="question-hint" id="q-hint"></div>
+
+    <div id="answer-error" class="error-banner">Please share your thoughts before continuing — there are no wrong answers.</div>
+
+    <div class="input-area">
+      <div
+        class="transcript-box"
+        id="transcript"
+        contenteditable="true"
+        data-placeholder="Tap the mic and speak your answer. To fix or change anything, pause the mic first, then type — turn it back on to keep talking."
+      ></div>
+      <div class="input-toolbar">
+        <button class="voice-btn" id="voice-btn" onclick="toggleRecording()">
+          <span class="mic-dot"></span>
+          <span id="voice-label">Hold to speak</span>
+        </button>
+        <span class="char-count" id="char-count">0 words</span>
+      </div>
+    </div>
+
+    <div class="nav-row">
+      <button class="btn-secondary" id="btn-back" onclick="prevQuestion()">← Back</button>
+      <span class="nav-reassure">You can go back anytime to review or change an answer</span>
+      <button class="btn-primary" id="btn-next" onclick="nextQuestion()">Continue →</button>
+    </div>
+  </div>
+
+  <!-- ── Screen 3: Processing ── -->
+  <div class="screen" id="screen-processing">
+    <div class="processing-wrap">
+      <div class="spinner"></div>
+      <div class="processing-title">Building your business profile...</div>
+      <p class="processing-body">
+        Your answers are being compiled into a private business profile.
+        This takes about 30 seconds. Please don't close this tab.
+      </p>
+      <div class="processing-steps">
+        <div class="p-step active" id="pstep-1">
+          <div class="p-icon">1</div>
+          Reviewing your answers
+        </div>
+        <div class="p-step" id="pstep-2">
+          <div class="p-icon">2</div>
+          Building your business DNA profile
+        </div>
+        <div class="p-step" id="pstep-3">
+          <div class="p-icon">3</div>
+          Identifying AI opportunities
+        </div>
+        <div class="p-step" id="pstep-4">
+          <div class="p-icon">4</div>
+          Encrypting files and sending to the Bridge
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Screen 4: Complete ── -->
+  <div class="screen" id="screen-complete">
+    <div class="complete-wrap">
+      <div class="complete-icon">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+      </div>
+      <h2 class="complete-headline">You're all done.</h2>
+      <p class="complete-sub" id="complete-message">
+        Thank you. Your business profile has been encrypted and sent to the Bridge Team securely.
+        They'll review it before your next conversation and use it to build
+        something that actually fits how your business works.
+      </p>
+
+      <div class="next-steps">
+        <div class="next-steps-title">What happens next</div>
+
+        <div class="next-step-card">
+          <div class="next-step-num">1</div>
+          <div class="next-step-content">
+            <div class="next-step-title">The Bridge Team reviews your profile</div>
+            <div class="next-step-desc">Within 24 hours, the Bridge Team will review your answers and identify the highest-value AI opportunities for your business.</div>
+          </div>
+        </div>
+
+        <div class="next-step-card">
+          <div class="next-step-num">2</div>
+          <div class="next-step-content">
+            <div class="next-step-title">You'll receive a custom AI roadmap</div>
+            <div class="next-step-desc">The Bridge Team will share a prioritized plan showing exactly where AI can save you the most time — specific to your business, not generic advice.</div>
+          </div>
+        </div>
+
+        <div class="next-step-card">
+          <div class="next-step-num">3</div>
+          <div class="next-step-content">
+            <div class="next-step-title">Your workbench gets built</div>
+            <div class="next-step-desc">Once the roadmap is agreed, the Bridge Team builds your custom AI workbench — a private dashboard that starts saving you hours every week.</div>
+          </div>
+        </div>
+      </div>
+
+      <p class="complete-footer">
+        Questions? Reach the Bridge Team at <a href="mailto:team@bridgetoai.ca">team@bridgetoai.ca</a><br>
+        Your answers are private and will never be shared outside of your engagement.
+      </p>
+    </div>
+  </div>
+
+</main>
+
+<footer class="footer">
+  <span class="footer-copy">© 2026 Bridge To AI</span>
+  <span class="footer-privacy">
+    <svg class="lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+    </svg>
+    Your answers are private and encrypted
+  </span>
+</footer>
+
+<script>
+// ── Configuration ──────────────────────────────────────────────────────────
+// IMPORTANT: Replace these with your actual values before deploying
+const CONFIG = {
+  EMAIL_ENDPOINT: '/api/send-email',              // Vercel serverless function endpoint
+  DARREN_EMAIL: 'darren@ourcopacker.ca',           // Your email address
+};
+
+// ── Questions ──────────────────────────────────────────────────────────────
+// section: 'business' = 8-domain questions (eligible for AI probing at domain end)
+// section: 'mastery'  = owner self-assessment (fixed AI-future follow-up, no probing)
+const QUESTIONS = [
+  // ════ DOMAIN 1: Business Model & Direction ════
+  { section: 'business', domain: 'Business Model & Direction', type: 'Current Reality',
+    text: 'How does your business make money today?',
+    hint: 'Your core products or services, who pays for them, and whether the money is one-time, recurring, or project-based.' },
+  { section: 'business', domain: 'Business Model & Direction', type: 'Pain & Cost',
+    text: 'Where is growth stuck, unpredictable, or slower than you want?',
+    hint: 'What priorities keep getting ignored because there isn\'t enough time, money, or bandwidth?' },
+  { section: 'business', domain: 'Business Model & Direction', type: 'Desired Future',
+    text: 'What does success look like 12 months from now?',
+    hint: 'Revenue, customers, reach, product mix — paint the picture of where you want to be.' },
+  { section: 'business', domain: 'Business Model & Direction', type: 'AI Fit',
+    text: 'Which parts of your business run on manual knowledge work that eats your time?',
+    hint: 'Reporting, forecasting, writing proposals, research — the thinking-and-typing work behind the scenes.' },
+
+  // ════ DOMAIN 2: Customer Reality ════
+  { section: 'business', domain: 'Customer Reality', type: 'Current Reality',
+    text: 'Describe your best customers — who are they and why do they choose you?',
+    hint: 'Think of 2 or 3 clients you love working with. What do they have in common?' },
+  { section: 'business', domain: 'Customer Reality', type: 'Pain & Cost',
+    text: 'What do customers complain about most, and where do relationships break down?',
+    hint: 'Where do accounts churn, go quiet, or get frustrated?' },
+  { section: 'business', domain: 'Customer Reality', type: 'Desired Future',
+    text: 'What would a best-in-class customer experience look like for your business?',
+    hint: 'What would make clients stay longer, spend more, and refer you without being asked?' },
+  { section: 'business', domain: 'Customer Reality', type: 'AI Fit',
+    text: 'Which customer touchpoints are slow, repetitive, or inconsistent?',
+    hint: 'Responses, follow-ups, updates, onboarding — where could faster or more personal help win loyalty?' },
+
+  // ════ DOMAIN 3: Revenue Engine ════
+  { section: 'business', domain: 'Revenue Engine', type: 'Current Reality',
+    text: 'Walk through what happens from first contact to signed deal.',
+    hint: 'How leads arrive, the first conversation, the proposal, how pricing is set and communicated.' },
+  { section: 'business', domain: 'Revenue Engine', type: 'Pain & Cost',
+    text: 'Where do deals stall, leak, or fall through the cracks?',
+    hint: 'What follow-up gets dropped? Where does the sales process lose people?' },
+  { section: 'business', domain: 'Revenue Engine', type: 'Desired Future',
+    text: 'What would a more predictable, consistent sales process look like?',
+    hint: 'If leads and follow-up just happened reliably, what would change?' },
+  { section: 'business', domain: 'Revenue Engine', type: 'AI Fit',
+    text: 'Which parts of selling are information-heavy and repeatable?',
+    hint: 'Proposals, prospect research, objection responses, CRM updates, follow-up sequences.' },
+
+  // ════ DOMAIN 4: Operations & Delivery ════
+  { section: 'business', domain: 'Operations & Delivery', type: 'Current Reality',
+    text: 'After a client says yes, how does the work actually get done?',
+    hint: 'Step by step — who does what, in what order, and where the handoffs are.' },
+  { section: 'business', domain: 'Operations & Delivery', type: 'Pain & Cost',
+    text: 'Where does delivery slow down, require rework, or blow past budget or timeline?',
+    hint: 'What recurring tasks eat the most time? Where do things most often go wrong?' },
+  { section: 'business', domain: 'Operations & Delivery', type: 'Desired Future',
+    text: 'What would smoother, faster, more consistent delivery look like?',
+    hint: 'If the same quality came out in half the time, what would have to be true?' },
+  { section: 'business', domain: 'Operations & Delivery', type: 'AI Fit',
+    text: 'Which delivery tasks involve gathering info, writing documents, or checking for errors?',
+    hint: 'The coordinating, drafting, and double-checking work that happens on every job.' },
+
+  // ════ DOMAIN 5: People & Decision-Making ════
+  { section: 'business', domain: 'People & Decision-Making', type: 'Current Reality',
+    text: 'Who are your key people, and what would break if one of them left?',
+    hint: 'What knowledge or decisions live in one person\'s head — including yours?' },
+  { section: 'business', domain: 'People & Decision-Making', type: 'Pain & Cost',
+    text: 'Where do decisions bottleneck or wait on you?',
+    hint: 'What can\'t move forward until you personally approve it or figure it out?' },
+  { section: 'business', domain: 'People & Decision-Making', type: 'Desired Future',
+    text: 'What would it look like if the team could operate more independently?',
+    hint: 'Where could documented systems replace knowledge that\'s stuck in people\'s heads?' },
+  { section: 'business', domain: 'People & Decision-Making', type: 'AI Fit',
+    text: 'Which decisions or communications depend on one person\'s knowledge that tools could support?',
+    hint: 'The judgment calls and replies that only happen when a specific person is available.' },
+
+  // ════ DOMAIN 6: Information, Data & Systems ════
+  { section: 'business', domain: 'Information & Systems', type: 'Current Reality',
+    text: 'Where does the important information in your business actually live?',
+    hint: 'Client details, job history, finances, communications — across which tools, files, and people.' },
+  { section: 'business', domain: 'Information & Systems', type: 'Pain & Cost',
+    text: 'Where is data incomplete, duplicated, or hard to find when you need it?',
+    hint: 'What decisions get made on gut feel because the real numbers aren\'t at hand?' },
+  { section: 'business', domain: 'Information & Systems', type: 'Desired Future',
+    text: 'What would "one source of truth" look like for your business?',
+    hint: 'If you opened one dashboard tomorrow, what would you want to see on it?' },
+  { section: 'business', domain: 'Information & Systems', type: 'AI Fit',
+    text: 'Which reports, summaries, or updates require manual pulling and formatting today?',
+    hint: 'The status updates and recaps someone has to assemble by hand every week.' },
+
+  // ════ DOMAIN 7: AI Opportunity & Readiness ════
+  { section: 'business', domain: 'AI Opportunity', type: 'Current Reality',
+    text: 'What tasks get done over and over, often from scratch?',
+    hint: 'Where does the most time go on low-value, repetitive work each week?' },
+  { section: 'business', domain: 'AI Opportunity', type: 'Pain & Cost',
+    text: 'Which repetitive tasks create the most frustration or delay?',
+    hint: 'What would 10 hours a week of saved time actually make possible for you?' },
+  { section: 'business', domain: 'AI Opportunity', type: 'Desired Future',
+    text: 'If AI handled the most repetitive 20% of work perfectly, what would you focus on instead?',
+    hint: 'The higher-value work you never get to because the busywork crowds it out.' },
+  { section: 'business', domain: 'AI Opportunity', type: 'Execution Reality',
+    text: 'Let\'s get specific: if we freed up 10–15 hours per week, walk me through exactly what you\'d do with that time. What specific revenue-generating or high-value activities?',
+    hint: 'Don\'t say "grow" or "improve" — be concrete. Which channel would you focus on? How many hours per week? Who would own it if it weren\'t you? This matters.' },
+  { section: 'business', domain: 'AI Opportunity', type: 'Execution Reality',
+    text: 'When you commit to new work or goals for your business, what typically happens? Do they get done, get delayed, or get dropped?',
+    hint: 'Look back at the last 3–4 goals you set. Did you complete them, or did other things take priority?' },
+  { section: 'business', domain: 'AI Opportunity', type: 'AI Fit',
+    text: 'Which tasks involve reading, writing, summarizing, or researching — done many times a week?',
+    hint: 'The language-and-information work that repeats constantly.' },
+
+  // ════ DOMAIN 8: Risk, Constraints & Adoption ════
+  { section: 'business', domain: 'Risk & Adoption', type: 'Current Reality',
+    text: 'What privacy, compliance, or confidentiality constraints apply to your business?',
+    hint: 'Client data, regulated information, industry rules — and how comfortable your team is with new tech.' },
+  { section: 'business', domain: 'Risk & Adoption', type: 'Pain & Cost',
+    text: 'What has blocked new technology from sticking in the past?',
+    hint: 'Where does fear of error, cost, or disruption create hesitation?' },
+  { section: 'business', domain: 'Risk & Adoption', type: 'Desired Future',
+    text: 'What would a successful AI rollout look and feel like for your team?',
+    hint: 'What would change, and how would the people around you feel about it?' },
+  { section: 'business', domain: 'Risk & Adoption', type: 'AI Fit',
+    text: 'Which low-risk, reversible AI uses could you try first to build confidence?',
+    hint: 'Something easy to pilot and easy to undo, with no sensitive data exposed.' },
+
+  // ════ SECTION 9: OWNER MASTERY (6 categories, two-part) ════
+  { section: 'mastery', domain: 'Personal Productivity & Mastery',
+    text: 'Where are you right now with personal productivity and mastery?',
+    hint: 'This might mean focus, energy, how you structure your days, the systems you rely on, how on-top-of-things you feel — or whatever it means to you.' },
+  { section: 'mastery', domain: 'Strategy & Decision-Making',
+    text: 'Where are you right now with strategy and decision-making?',
+    hint: 'This might mean clarity of direction, how confidently you choose, how often you second-guess, how you weigh options — interpret it your own way.' },
+  { section: 'mastery', domain: 'Time & Leverage',
+    text: 'Where are you right now with time and leverage?',
+    hint: 'Leverage could mean leveraging your time, your money, your people, your tools, your reputation — wherever a little effort creates a lot of output for you.' },
+  { section: 'mastery', domain: 'Sales & Influence',
+    text: 'Where are you right now with sales and influence?',
+    hint: 'This might mean closing deals, persuading a room, building trust, negotiating, or simply getting people to say yes — whatever influence means in your world.' },
+  { section: 'mastery', domain: 'Marketing & Messaging',
+    text: 'Where are you right now with marketing and messaging?',
+    hint: 'This might mean how clearly you explain what you do, your visibility, your brand, your content, how well people "get it" — your call on what counts.' },
+  { section: 'mastery', domain: 'Operations & Efficiency',
+    text: 'Where are you right now with operations and efficiency?',
+    hint: 'Efficiency might be about operations, or it might be about time, money, or energy somewhere else entirely. Take it wherever it fits for you.' }
+];
+
+// Fixed follow-up shown after every mastery question
+const MASTERY_FOLLOWUP = 'And if AI quietly handled this area for you — what would that free you up to do, or how would it change things?';
+
+// ── State ──────────────────────────────────────────────────────────────────
+let currentQ = 0;
+let answers = [];              // base answer per question index
+let masteryFollowups = [];     // mastery follow-up answer per question index (only mastery uses it)
+let masteryFollowupQ = [];     // the follow-up QUESTION shown for each mastery item (smart or generic)
+let domainProbes = {};         // { domainName: { question: '...', answer: '' } }
+// Voice & Standards scenario (near the start, tailored to business category)
+let scenarioText = '';         // the AI-generated scenario the client reacts to
+let scenarioGood = '';         // their "best/proud" reply
+let scenarioBad = '';          // their "bad/off-brand" reply
+let scenarioStage = null;      // null | 'good' | 'bad' — which beat is showing
+let scenarioDone = false;      // true once both beats are captured
+let clientName = '';
+let businessName = '';
+let businessCategory = '';
+let websiteUrl = '';
+let companySize = '';
+let departments = [];
+let businessContext = null;
+let recognition = null;
+let isRecording = false;
+
+// Sub-step within a question: 'main' = base question, 'followup' = mastery AI-future Q, 'probe' = AI probe
+let subStep = 'main';
+let activeProbe = null;        // { domain, question } when a probe is showing
+
+// ── Screen management ──────────────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+// ── Welcome → Interview ────────────────────────────────────────────────────
+async function startInterview() {
+  clientName = document.getElementById('client-name').value.trim();
+  businessName = document.getElementById('business-name').value.trim();
+  businessCategory = document.getElementById('business-category').value.trim();
+  websiteUrl = document.getElementById('website-url').value.trim();
+  companySize = document.getElementById('company-size').value.trim();
+  departments = Array.from(document.querySelectorAll('.dept-pill input:checked')).map(cb => cb.value);
+  const err = document.getElementById('welcome-error');
+
+  if (!clientName || !businessName || !businessCategory) {
+    err.style.display = 'block';
+    return;
+  }
+  err.style.display = 'none';
+  answers = new Array(QUESTIONS.length).fill('');
+  masteryFollowups = new Array(QUESTIONS.length).fill('');
+  masteryFollowupQ = new Array(QUESTIONS.length).fill('');
+  domainProbes = {};
+  scenarioText = '';
+  scenarioGood = '';
+  scenarioBad = '';
+  scenarioStage = null;
+  scenarioDone = false;
+  businessContext = null;
+  currentQ = 0;
+  subStep = 'main';
+
+  // Generate the tailored scenario, then run the two writing beats before Q1.
+  const startBtn = event && event.target ? event.target : null;
+  if (startBtn) { startBtn.disabled = true; startBtn.textContent = 'Setting up your session…'; }
+  await researchBusinessContext();
+  await generateScenario();
+  if (startBtn) { startBtn.disabled = false; startBtn.textContent = 'Begin my discovery session →'; }
+
+  showScreen('screen-interview');
+  scenarioStage = 'good';
+  renderScenario();
+}
+
+// ── Quiet background context research ─────────────────────────────────────
+async function researchBusinessContext() {
+  try {
+    const resp = await fetch('/api/research-business', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ businessName, businessCategory, websiteUrl, companySize, departments })
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.context) businessContext = data.context;
+    }
+  } catch (e) {
+    businessContext = null;
+  }
+}
+
+// ── Generate a business-tailored scenario ───────────────────────────────────
+async function generateScenario() {
+  try {
+    const resp = await fetch('/api/scenario', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ businessCategory, businessContext })
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.scenario && data.scenario.trim()) scenarioText = data.scenario.trim();
+    }
+  } catch (e) { /* fall back below */ }
+
+  if (!scenarioText) {
+    scenarioText = 'A customer reaches out, clearly frustrated that something they were expecting from you is late, and they want to know what is going on.';
+  }
+}
+
+// ── Render the scenario beats (good reply, then bad reply) ───────────────────
+function renderScenario() {
+  document.getElementById('answer-error').style.display = 'none';
+  document.getElementById('btn-back').style.visibility = (scenarioStage === 'good') ? 'hidden' : 'visible';
+  document.getElementById('btn-next').textContent = 'Continue →';
+
+  // Progress: treat the 2 scenario beats as the very first steps
+  document.getElementById('progress-fill').style.width = '2%';
+
+  let label, text, hint, saved;
+  if (scenarioStage === 'good') {
+    label = 'Your Voice & Standards';
+    text = 'Read the situation below, then write the reply you\'d be proud of — the one that shows your business at its best.';
+    hint = 'SCENARIO: ' + scenarioText + '\n\nDon\'t worry about being polished. Write it the way you actually would, in your own words.';
+    saved = scenarioGood;
+    document.getElementById('progress-count').textContent = 'Your voice · best reply';
+  } else {
+    label = 'Your Voice & Standards';
+    text = 'Now write the kind of reply you\'ve seen go wrong — rushed, dismissive, or off-brand. The kind you\'d never want sent.';
+    hint = 'Same situation as before. Showing what "bad" looks like helps us understand your standards just as much as the good version.';
+    saved = scenarioBad;
+    document.getElementById('progress-count').textContent = 'Your voice · what to avoid';
+  }
+
+  document.getElementById('q-domain').textContent = label;
+  document.getElementById('q-text').textContent = text;
+  document.getElementById('q-hint').textContent = hint;
+  document.getElementById('progress-label').textContent = label;
+
+  const box = document.getElementById('transcript');
+  box.textContent = saved || '';
+  updateWordCount();
+  if (isRecording) stopRecording();
+}
+
+// ── Advance through the scenario beats ──────────────────────────────────────
+function nextScenario() {
+  const val = document.getElementById('transcript').innerText.trim();
+  if (!val || val.length < 5) {
+    document.getElementById('answer-error').style.display = 'block';
+    return;
+  }
+  document.getElementById('answer-error').style.display = 'none';
+
+  if (scenarioStage === 'good') {
+    scenarioGood = val;
+    scenarioStage = 'bad';
+    renderScenario();
+  } else {
+    scenarioBad = val;
+    scenarioDone = true;
+    scenarioStage = null;
+    // move into the main questionnaire
+    currentQ = 0;
+    subStep = 'main';
+    renderQuestion();
+  }
+}
+
+function prevScenario() {
+  const val = document.getElementById('transcript').innerText.trim();
+  if (scenarioStage === 'bad') {
+    scenarioBad = val;
+    scenarioStage = 'good';
+    renderScenario();
+  }
+}
+
+// ── Render current question ────────────────────────────────────────────────
+function renderQuestion() {
+  const q = QUESTIONS[currentQ];
+  const total = QUESTIONS.length;
+  const pct = Math.round(((currentQ + 1) / total) * 100);
+
+  // Default progress + nav
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('btn-back').style.visibility = (currentQ === 0 && subStep === 'main') ? 'hidden' : 'visible';
+  document.getElementById('answer-error').style.display = 'none';
+
+  let domainLabel = q.domain;
+  let qText = q.text;
+  let qHint = q.hint;
+  let countText = '';
+  let savedValue = answers[currentQ] || '';
+
+  if (subStep === 'followup') {
+    // Mastery second beat — smart reflective question if available, else generic
+    domainLabel = q.domain + ' — looking ahead';
+    qText = masteryFollowupQ[currentQ] || MASTERY_FOLLOWUP;
+    qHint = 'There\'s no wrong answer. Picture it actually handled, and tell us what changes.';
+    savedValue = masteryFollowups[currentQ] || '';
+    countText = 'Follow-up';
+  } else if (subStep === 'probe' && activeProbe) {
+    // AI-generated probe at end of a business domain
+    domainLabel = activeProbe.domain + ' — one more thing';
+    qText = activeProbe.question;
+    qHint = 'A quick follow-up to make sure we capture this accurately.';
+    savedValue = (domainProbes[activeProbe.domain] && domainProbes[activeProbe.domain].answer) || '';
+    countText = 'Follow-up';
+  } else {
+    // Main question
+    if (q.section === 'mastery') {
+      domainLabel = q.domain;
+      countText = 'About you';
+    } else {
+      countText = q.type;
+    }
+  }
+
+  document.getElementById('q-domain').textContent = domainLabel;
+  document.getElementById('q-text').textContent = qText;
+  document.getElementById('q-hint').textContent = qHint;
+  document.getElementById('progress-label').textContent = domainLabel;
+  document.getElementById('progress-count').textContent =
+    countText ? `${countText} · ${currentQ + 1} of ${total}` : `Question ${currentQ + 1} of ${total}`;
+
+  // Button label: "Submit" only on the very last sub-step of the whole interview
+  const isLastItem = (currentQ === total - 1);
+  const lastQ = QUESTIONS[total - 1];
+  let isFinalSubStep = false;
+  if (isLastItem) {
+    if (lastQ.section === 'mastery') {
+      isFinalSubStep = (subStep === 'followup'); // mastery: submit after the AI-future follow-up
+    } else {
+      isFinalSubStep = (subStep === 'probe' || subStep === 'main'); // business: submit after main or its probe
+    }
+  }
+  document.getElementById('btn-next').textContent = isFinalSubStep ? 'Submit answers →' : 'Continue →';
+
+  const box = document.getElementById('transcript');
+  box.textContent = savedValue;
+  updateWordCount();
+
+  if (isRecording) stopRecording();
+}
+
+// ── Navigation ─────────────────────────────────────────────────────────────
+function saveCurrentAnswer() {
+  const val = document.getElementById('transcript').innerText.trim();
+  if (subStep === 'followup') {
+    masteryFollowups[currentQ] = val;
+  } else if (subStep === 'probe' && activeProbe) {
+    if (!domainProbes[activeProbe.domain]) domainProbes[activeProbe.domain] = { question: activeProbe.question, answer: '', asked: true };
+    domainProbes[activeProbe.domain].answer = val;
+    domainProbes[activeProbe.domain].asked = true;
+  } else {
+    answers[currentQ] = val;
+  }
+}
+
+async function nextQuestion() {
+  // If we're in the opening scenario phase, handle that separately
+  if (scenarioStage) { nextScenario(); return; }
+
+  saveCurrentAnswer();
+  const val = document.getElementById('transcript').innerText.trim();
+  if (!val || val.length < 3) {
+    document.getElementById('answer-error').style.display = 'block';
+    return;
+  }
+  document.getElementById('answer-error').style.display = 'none';
+
+  const q = QUESTIONS[currentQ];
+  const total = QUESTIONS.length;
+
+  // ── Handle sub-steps first ──
+  if (subStep === 'followup') {
+    // finished a mastery follow-up → advance to next question
+    subStep = 'main';
+    if (currentQ < total - 1) { currentQ++; renderQuestion(); }
+    else { submitInterview(); }
+    return;
+  }
+  if (subStep === 'probe') {
+    // finished a domain probe → advance to next question (or submit)
+    subStep = 'main';
+    activeProbe = null;
+    if (currentQ < total - 1) { currentQ++; renderQuestion(); }
+    else { submitInterview(); }
+    return;
+  }
+
+  // ── Main step ──
+  if (q.section === 'mastery') {
+    // Generate a smart, reflective follow-up conditionally; fall back to generic.
+    await runMasteryFollowup(currentQ);
+    return;
+  }
+
+  // Business question: check if this is the LAST question of its domain
+  const isDomainEnd = (currentQ === total - 1) || (QUESTIONS[currentQ + 1].domain !== q.domain) || (QUESTIONS[currentQ + 1].section !== 'business');
+  if (isDomainEnd) {
+    // Probe-guard: only probe a domain once. If already probed on a prior pass,
+    // skip straight ahead (saves API calls, avoids repetition on backtrack).
+    if (domainProbes[q.domain] && domainProbes[q.domain].asked) {
+      if (currentQ < total - 1) { currentQ++; renderQuestion(); }
+      else { submitInterview(); }
+      return;
+    }
+    await runDomainProbe(q.domain);
+    return;
+  }
+
+  // otherwise just advance
+  if (currentQ < total - 1) { currentQ++; renderQuestion(); }
+  else { submitInterview(); }
+}
+
+// ── AI probe: ask Claude if this domain's answers need one follow-up ────────
+async function runDomainProbe(domainName) {
+  // Gather this domain's Q&A
+  const domainQA = QUESTIONS
+    .map((q, i) => ({ q, i }))
+    .filter(x => x.q.section === 'business' && x.q.domain === domainName)
+    .map(x => `Q (${x.q.type}): ${x.q.text}\nA: ${answers[x.i] || ''}`)
+    .join('\n\n');
+
+  // Show a brief inline "thinking" state on the button
+  const btn = document.getElementById('btn-next');
+  const originalLabel = btn.textContent;
+  btn.textContent = 'One moment…';
+  btn.disabled = true;
+
+  let probeQuestion = null;
+  try {
+    const resp = await fetch('/api/probe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ domain: domainName, qa: domainQA, businessCategory, businessContext })
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.followup && data.followup.trim() && data.followup.trim().toUpperCase() !== 'NONE') {
+        probeQuestion = data.followup.trim();
+      }
+    }
+  } catch (e) {
+    probeQuestion = null; // fail gracefully — just skip the probe
+  }
+
+  btn.disabled = false;
+  btn.textContent = originalLabel;
+
+  const total = QUESTIONS.length;
+
+  if (probeQuestion) {
+    activeProbe = { domain: domainName, question: probeQuestion };
+    domainProbes[domainName] = { question: probeQuestion, answer: '', asked: true };
+    subStep = 'probe';
+    renderQuestion();
+  } else {
+    // no probe needed — mark asked so we don't retry on backtrack, then advance
+    domainProbes[domainName] = { question: null, answer: '', asked: true };
+    subStep = 'main';
+    if (currentQ < total - 1) { currentQ++; renderQuestion(); }
+    else { submitInterview(); }
+  }
+}
+
+// ── Smart mastery follow-up: reflect back what they said, conditionally ──────
+async function runMasteryFollowup(qIndex) {
+  const q = QUESTIONS[qIndex];
+  const answer = answers[qIndex] || '';
+  const total = QUESTIONS.length;
+
+  // If we already generated a follow-up for this item (e.g. on backtrack), reuse it.
+  if (masteryFollowupQ[qIndex]) {
+    subStep = 'followup';
+    renderQuestion();
+    return;
+  }
+
+  // Thin answers don't get a smart follow-up — use the generic line directly.
+  if (answer.trim().split(/\s+/).filter(Boolean).length < 12) {
+    masteryFollowupQ[qIndex] = MASTERY_FOLLOWUP;
+    subStep = 'followup';
+    renderQuestion();
+    return;
+  }
+
+  const btn = document.getElementById('btn-next');
+  const originalLabel = btn.textContent;
+  btn.textContent = 'One moment…';
+  btn.disabled = true;
+
+  let followup = null;
+  try {
+    const resp = await fetch('/api/mastery-followup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ area: q.domain, answer, businessCategory, businessContext })
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.followup && data.followup.trim() && data.followup.trim().toUpperCase() !== 'NONE') {
+        followup = data.followup.trim();
+      }
+    }
+  } catch (e) {
+    followup = null;
+  }
+
+  btn.disabled = false;
+  btn.textContent = originalLabel;
+
+  // Smart follow-up if we got one; otherwise the generic AI-future line.
+  masteryFollowupQ[qIndex] = followup || MASTERY_FOLLOWUP;
+  subStep = 'followup';
+  renderQuestion();
+}
+
+function prevQuestion() {
+  // If we're in the opening scenario phase, handle that separately
+  if (scenarioStage) { prevScenario(); return; }
+
+  saveCurrentAnswer();
+  // From a sub-step, go back to the main question of the current item
+  if (subStep === 'followup' || subStep === 'probe') {
+    subStep = 'main';
+    activeProbe = null;
+    renderQuestion();
+    return;
+  }
+  if (currentQ > 0) {
+    currentQ--;
+    subStep = 'main';
+    renderQuestion();
+  }
+}
+
+// ── Word count ─────────────────────────────────────────────────────────────
+document.getElementById('transcript').addEventListener('input', updateWordCount);
+
+function updateWordCount() {
+  const text = document.getElementById('transcript').innerText.trim();
+  const words = text ? text.split(/\s+/).filter(Boolean).length : 0;
+  document.getElementById('char-count').textContent = words + (words === 1 ? ' word' : ' words');
+}
+
+// ── Voice recording ────────────────────────────────────────────────────────
+function toggleRecording() {
+  if (isRecording) {
+    stopRecording();
+  } else {
+    startRecording();
+  }
+}
+
+function startRecording() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    alert('Voice input is not supported in this browser. Please use Chrome or Edge, or type your answer.');
+    return;
+  }
+
+  recognition = new SpeechRecognition();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.lang = 'en-CA';
+
+  const box = document.getElementById('transcript');
+  let baseText = box.innerText.trim();
+  if (baseText) baseText += ' ';
+
+  recognition.onresult = (e) => {
+    let interim = '';
+    let final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) {
+        final += e.results[i][0].transcript + ' ';
+      } else {
+        interim += e.results[i][0].transcript;
+      }
+    }
+    if (final) baseText += final;
+    box.textContent = baseText + interim;
+    updateWordCount();
+  };
+
+  recognition.onerror = (e) => {
+    if (e.error !== 'no-speech') stopRecording();
+  };
+
+  recognition.onend = () => {
+    if (isRecording) recognition.start();
+  };
+
+  recognition.start();
+  isRecording = true;
+
+  const btn = document.getElementById('voice-btn');
+  btn.classList.add('recording');
+  document.getElementById('voice-label').textContent = 'Recording — tap to stop';
+}
+
+function stopRecording() {
+  if (recognition) {
+    recognition.onend = null;
+    recognition.stop();
+    recognition = null;
+  }
+  isRecording = false;
+  const btn = document.getElementById('voice-btn');
+  btn.classList.remove('recording');
+  document.getElementById('voice-label').textContent = 'Hold to speak';
+}
+
+// ── Submit & process ───────────────────────────────────────────────────────
+async function submitInterview() {
+  showScreen('screen-processing');
+  animateProcessingSteps();
+
+  try {
+    const dnaContent = await generateDNAWithClaude();
+
+    // Save to Google Drive first (permanent record). Never let a Drive failure
+    // block the email — capture the link if we get one, continue regardless.
+    let driveLink = '';
+    try {
+      const safeName = (businessName || clientName || 'client').replace(/[^a-zA-Z0-9]/g, '_');
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const driveResp = await fetch('/api/save-to-drive', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: `${safeName}_VENTURE_DNA_${dateStr}.md`, dnaContent })
+      });
+      if (driveResp.ok) {
+        const d = await driveResp.json();
+        if (d.saved && d.link) driveLink = d.link;
+      }
+    } catch (e) { /* Drive failed — email still fires below */ }
+
+    await sendEmailWithDNA(dnaContent, driveLink);
+
+    showScreen('screen-complete');
+    document.getElementById('complete-message').textContent =
+      `Thank you, ${clientName}. Your business profile has been encrypted and securely saved. It will be used only to prepare your custom AI plan — never shared, never sold, never made public.`;
+  } catch (err) {
+    console.error('Submission error:', err);
+    showScreen('screen-complete');
+  }
+}
+
+function animateProcessingSteps() {
+  const steps = ['pstep-1', 'pstep-2', 'pstep-3', 'pstep-4'];
+  let i = 0;
+  const interval = setInterval(() => {
+    if (i > 0) {
+      document.getElementById(steps[i - 1]).classList.remove('active');
+      document.getElementById(steps[i - 1]).classList.add('done');
+      document.getElementById(steps[i - 1]).querySelector('.p-icon').textContent = '✓';
+    }
+    if (i < steps.length) {
+      document.getElementById(steps[i]).classList.add('active');
+      i++;
+    } else {
+      clearInterval(interval);
+    }
+  }, 2000);
+}
+
+// ── Build prompt for Claude ────────────────────────────────────────────────
+function buildPrompt() {
+  // ── Business answers, grouped by domain, with any AI probe appended ──
+  let businessBlock = '';
+  let lastDomain = null;
+  QUESTIONS.forEach((q, i) => {
+    if (q.section !== 'business') return;
+    if (q.domain !== lastDomain) {
+      // close previous domain's probe
+      if (lastDomain && domainProbes[lastDomain] && domainProbes[lastDomain].answer) {
+        businessBlock += `  FOLLOW-UP: ${domainProbes[lastDomain].question}\n  ANSWER: ${domainProbes[lastDomain].answer}\n`;
+      }
+      businessBlock += `\n### DOMAIN: ${q.domain}\n`;
+      lastDomain = q.domain;
+    }
+    businessBlock += `[${q.type}] ${q.text}\n→ ${answers[i] || '(no answer provided)'}\n`;
+  });
+  // close the final domain's probe
+  if (lastDomain && domainProbes[lastDomain] && domainProbes[lastDomain].answer) {
+    businessBlock += `  FOLLOW-UP: ${domainProbes[lastDomain].question}\n  ANSWER: ${domainProbes[lastDomain].answer}\n`;
+  }
+
+  // ── Owner-mastery answers, each with its AI-future follow-up ──
+  let masteryBlock = '';
+  QUESTIONS.forEach((q, i) => {
+    if (q.section !== 'mastery') return;
+    masteryBlock += `\n### ${q.domain}\n`;
+    masteryBlock += `Where they are now: ${answers[i] || '(no answer provided)'}\n`;
+    masteryBlock += `If AI handled it: ${masteryFollowups[i] || '(no answer provided)'}\n`;
+  });
+
+  // ── Voice & Standards: the good vs. bad reply contrast ──
+  const voiceBlock = `
+SCENARIO PRESENTED: ${scenarioText || '(none)'}
+
+THEIR "BEST / PROUD" REPLY:
+${scenarioGood || '(no answer provided)'}
+
+THEIR "BAD / OFF-BRAND" REPLY (what they'd never want sent):
+${scenarioBad || '(no answer provided)'}
+`;
+
+  const contextBlock = businessContext ? `
+PRIVATE BUSINESS CONTEXT PROFILE:
+Source: ${businessContext.source || 'business type / provided website'}
+Website URL provided: ${websiteUrl || '(not provided)'}
+Summary: ${businessContext.summary || '(none)'}
+Offers / services: ${businessContext.offers && businessContext.offers.length ? businessContext.offers.join('; ') : '(none)'}
+Likely customers: ${businessContext.likelyCustomers && businessContext.likelyCustomers.length ? businessContext.likelyCustomers.join('; ') : '(none)'}
+Positioning: ${businessContext.positioning || '(none)'}
+Tone notes: ${businessContext.tone || '(none)'}
+Likely workflows: ${businessContext.likelyWorkflows && businessContext.likelyWorkflows.length ? businessContext.likelyWorkflows.join('; ') : '(none)'}
+Likely AI opportunities: ${businessContext.likelyAiOpportunities && businessContext.likelyAiOpportunities.length ? businessContext.likelyAiOpportunities.join('; ') : '(none)'}
+Question guidance used during interview: ${businessContext.questionGuidance && businessContext.questionGuidance.length ? businessContext.questionGuidance.join('; ') : '(none)'}
+
+Use this as background signal only. Do not claim that website observations are facts unless the client's own answers confirm them. Where useful, compare what the business appears to offer with what the client says they actually do.
+` : 'PRIVATE BUSINESS CONTEXT PROFILE: Not available.';
+
+  return `You are a business analyst for Bridge To AI, an AI implementation consulting firm run by Darren Randles (Kandar Consulting, Alberta, Canada).
+
+A new client has just completed their Business DNA Discovery Interview — a deep 8-domain business diagnostic plus a 6-part owner self-assessment. Your job is to produce a complete, structured Business DNA file from their answers. This file is CONFIDENTIAL — it goes directly to Darren, not to the client.
+
+CLIENT INFORMATION:
+Owner Name: ${clientName}
+Business Name: ${businessName}
+Business Category: ${businessCategory}
+Website URL: ${websiteUrl || '(not provided)'}
+Company Size: ${companySize ? companySize + ' people' : '(not specified)'}
+Departments / Functions: ${departments.length ? departments.join(', ') : '(not specified)'}
+Interview Date: ${new Date().toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' })}
+
+Use company size and department structure to calibrate your recommendations: a solo operator needs different AI leverage than a 50-person, multi-department business. Where departments are listed, consider whether AI opportunities should be scoped per-department.
+
+${contextBlock}
+
+═══════════════════════════════════════
+PART A — BUSINESS DIAGNOSTIC (8 domains)
+═══════════════════════════════════════
+${businessBlock}
+
+═══════════════════════════════════════
+PART B — OWNER SELF-ASSESSMENT (6 areas)
+Each area: where the owner is today, and what they'd want AI to free up.
+═══════════════════════════════════════
+${masteryBlock}
+
+═══════════════════════════════════════
+PART C — VOICE & STANDARDS
+The client reacted to a scenario twice: their best reply, and a deliberately bad one.
+The CONTRAST reveals their brand voice, tone, and the standards they hold.
+═══════════════════════════════════════
+${voiceBlock}
+
+Produce a complete Business DNA file in markdown format with these sections:
+
+# [BUSINESS NAME] — VENTURE DNA
+## Business DNA Interview | ${new Date().toLocaleDateString('en-CA')}
+
+### SECTION 1: CLIENT IDENTITY
+Business name, owner, category, date, interview method.
+
+### SECTION 2: WHAT THIS BUSINESS DOES
+2–3 sentence summary of their revenue model, core deliverable, and who benefits. Use their actual words where possible.
+
+### SECTION 3: IDEAL CLIENT PROFILE
+Who they serve, who they don't, what triggers a buying decision, what success looks like for their clients.
+
+### SECTION 4: REVENUE ENGINE
+How leads come in, how sales happen, where deals stall, what the conversion process looks like.
+
+### SECTION 5: OPERATIONS & DELIVERY
+How work moves from sale to result. Key steps, handoffs, recurring workflows, where things slow down.
+
+### SECTION 6: INFORMATION & SYSTEMS
+Where data lives, what tools are in use, data quality issues, what decisions are made without good information.
+
+### SECTION 7: PEOPLE & DECISION-MAKING
+Who owns what, where tribal knowledge is locked, where decisions require the owner, what would break without them.
+
+### SECTION 8: OWNER MASTERY PROFILE
+Synthesize Part B. For each of the 6 areas (Personal Productivity, Strategy & Decision-Making, Time & Leverage, Sales & Influence, Marketing & Messaging, Operations & Efficiency): where the owner currently stands, and — critically — where THEY said they want AI to help. This is the owner telling you in their own words where AI should go. Treat it as high-signal.
+
+### SECTION 9: VOICE & STANDARDS PROFILE
+Synthesize Part C. From the contrast between their "best" and "bad" replies, capture: their brand voice and tone (the words, warmth, and style of the good reply), the specific standards they hold (what made the bad version bad in their eyes), and the dos/don'ts an AI clone must follow to sound like them. This is the raw material for matching their voice in any AI build. Quote directly where it reveals their voice.
+
+### SECTION 10: AI OPPORTUNITY PORTFOLIO
+List 6–10 specific AI opportunities ranked by Impact × Feasibility (both scored 1–5, multiply). Format as a table. Draw from the business diagnostic, the owner's stated AI wishes in Part B, and the voice/standards in Part C.
+
+### SECTION 11: READINESS SCORECARD
+Score these 5 dimensions 1–5 with one-line finding each:
+- Data & Information Quality
+- Workflow Documentation
+- Tools & Tech Stack
+- People & Change Readiness
+- Risk & Compliance Posture
+Total score out of 25. Assign a readiness tier: Launch-Ready (21-25), Near-Ready (16-20), Foundation First (11-15), Rebuild Required (6-10), Not Ready (1-5).
+
+### SECTION 12: DO NOW / BUILD NEXT / AVOID FOR NOW
+Three clear boxes. Each action includes what to do and why.
+
+### SECTION 13: 30–60–90 DAY ROADMAP
+Three phases with specific tasks, owners, effort estimates, and outputs. Include 90-day success metrics.
+
+### SECTION 14: KEY QUOTES
+Capture 4–6 direct quotes from the client's answers (business, owner, or voice sections) that reveal their mindset, priorities, or hidden constraints.
+
+### SECTION 15: CONSULTANT NOTES FOR DARREN
+What stood out. What the client didn't say but implied. What to probe in the next conversation. Any risks or red flags. Note especially any mismatch between where the business needs AI and where the OWNER wants AI — that gap is where engagements succeed or fail. Pay special attention to their execution track record (Section 8, "Execution Reality" questions) and whether freed time will be redirected to revenue work or wasted.
+
+Be specific, direct, and honest. Do not soften constraints or inflate readiness scores. Use the client's actual language where it reveals something true about how they think.`;
+}
+
+// ── Call Anthropic API ─────────────────────────────────────────────────────
+async function generateDNAWithClaude() {
+  const response = await fetch('/api/generate-dna', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt: buildPrompt() })
+  });
+
+  if (!response.ok) throw new Error('DNA generation failed');
+  const data = await response.json();
+  return data.dnaContent;
+}
+
+// ── Send email via serverless function ────────────────────────────────────
+async function sendEmailWithDNA(dnaContent, driveLink) {
+  const payload = {
+    to: CONFIG.DARREN_EMAIL,
+    subject: `New DNA Interview Complete — ${businessName} (${businessCategory})`,
+    clientName: `${clientName} — ${businessName}`,
+    businessCategory,
+    companySize,
+    departments: departments.join(', '),
+    driveLink: driveLink || '',
+    date: new Date().toLocaleDateString('en-CA'),
+    dnaContent
+  };
+
+  const response = await fetch(CONFIG.EMAIL_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) throw new Error('Email send failed');
+}
+</script>
+</body>
+</html>
