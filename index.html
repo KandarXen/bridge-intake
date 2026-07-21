@@ -157,6 +157,34 @@
     letter-spacing: 0.06em;
   }
 
+  .resume-card {
+    display: none;
+    background: var(--surface-raised);
+    border: 1px solid #b8ddd7;
+    border-radius: var(--radius);
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .resume-title {
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 0.35rem;
+  }
+
+  .resume-body {
+    color: var(--ink-mid);
+    font-size: 0.88rem;
+    line-height: 1.5;
+    margin-bottom: 0.9rem;
+  }
+
+  .resume-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
   .step-list { list-style: none; }
 
   .step-list li {
@@ -705,8 +733,17 @@
         <li><span class="step-num">1</span> You'll start with a quick scenario, then move through 8 areas of your business and a short reflection on you as the owner.</li>
         <li><span class="step-num">2</span> Speak your answer using the microphone, or type it directly.</li>
         <li><span class="step-num">3</span> Review what was captured, edit if needed, then hit Continue.</li>
-        <li><span class="step-num">4</span> A few questions may have a quick follow-up. When you're done, your answers are encrypted and used only to build your profile — never shared, never sold, never made public.</li>
+        <li><span class="step-num">4</span> A few questions may have a quick follow-up. Your progress is saved on this device as you go. When you're done, your answers are encrypted and used only to build your profile — never shared, never sold, never made public.</li>
       </ul>
+    </div>
+
+    <div class="resume-card" id="resume-card">
+      <div class="resume-title">Resume your previous session?</div>
+      <div class="resume-body" id="resume-summary">We found saved progress from this browser.</div>
+      <div class="resume-actions">
+        <button class="btn-primary" type="button" onclick="resumeSavedInterview()">Resume session</button>
+        <button class="btn-secondary" type="button" onclick="clearSavedInterview(true)">Start over</button>
+      </div>
     </div>
 
     <div class="name-field">
@@ -732,6 +769,11 @@
     <div class="name-field">
       <label for="company-size">Roughly how many people work in your business?</label>
       <input type="text" id="company-size" placeholder="e.g. 1, 8, 45..." autocomplete="off" inputmode="numeric" />
+    </div>
+
+    <div class="name-field">
+      <label for="owner-work-status">How are you involved in the business right now? <span style="font-weight:400;color:var(--ink-soft);">(optional, but helps tailor the questions)</span></label>
+      <input type="text" id="owner-work-status" placeholder="e.g. full-time owner, semi-retired, side business, managing a team..." autocomplete="off" />
     </div>
 
     <div class="name-field">
@@ -894,7 +936,7 @@
 // IMPORTANT: Replace these with your actual values before deploying
 const CONFIG = {
   EMAIL_ENDPOINT: '/api/send-email',              // Vercel serverless function endpoint
-  DARREN_EMAIL: 'darren@ourcopacker.ca',           // Your email address
+  DARREN_EMAIL: 'team@bridgetoai.ca',               // Intake delivery address; forwards to Darren via Resend/email routing
 };
 
 // ── Questions ──────────────────────────────────────────────────────────────
@@ -1047,9 +1089,10 @@ const QUESTIONS = [
 ];
 
 // Fixed follow-up shown after every mastery question
-const MASTERY_FOLLOWUP = 'And if AI quietly handled this area for you — what would that free you up to do, or how would it change things?';
+const MASTERY_FOLLOWUP = 'And if AI quietly handled this area for you, what would that free you up to do, or how would it change things?';
+const DRAFT_KEY = 'bridge-to-ai-intake-draft-v1';
 
-// ── State ──────────────────────────────────────────────────────────────────
+// State ──────────────────────────────────────────────────────────────────
 let currentQ = 0;
 let answers = [];              // base answer per question index
 let masteryFollowups = [];     // mastery follow-up answer per question index (only mastery uses it)
@@ -1066,6 +1109,7 @@ let businessName = '';
 let businessCategory = '';
 let websiteUrl = '';
 let companySize = '';
+let ownerWorkStatus = '';
 let departments = [];
 let businessContext = null;
 let recognition = null;
@@ -1074,8 +1118,158 @@ let isRecording = false;
 // Sub-step within a question: 'main' = base question, 'followup' = mastery AI-future Q, 'probe' = AI probe
 let subStep = 'main';
 let activeProbe = null;        // { domain, question } when a probe is showing
+let draftAutosaveEnabled = true;
 
 // ── Screen management ──────────────────────────────────────────────────────
+function captureVisibleTranscript() {
+  const box = document.getElementById('transcript');
+  if (!box) return;
+  const val = box.innerText.trim();
+
+  if (scenarioStage === 'good') scenarioGood = val;
+  else if (scenarioStage === 'bad') scenarioBad = val;
+  else if (subStep === 'followup') masteryFollowups[currentQ] = val;
+  else if (subStep === 'probe' && activeProbe) {
+    if (!domainProbes[activeProbe.domain]) domainProbes[activeProbe.domain] = { question: activeProbe.question, answer: '', asked: true };
+    domainProbes[activeProbe.domain].answer = val;
+    domainProbes[activeProbe.domain].asked = true;
+  } else if (answers.length) {
+    answers[currentQ] = val;
+  }
+}
+
+function readWelcomeFields() {
+  clientName = document.getElementById('client-name').value.trim();
+  businessName = document.getElementById('business-name').value.trim();
+  businessCategory = document.getElementById('business-category').value.trim();
+  websiteUrl = document.getElementById('website-url').value.trim();
+  companySize = document.getElementById('company-size').value.trim();
+  ownerWorkStatus = document.getElementById('owner-work-status').value.trim();
+  departments = Array.from(document.querySelectorAll('.dept-pill input:checked')).map(cb => cb.value);
+}
+
+function applyWelcomeFields() {
+  document.getElementById('client-name').value = clientName || '';
+  document.getElementById('business-name').value = businessName || '';
+  document.getElementById('business-category').value = businessCategory || '';
+  document.getElementById('website-url').value = websiteUrl || '';
+  document.getElementById('company-size').value = companySize || '';
+  document.getElementById('owner-work-status').value = ownerWorkStatus || '';
+  document.querySelectorAll('.dept-pill input').forEach(cb => { cb.checked = departments.includes(cb.value); });
+}
+
+function saveDraft(captureTranscript = true) {
+  if (!draftAutosaveEnabled) return;
+  try {
+    readWelcomeFields();
+    if (captureTranscript) captureVisibleTranscript();
+    const payload = {
+      version: 1,
+      savedAt: new Date().toISOString(),
+      clientName,
+      businessName,
+      businessCategory,
+      websiteUrl,
+      companySize,
+      ownerWorkStatus,
+      departments,
+      currentQ,
+      answers,
+      masteryFollowups,
+      masteryFollowupQ,
+      domainProbes,
+      scenarioText,
+      scenarioGood,
+      scenarioBad,
+      scenarioStage,
+      scenarioDone,
+      businessContext,
+      subStep,
+      activeProbe,
+      interviewStarted: scenarioDone || !!scenarioStage || answers.some(Boolean) || masteryFollowups.some(Boolean) || Object.keys(domainProbes).length > 0
+    };
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
+  } catch (e) { /* local draft storage unavailable */ }
+}
+
+function loadDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function showResumeCardIfNeeded() {
+  const draft = loadDraft();
+  const card = document.getElementById('resume-card');
+  if (!card || !draft) return;
+
+  clientName = draft.clientName || '';
+  businessName = draft.businessName || '';
+  businessCategory = draft.businessCategory || '';
+  websiteUrl = draft.websiteUrl || '';
+  companySize = draft.companySize || '';
+  ownerWorkStatus = draft.ownerWorkStatus || '';
+  departments = Array.isArray(draft.departments) ? draft.departments : [];
+  applyWelcomeFields();
+
+  if (draft.interviewStarted) {
+    const when = draft.savedAt ? new Date(draft.savedAt).toLocaleString() : 'recently';
+    document.getElementById('resume-summary').textContent = `Saved progress for ${draft.businessName || draft.clientName || 'this interview'} from ${when}.`;
+    card.style.display = 'block';
+  }
+}
+
+function resumeSavedInterview() {
+  draftAutosaveEnabled = true;
+  const draft = loadDraft();
+  if (!draft) return;
+
+  clientName = draft.clientName || '';
+  businessName = draft.businessName || '';
+  businessCategory = draft.businessCategory || '';
+  websiteUrl = draft.websiteUrl || '';
+  companySize = draft.companySize || '';
+  ownerWorkStatus = draft.ownerWorkStatus || '';
+  departments = Array.isArray(draft.departments) ? draft.departments : [];
+  answers = Array.isArray(draft.answers) ? draft.answers : new Array(QUESTIONS.length).fill('');
+  masteryFollowups = Array.isArray(draft.masteryFollowups) ? draft.masteryFollowups : new Array(QUESTIONS.length).fill('');
+  masteryFollowupQ = Array.isArray(draft.masteryFollowupQ) ? draft.masteryFollowupQ : new Array(QUESTIONS.length).fill('');
+  domainProbes = draft.domainProbes || {};
+  scenarioText = draft.scenarioText || '';
+  scenarioGood = draft.scenarioGood || '';
+  scenarioBad = draft.scenarioBad || '';
+  scenarioStage = draft.scenarioStage || null;
+  scenarioDone = !!draft.scenarioDone;
+  businessContext = draft.businessContext || null;
+  currentQ = Number.isInteger(draft.currentQ) ? draft.currentQ : 0;
+  subStep = draft.subStep || 'main';
+  activeProbe = draft.activeProbe || null;
+
+  applyWelcomeFields();
+  showScreen('screen-interview');
+  if (scenarioStage) renderScenario();
+  else renderQuestion();
+}
+
+function clearSavedInterview(resetFields = false) {
+  if (resetFields) draftAutosaveEnabled = true;
+  try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* ignore */ }
+  const card = document.getElementById('resume-card');
+  if (card) card.style.display = 'none';
+  if (resetFields) {
+    clientName = '';
+    businessName = '';
+    businessCategory = '';
+    websiteUrl = '';
+    companySize = '';
+    ownerWorkStatus = '';
+    departments = [];
+    applyWelcomeFields();
+  }
+}
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
@@ -1089,6 +1283,7 @@ async function startInterview() {
   businessCategory = document.getElementById('business-category').value.trim();
   websiteUrl = document.getElementById('website-url').value.trim();
   companySize = document.getElementById('company-size').value.trim();
+  ownerWorkStatus = document.getElementById('owner-work-status').value.trim();
   departments = Array.from(document.querySelectorAll('.dept-pill input:checked')).map(cb => cb.value);
   const err = document.getElementById('welcome-error');
 
@@ -1110,12 +1305,17 @@ async function startInterview() {
   currentQ = 0;
   subStep = 'main';
 
+  draftAutosaveEnabled = true;
+  clearSavedInterview(false);
+  saveDraft(false);
+
   // Generate the tailored scenario, then run the two writing beats before Q1.
   const startBtn = event && event.target ? event.target : null;
   if (startBtn) { startBtn.disabled = true; startBtn.textContent = 'Setting up your session…'; }
   await researchBusinessContext();
   await generateScenario();
   if (startBtn) { startBtn.disabled = false; startBtn.textContent = 'Begin my discovery session →'; }
+  saveDraft(false);
 
   showScreen('screen-interview');
   scenarioStage = 'good';
@@ -1128,7 +1328,7 @@ async function researchBusinessContext() {
     const resp = await fetch('/api/research-business', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ businessName, businessCategory, websiteUrl, companySize, departments })
+      body: JSON.stringify({ businessName, businessCategory, websiteUrl, companySize, ownerWorkStatus, departments })
     });
     if (resp.ok) {
       const data = await resp.json();
@@ -1191,9 +1391,53 @@ function renderScenario() {
   box.textContent = saved || '';
   updateWordCount();
   if (isRecording) stopRecording();
+  saveDraft(false);
 }
 
 // ── Advance through the scenario beats ──────────────────────────────────────
+function normalizedCompanySizeNumber() {
+  const match = String(companySize || '').match(/\d+/);
+  return match ? Number(match[0]) : null;
+}
+
+function isSoloOrNoStaff() {
+  const size = normalizedCompanySizeNumber();
+  const status = `${ownerWorkStatus || ''} ${businessCategory || ''} ${departments.join(' ')}`.toLowerCase();
+  return size === 0 || size === 1 || status.includes('semi-retired') || status.includes('semi retired') || status.includes('mostly just me') || status.includes('solo') || status.includes('self-employed') || status.includes('self employed') || status.includes('no employees');
+}
+
+function adaptQuestionForContext(q) {
+  if (!isSoloOrNoStaff()) return { text: q.text, hint: q.hint };
+
+  const overrides = {
+    'People & Decision-Making|Current Reality': {
+      text: 'What parts of the business depend entirely on you, and what would pause if you were unavailable?',
+      hint: 'Think about sales, delivery, admin, customer replies, decisions, and any informal helpers or future hires.'
+    },
+    'People & Decision-Making|Pain & Cost': {
+      text: 'Where do decisions or tasks bottleneck because they need your personal attention?',
+      hint: 'What cannot move forward until you approve it, remember it, explain it, or do it yourself?'
+    },
+    'People & Decision-Making|Desired Future': {
+      text: 'What would it look like if the business could keep moving without you personally touching every step?',
+      hint: 'Focus on backup systems, clearer instructions, simple automations, or support a future helper could follow.'
+    },
+    'People & Decision-Making|AI Fit': {
+      text: 'Which decisions or communications depend on your knowledge that AI could help organize, draft, or explain?',
+      hint: 'The repeat answers, judgment calls, and customer replies that currently live mostly in your head.'
+    },
+    'Risk & Adoption|Current Reality': {
+      text: 'What privacy, compliance, or confidentiality constraints apply to your business?',
+      hint: 'Client data, regulated information, industry rules, and your own comfort level with new tech.'
+    },
+    'Risk & Adoption|Desired Future': {
+      text: 'What would a successful AI rollout look and feel like for you?',
+      hint: 'What would change in your day-to-day work, and what would make the system feel trustworthy rather than intrusive?'
+    }
+  };
+
+  return overrides[`${q.domain}|${q.type}`] || { text: q.text, hint: q.hint };
+}
 function nextScenario() {
   const val = document.getElementById('transcript').innerText.trim();
   if (!val || val.length < 5) {
@@ -1205,10 +1449,12 @@ function nextScenario() {
   if (scenarioStage === 'good') {
     scenarioGood = val;
     scenarioStage = 'bad';
+    saveDraft(false);
     renderScenario();
   } else {
     scenarioBad = val;
     scenarioDone = true;
+    saveDraft(false);
     scenarioStage = null;
     // move into the main questionnaire
     currentQ = 0;
@@ -1222,6 +1468,7 @@ function prevScenario() {
   if (scenarioStage === 'bad') {
     scenarioBad = val;
     scenarioStage = 'good';
+    saveDraft(false);
     renderScenario();
   }
 }
@@ -1238,8 +1485,9 @@ function renderQuestion() {
   document.getElementById('answer-error').style.display = 'none';
 
   let domainLabel = q.domain;
-  let qText = q.text;
-  let qHint = q.hint;
+  const adapted = adaptQuestionForContext(q);
+  let qText = adapted.text;
+  let qHint = adapted.hint;
   let countText = '';
   let savedValue = answers[currentQ] || '';
 
@@ -1292,6 +1540,7 @@ function renderQuestion() {
   updateWordCount();
 
   if (isRecording) stopRecording();
+  saveDraft(false);
 }
 
 // ── Navigation ─────────────────────────────────────────────────────────────
@@ -1327,7 +1576,8 @@ async function nextQuestion() {
   if (subStep === 'followup') {
     // finished a mastery follow-up → advance to next question
     subStep = 'main';
-    if (currentQ < total - 1) { currentQ++; renderQuestion(); }
+    saveDraft(false);
+    if (currentQ < total - 1) { currentQ++; saveDraft(false); renderQuestion(); }
     else { submitInterview(); }
     return;
   }
@@ -1335,7 +1585,7 @@ async function nextQuestion() {
     // finished a domain probe → advance to next question (or submit)
     subStep = 'main';
     activeProbe = null;
-    if (currentQ < total - 1) { currentQ++; renderQuestion(); }
+    if (currentQ < total - 1) { currentQ++; saveDraft(false); renderQuestion(); }
     else { submitInterview(); }
     return;
   }
@@ -1353,7 +1603,7 @@ async function nextQuestion() {
     // Probe-guard: only probe a domain once. If already probed on a prior pass,
     // skip straight ahead (saves API calls, avoids repetition on backtrack).
     if (domainProbes[q.domain] && domainProbes[q.domain].asked) {
-      if (currentQ < total - 1) { currentQ++; renderQuestion(); }
+      if (currentQ < total - 1) { currentQ++; saveDraft(false); renderQuestion(); }
       else { submitInterview(); }
       return;
     }
@@ -1362,7 +1612,7 @@ async function nextQuestion() {
   }
 
   // otherwise just advance
-  if (currentQ < total - 1) { currentQ++; renderQuestion(); }
+  if (currentQ < total - 1) { currentQ++; saveDraft(false); renderQuestion(); }
   else { submitInterview(); }
 }
 
@@ -1386,7 +1636,7 @@ async function runDomainProbe(domainName) {
     const resp = await fetch('/api/probe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ domain: domainName, qa: domainQA, businessCategory, businessContext })
+      body: JSON.stringify({ domain: domainName, qa: domainQA, businessCategory, companySize, ownerWorkStatus, departments, businessContext })
     });
     if (resp.ok) {
       const data = await resp.json();
@@ -1407,12 +1657,14 @@ async function runDomainProbe(domainName) {
     activeProbe = { domain: domainName, question: probeQuestion };
     domainProbes[domainName] = { question: probeQuestion, answer: '', asked: true };
     subStep = 'probe';
+    saveDraft(false);
     renderQuestion();
   } else {
     // no probe needed — mark asked so we don't retry on backtrack, then advance
     domainProbes[domainName] = { question: null, answer: '', asked: true };
     subStep = 'main';
-    if (currentQ < total - 1) { currentQ++; renderQuestion(); }
+    saveDraft(false);
+    if (currentQ < total - 1) { currentQ++; saveDraft(false); renderQuestion(); }
     else { submitInterview(); }
   }
 }
@@ -1426,6 +1678,7 @@ async function runMasteryFollowup(qIndex) {
   // If we already generated a follow-up for this item (e.g. on backtrack), reuse it.
   if (masteryFollowupQ[qIndex]) {
     subStep = 'followup';
+    saveDraft(false);
     renderQuestion();
     return;
   }
@@ -1434,6 +1687,7 @@ async function runMasteryFollowup(qIndex) {
   if (answer.trim().split(/\s+/).filter(Boolean).length < 12) {
     masteryFollowupQ[qIndex] = MASTERY_FOLLOWUP;
     subStep = 'followup';
+    saveDraft(false);
     renderQuestion();
     return;
   }
@@ -1448,7 +1702,7 @@ async function runMasteryFollowup(qIndex) {
     const resp = await fetch('/api/mastery-followup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ area: q.domain, answer, businessCategory, businessContext })
+      body: JSON.stringify({ area: q.domain, answer, businessCategory, companySize, ownerWorkStatus, departments, businessContext })
     });
     if (resp.ok) {
       const data = await resp.json();
@@ -1466,6 +1720,7 @@ async function runMasteryFollowup(qIndex) {
   // Smart follow-up if we got one; otherwise the generic AI-future line.
   masteryFollowupQ[qIndex] = followup || MASTERY_FOLLOWUP;
   subStep = 'followup';
+  saveDraft(false);
   renderQuestion();
 }
 
@@ -1478,18 +1733,28 @@ function prevQuestion() {
   if (subStep === 'followup' || subStep === 'probe') {
     subStep = 'main';
     activeProbe = null;
+    saveDraft(false);
     renderQuestion();
     return;
   }
   if (currentQ > 0) {
     currentQ--;
     subStep = 'main';
+    saveDraft(false);
     renderQuestion();
   }
 }
 
 // ── Word count ─────────────────────────────────────────────────────────────
-document.getElementById('transcript').addEventListener('input', updateWordCount);
+document.getElementById('transcript').addEventListener('input', () => { updateWordCount(); saveDraft(); });
+
+document.querySelectorAll('#screen-welcome input').forEach(input => {
+  input.addEventListener('input', () => saveDraft(false));
+  input.addEventListener('change', () => saveDraft(false));
+});
+document.querySelectorAll('.dept-pill input').forEach(input => input.addEventListener('change', () => saveDraft(false)));
+window.addEventListener('beforeunload', () => saveDraft());
+showResumeCardIfNeeded();
 
 function updateWordCount() {
   const text = document.getElementById('transcript').innerText.trim();
@@ -1592,12 +1857,16 @@ async function submitInterview() {
 
     await sendEmailWithDNA(dnaContent, driveLink);
 
+    draftAutosaveEnabled = false;
+    clearSavedInterview(false);
     showScreen('screen-complete');
     document.getElementById('complete-message').textContent =
       `Thank you, ${clientName}. Your business profile has been encrypted and securely saved. It will be used only to prepare your custom AI plan — never shared, never sold, never made public.`;
   } catch (err) {
     console.error('Submission error:', err);
     showScreen('screen-complete');
+    document.getElementById('complete-message').textContent =
+      `Thank you, ${clientName}. Your interview was completed, but automatic delivery did not confirm. Please contact team@bridgetoai.ca so we can recover or re-run the submission.`;
   }
 }
 
@@ -1687,10 +1956,11 @@ Business Name: ${businessName}
 Business Category: ${businessCategory}
 Website URL: ${websiteUrl || '(not provided)'}
 Company Size: ${companySize ? companySize + ' people' : '(not specified)'}
+Owner Work Status / Capacity: ${ownerWorkStatus || '(not specified)'}
 Departments / Functions: ${departments.length ? departments.join(', ') : '(not specified)'}
 Interview Date: ${new Date().toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' })}
 
-Use company size and department structure to calibrate your recommendations: a solo operator needs different AI leverage than a 50-person, multi-department business. Where departments are listed, consider whether AI opportunities should be scoped per-department.
+Use company size, owner work status, and department structure to calibrate your recommendations: a solo operator, semi-retired owner, or side-business operator needs different AI leverage than a 50-person, multi-department business. If they are solo or semi-retired, do not imply staff exist unless the client clearly said so. Where departments are listed, consider whether AI opportunities should be scoped per-function, per-person, or future-hire readiness.
 
 ${contextBlock}
 
@@ -1792,6 +2062,7 @@ async function sendEmailWithDNA(dnaContent, driveLink) {
     clientName: `${clientName} — ${businessName}`,
     businessCategory,
     companySize,
+    ownerWorkStatus,
     departments: departments.join(', '),
     driveLink: driveLink || '',
     date: new Date().toLocaleDateString('en-CA'),
@@ -1804,7 +2075,14 @@ async function sendEmailWithDNA(dnaContent, driveLink) {
     body: JSON.stringify(payload)
   });
 
-  if (!response.ok) throw new Error('Email send failed');
+  if (!response.ok) {
+    let detail = '';
+    try {
+      const errorBody = await response.json();
+      detail = errorBody && (errorBody.details || errorBody.message || errorBody.error) ? `: ${JSON.stringify(errorBody.details || errorBody.message || errorBody.error)}` : '';
+    } catch (e) { /* ignore parse errors */ }
+    throw new Error('Email send failed' + detail);
+  }
 }
 </script>
 </body>

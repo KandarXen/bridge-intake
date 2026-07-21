@@ -35,8 +35,10 @@ async function getAccessToken() {
 }
 
 // ── Upload the DNA markdown as a file in the target folder ──────────────────
+const DEFAULT_DRIVE_FOLDER_ID = '1EQ7LkKGUJwXmHbw3SxquSnuoBHrzOka5';
+
 async function uploadFile(accessToken, filename, content) {
-  const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+  const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID || DEFAULT_DRIVE_FOLDER_ID;
   const metadata = {
     name: filename,
     parents: folderId ? [folderId] : undefined,
@@ -85,10 +87,14 @@ export default async function handler(req, res) {
   if (
     !process.env.GOOGLE_OAUTH_REFRESH_TOKEN ||
     !process.env.GOOGLE_OAUTH_CLIENT_ID ||
-    !process.env.GOOGLE_OAUTH_CLIENT_SECRET ||
-    !process.env.GOOGLE_DRIVE_FOLDER_ID
+    !process.env.GOOGLE_OAUTH_CLIENT_SECRET
   ) {
-    return res.status(200).json({ saved: false, reason: 'Drive OAuth not configured' });
+    const missing = [
+      !process.env.GOOGLE_OAUTH_REFRESH_TOKEN ? 'GOOGLE_OAUTH_REFRESH_TOKEN' : null,
+      !process.env.GOOGLE_OAUTH_CLIENT_ID ? 'GOOGLE_OAUTH_CLIENT_ID' : null,
+      !process.env.GOOGLE_OAUTH_CLIENT_SECRET ? 'GOOGLE_OAUTH_CLIENT_SECRET' : null
+    ].filter(Boolean);
+    return res.status(200).json({ saved: false, reason: 'Drive OAuth not configured', missing });
   }
 
   try {

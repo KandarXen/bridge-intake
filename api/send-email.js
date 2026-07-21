@@ -7,7 +7,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { to, subject, clientName, businessCategory, companySize, departments, driveLink, date, dnaContent } = req.body;
+  const { to, subject, clientName, businessCategory, companySize, ownerWorkStatus, departments, driveLink, date, dnaContent } = req.body;
 
   if (!dnaContent || !clientName) {
     return res.status(400).json({ error: 'Missing required fields' });
@@ -34,6 +34,10 @@ export default async function handler(req, res) {
           <tr>
             <td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; font-size: 0.88rem; color: #8a8a8a;">Size</td>
             <td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; font-size: 0.88rem;">${companySize || '—'} people</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; font-size: 0.88rem; color: #8a8a8a;">Owner status</td>
+            <td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; font-size: 0.88rem;">${ownerWorkStatus || '—'}</td>
           </tr>
           <tr>
             <td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; font-size: 0.88rem; color: #8a8a8a;">Departments</td>
@@ -87,6 +91,11 @@ ${dnaContent}
   try {
     // Using Resend API — free, reliable, 3,000 emails/month
     // Sign up at resend.com, get your API key, add to Vercel env vars as RESEND_API_KEY
+    if (!process.env.RESEND_API_KEY) {
+      console.error('RESEND_API_KEY is not configured');
+      return res.status(500).json({ error: 'Email service is not configured', details: 'Missing RESEND_API_KEY' });
+    }
+
     const emailResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {

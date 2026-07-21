@@ -7,7 +7,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { domain, qa, businessCategory, businessContext } = req.body || {};
+  const { domain, qa, businessCategory, companySize, ownerWorkStatus, departments = [], businessContext } = req.body || {};
   if (!qa) return res.status(400).json({ error: 'Missing qa' });
 
   const contextBlock = businessContext ? `
@@ -17,7 +17,16 @@ ${JSON.stringify(businessContext).slice(0, 3000)}
 
 Use this to understand likely workflows and industry patterns. Client-facing wording must sound generic and industry-informed, such as "businesses like yours often..." or "this type of operation can...". Do not say "your website", "I noticed", "we saw", or imply background research happened.` : '';
 
-  const prompt = `You are conducting a business discovery interview for a ${businessCategory || 'small business'}. The client just answered the questions in the "${domain}" section below.
+  const orgContext = `Company size: ${companySize || 'not specified'} people. Owner status/capacity: ${ownerWorkStatus || 'not specified'}. Departments/functions selected: ${Array.isArray(departments) && departments.length ? departments.join(', ') : 'not specified'}.`;
+const soloOrNoStaff = /(^|\D)(0|1)(\D|$)/.test(String(companySize || '')) || /semi[- ]?retired|mostly just me|solo|self[- ]?employed|no employees/i.test(`${ownerWorkStatus || ''} ${Array.isArray(departments) ? departments.join(' ') : ''}`);
+
+  const prompt = `You are conducting a business discovery interview for a ${businessCategory || 'small business'}.
+
+Organization context:
+${orgContext}
+${soloOrNoStaff ? 'Important: This appears to be a solo, no-staff, or semi-retired operator. Do not ask about staff, employees, departments, or team handoffs as if they currently exist. Use wording like "you," "helpers," "future hires," or "outside support" only when appropriate.' : ''}
+
+The client just answered the questions in the "${domain}" section below.
 
 ${qa}
 ${contextBlock}
@@ -28,6 +37,7 @@ Rules:
 - If the answers are clear and complete enough, respond with exactly: NONE
 - If a follow-up genuinely helps, respond with ONLY the question itself - one sentence, warm and plain-spoken, no preamble.
 - Never ask more than one question.
+- Respect the organization context. If they are solo, no-staff, or semi-retired, do not ask staff/team/departments questions unless they explicitly mentioned employees.
 - If using context, frame it as a general business-type pattern, not as something observed from their website.
 - Do not explain your choice. Output either "NONE" or the single question.`;
 
