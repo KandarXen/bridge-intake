@@ -31,10 +31,14 @@ The client just answered the questions in the "${domain}" section below.
 ${qa}
 ${contextBlock}
 
-Your job: decide if ONE short follow-up question would meaningfully improve the quality of this section. Ask a follow-up ONLY if an answer is vague, skips the actual question, or leaves an obvious gap that matters for understanding the business.
+Your job: decide if ONE short follow-up question would meaningfully improve the quality of this section. Default to NONE. Ask a follow-up only when the section would be genuinely hard to analyze without one more concrete fact.
 
 Rules:
-- If the answers are clear and complete enough, respond with exactly: NONE
+- If the answers are clear enough to analyze, respond with exactly: NONE.
+- If the client gave a reasonable answer but not every detail, respond with NONE. Do not chase completeness.
+- Do not ask broad recap questions such as "walk me through your process," "what does your current process look like," "is this documented," "who owns this," or "what happens from first contact to delivery" when the fixed interview already asked about process, sales, delivery, handoffs, systems, or documentation.
+- Do not ask a question that combines multiple parts of the interview, such as sales plus onboarding plus delivery plus documentation.
+- Only ask a follow-up if it targets one missing, high-value fact: a number, a bottleneck, a tool name, a decision owner, a deadline, a conversion point, or a risk.
 - If a follow-up genuinely helps, respond with ONLY the question itself - one sentence, warm and plain-spoken, no preamble.
 - Never ask more than one question.
 - Respect the organization context. If they are solo, no-staff, or semi-retired, do not ask staff/team/departments questions unless they explicitly mentioned employees.

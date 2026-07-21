@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bridge To AI — Business Discovery Session</title>
+<title>Bridge To AI â€” Business Discovery Session</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap');
 
@@ -36,7 +36,7 @@
     flex-direction: column;
   }
 
-  /* ── Header ── */
+  /* â”€â”€ Header â”€â”€ */
   .header {
     padding: 1.5rem 2rem;
     display: flex;
@@ -96,7 +96,7 @@
     letter-spacing: 0.04em;
   }
 
-  /* ── Main layout ── */
+  /* â”€â”€ Main layout â”€â”€ */
   .main {
     flex: 1;
     display: flex;
@@ -105,11 +105,11 @@
     padding: 3rem 1.5rem 4rem;
   }
 
-  /* ── Screens ── */
+  /* â”€â”€ Screens â”€â”€ */
   .screen { display: none; width: 100%; max-width: 640px; }
   .screen.active { display: flex; flex-direction: column; }
 
-  /* ── Welcome screen ── */
+  /* â”€â”€ Welcome screen â”€â”€ */
   .welcome-eyebrow {
     font-size: 0.72rem;
     font-weight: 600;
@@ -272,7 +272,7 @@
     font-weight: 500;
   }
 
-  /* ── Buttons ── */
+  /* â”€â”€ Buttons â”€â”€ */
   .btn-primary {
     display: inline-flex;
     align-items: center;
@@ -313,7 +313,7 @@
 
   .btn-secondary:hover { border-color: var(--ink-mid); color: var(--ink); }
 
-  /* ── Progress ── */
+  /* â”€â”€ Progress â”€â”€ */
   .progress-wrap {
     margin-bottom: 2rem;
   }
@@ -352,7 +352,7 @@
     transition: width 0.4s ease;
   }
 
-  /* ── Question card ── */
+  /* â”€â”€ Question card â”€â”€ */
   .question-domain {
     font-size: 0.72rem;
     font-weight: 600;
@@ -378,7 +378,7 @@
     margin-bottom: 1.5rem;
   }
 
-  /* ── Voice input area ── */
+  /* â”€â”€ Voice input area â”€â”€ */
   .input-area {
     background: var(--surface-raised);
     border: 1.5px solid var(--border);
@@ -471,7 +471,7 @@
     color: var(--ink-soft);
   }
 
-  /* ── Navigation ── */
+  /* â”€â”€ Navigation â”€â”€ */
   .nav-row {
     display: flex;
     justify-content: space-between;
@@ -491,7 +491,7 @@
     .nav-reassure { display: none; }
   }
 
-  /* ── Processing screen ── */
+  /* â”€â”€ Processing screen â”€â”€ */
   .processing-wrap {
     display: flex;
     flex-direction: column;
@@ -562,7 +562,7 @@
   .p-step.done .p-icon { background: var(--bridge-teal); border-color: var(--bridge-teal); color: white; }
   .p-step.active .p-icon { border-color: var(--bridge-teal); }
 
-  /* ── Completion screen ── */
+  /* â”€â”€ Completion screen â”€â”€ */
   .complete-wrap {
     display: flex;
     flex-direction: column;
@@ -654,7 +654,7 @@
 
   .complete-footer a { color: var(--bridge-teal); text-decoration: none; }
 
-  /* ── Error banner ── */
+  /* â”€â”€ Error banner â”€â”€ */
   .error-banner {
     background: #fdf2f2;
     border: 1px solid #f5c6c6;
@@ -666,7 +666,7 @@
     display: none;
   }
 
-  /* ── Footer ── */
+  /* â”€â”€ Footer â”€â”€ */
   .footer {
     padding: 1.25rem 2rem;
     border-top: 1px solid var(--border);
@@ -717,12 +717,12 @@
 
 <main class="main">
 
-  <!-- ── Screen 1: Welcome ── -->
+  <!-- â”€â”€ Screen 1: Welcome â”€â”€ -->
   <div class="screen active" id="screen-welcome">
-    <div class="welcome-eyebrow">Confidential — for your eyes only</div>
+    <div class="welcome-eyebrow">Confidential â€” for your eyes only</div>
     <h1 class="welcome-headline">Let's understand your business <em>before</em> we talk about AI.</h1>
     <p class="welcome-body">
-      This session takes about 20–30 minutes. There are no right or wrong answers —
+      This session takes about 20â€“30 minutes. There are no right or wrong answers â€”
       the more honest you are, the more useful your custom AI system will be.
       Your answers are kept private and secure, used only to prepare your custom AI plan.
     </p>
@@ -733,7 +733,7 @@
         <li><span class="step-num">1</span> You'll start with a quick scenario, then move through 8 areas of your business and a short reflection on you as the owner.</li>
         <li><span class="step-num">2</span> Speak your answer using the microphone, or type it directly.</li>
         <li><span class="step-num">3</span> Review what was captured, edit if needed, then hit Continue.</li>
-        <li><span class="step-num">4</span> A few questions may have a quick follow-up. Your progress is saved on this device as you go. When you're done, your answers are encrypted and used only to build your profile — never shared, never sold, never made public.</li>
+        <li><span class="step-num">4</span> A few questions may have a quick follow-up. Your progress is saved on this device as you go. When you're done, your answers are encrypted and used only to build your profile â€” never shared, never sold, never made public.</li>
       </ul>
     </div>
 
@@ -795,11 +795,11 @@
     <div id="welcome-error" class="error-banner">Please fill in your name, business name, and business type before continuing.</div>
 
     <button class="btn-primary" onclick="startInterview()" style="width:100%;">
-      Begin my discovery session →
+      Begin my discovery session â†’
     </button>
   </div>
 
-  <!-- ── Screen 2: Interview ── -->
+  <!-- â”€â”€ Screen 2: Interview â”€â”€ -->
   <div class="screen" id="screen-interview">
     <div class="progress-wrap">
       <div class="progress-meta">
@@ -815,14 +815,14 @@
     <div class="question-text" id="q-text"></div>
     <div class="question-hint" id="q-hint"></div>
 
-    <div id="answer-error" class="error-banner">Please share your thoughts before continuing — there are no wrong answers.</div>
+    <div id="answer-error" class="error-banner">Please share your thoughts before continuing â€” there are no wrong answers.</div>
 
     <div class="input-area">
       <div
         class="transcript-box"
         id="transcript"
         contenteditable="true"
-        data-placeholder="Tap the mic and speak your answer. To fix or change anything, pause the mic first, then type — turn it back on to keep talking."
+        data-placeholder="Tap the mic and speak your answer. To fix or change anything, pause the mic first, then type â€” turn it back on to keep talking."
       ></div>
       <div class="input-toolbar">
         <button class="voice-btn" id="voice-btn" onclick="toggleRecording()">
@@ -834,43 +834,45 @@
     </div>
 
     <div class="nav-row">
-      <button class="btn-secondary" id="btn-back" onclick="prevQuestion()">← Back</button>
+      <button class="btn-secondary" id="btn-back" onclick="prevQuestion()">â† Back</button>
       <span class="nav-reassure">You can go back anytime to review or change an answer</span>
-      <button class="btn-primary" id="btn-next" onclick="nextQuestion()">Continue →</button>
+      <button class="btn-primary" id="btn-next" onclick="nextQuestion()">Continue â†’</button>
     </div>
   </div>
 
-  <!-- ── Screen 3: Processing ── -->
+  <!-- â”€â”€ Screen 3: Processing â”€â”€ -->
   <div class="screen" id="screen-processing">
     <div class="processing-wrap">
       <div class="spinner"></div>
-      <div class="processing-title">Building your business profile...</div>
-      <p class="processing-body">
-        Your answers are being compiled into a private business profile.
-        This takes about 30 seconds. Please don't close this tab.
+      <div class="processing-title">Creating your private business profile...</div>
+      <p class="processing-body" id="processing-body">
+        Your answers are being turned into a detailed advisor-style report. This usually takes 1-3 minutes because we are reviewing the full interview, identifying AI opportunities, saving a secure copy, and sending it to the Bridge Team.
+      </p>
+      <p class="processing-body" id="processing-timer" style="font-size:0.86rem;color:var(--ink-soft);margin-top:-1rem;">
+        Working for 0:00. Please keep this tab open until you see the confirmation screen.
       </p>
       <div class="processing-steps">
         <div class="p-step active" id="pstep-1">
           <div class="p-icon">1</div>
-          Reviewing your answers
+          Reviewing the full interview
         </div>
         <div class="p-step" id="pstep-2">
           <div class="p-icon">2</div>
-          Building your business DNA profile
+          Creating the advisor report
         </div>
         <div class="p-step" id="pstep-3">
           <div class="p-icon">3</div>
-          Identifying AI opportunities
+          Ranking AI opportunities
         </div>
         <div class="p-step" id="pstep-4">
           <div class="p-icon">4</div>
-          Encrypting files and sending to the Bridge
+          Saving and sending securely
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ── Screen 4: Complete ── -->
+  <!-- â”€â”€ Screen 4: Complete â”€â”€ -->
   <div class="screen" id="screen-complete">
     <div class="complete-wrap">
       <div class="complete-icon">
@@ -898,7 +900,7 @@
           <div class="next-step-num">2</div>
           <div class="next-step-content">
             <div class="next-step-title">You'll receive a custom AI roadmap</div>
-            <div class="next-step-desc">The Bridge Team will share a prioritized plan showing exactly where AI can save you the most time — specific to your business, not generic advice.</div>
+            <div class="next-step-desc">The Bridge Team will share a prioritized plan showing exactly where AI can save you the most time â€” specific to your business, not generic advice.</div>
           </div>
         </div>
 
@@ -906,7 +908,7 @@
           <div class="next-step-num">3</div>
           <div class="next-step-content">
             <div class="next-step-title">Your workbench gets built</div>
-            <div class="next-step-desc">Once the roadmap is agreed, the Bridge Team builds your custom AI workbench — a private dashboard that starts saving you hours every week.</div>
+            <div class="next-step-desc">Once the roadmap is agreed, the Bridge Team builds your custom AI workbench â€” a private dashboard that starts saving you hours every week.</div>
           </div>
         </div>
       </div>
@@ -921,7 +923,7 @@
 </main>
 
 <footer class="footer">
-  <span class="footer-copy">© 2026 Bridge To AI</span>
+  <span class="footer-copy">Â© 2026 Bridge To AI</span>
   <span class="footer-privacy">
     <svg class="lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
@@ -932,18 +934,18 @@
 </footer>
 
 <script>
-// ── Configuration ──────────────────────────────────────────────────────────
+// â”€â”€ Configuration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // IMPORTANT: Replace these with your actual values before deploying
 const CONFIG = {
   EMAIL_ENDPOINT: '/api/send-email',              // Vercel serverless function endpoint
   DARREN_EMAIL: 'team@bridgetoai.ca',               // Intake delivery address; forwards to Darren via Resend/email routing
 };
 
-// ── Questions ──────────────────────────────────────────────────────────────
+// â”€â”€ Questions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // section: 'business' = 8-domain questions (eligible for AI probing at domain end)
 // section: 'mastery'  = owner self-assessment (fixed AI-future follow-up, no probing)
 const QUESTIONS = [
-  // ════ DOMAIN 1: Business Model & Direction ════
+  // â•â•â•â• DOMAIN 1: Business Model & Direction â•â•â•â•
   { section: 'business', domain: 'Business Model & Direction', type: 'Current Reality',
     text: 'How does your business make money today?',
     hint: 'Your core products or services, who pays for them, and whether the money is one-time, recurring, or project-based.' },
@@ -952,14 +954,14 @@ const QUESTIONS = [
     hint: 'What priorities keep getting ignored because there isn\'t enough time, money, or bandwidth?' },
   { section: 'business', domain: 'Business Model & Direction', type: 'Desired Future',
     text: 'What does success look like 12 months from now?',
-    hint: 'Revenue, customers, reach, product mix — paint the picture of where you want to be.' },
+    hint: 'Revenue, customers, reach, product mix â€” paint the picture of where you want to be.' },
   { section: 'business', domain: 'Business Model & Direction', type: 'AI Fit',
     text: 'Which parts of your business run on manual knowledge work that eats your time?',
-    hint: 'Reporting, forecasting, writing proposals, research — the thinking-and-typing work behind the scenes.' },
+    hint: 'Reporting, forecasting, writing proposals, research â€” the thinking-and-typing work behind the scenes.' },
 
-  // ════ DOMAIN 2: Customer Reality ════
+  // â•â•â•â• DOMAIN 2: Customer Reality â•â•â•â•
   { section: 'business', domain: 'Customer Reality', type: 'Current Reality',
-    text: 'Describe your best customers — who are they and why do they choose you?',
+    text: 'Describe your best customers â€” who are they and why do they choose you?',
     hint: 'Think of 2 or 3 clients you love working with. What do they have in common?' },
   { section: 'business', domain: 'Customer Reality', type: 'Pain & Cost',
     text: 'What do customers complain about most, and where do relationships break down?',
@@ -969,9 +971,9 @@ const QUESTIONS = [
     hint: 'What would make clients stay longer, spend more, and refer you without being asked?' },
   { section: 'business', domain: 'Customer Reality', type: 'AI Fit',
     text: 'Which customer touchpoints are slow, repetitive, or inconsistent?',
-    hint: 'Responses, follow-ups, updates, onboarding — where could faster or more personal help win loyalty?' },
+    hint: 'Responses, follow-ups, updates, onboarding â€” where could faster or more personal help win loyalty?' },
 
-  // ════ DOMAIN 3: Revenue Engine ════
+  // â•â•â•â• DOMAIN 3: Revenue Engine â•â•â•â•
   { section: 'business', domain: 'Revenue Engine', type: 'Current Reality',
     text: 'Walk through what happens from first contact to signed deal.',
     hint: 'How leads arrive, the first conversation, the proposal, how pricing is set and communicated.' },
@@ -988,10 +990,10 @@ const QUESTIONS = [
     text: 'Which parts of selling are information-heavy and repeatable?',
     hint: 'Proposals, prospect research, objection responses, CRM updates, follow-up sequences.' },
 
-  // ════ DOMAIN 4: Operations & Delivery ════
+  // â•â•â•â• DOMAIN 4: Operations & Delivery â•â•â•â•
   { section: 'business', domain: 'Operations & Delivery', type: 'Current Reality',
     text: 'After a client says yes, how does the work actually get done?',
-    hint: 'Step by step — who does what, in what order, and where the handoffs are.' },
+    hint: 'Step by step â€” who does what, in what order, and where the handoffs are.' },
   { section: 'business', domain: 'Operations & Delivery', type: 'Pain & Cost',
     text: 'Where does delivery slow down, require rework, or blow past budget or timeline?',
     hint: 'What recurring tasks eat the most time? Where do things most often go wrong?' },
@@ -1002,10 +1004,10 @@ const QUESTIONS = [
     text: 'Which delivery tasks involve gathering info, writing documents, or checking for errors?',
     hint: 'The coordinating, drafting, and double-checking work that happens on every job.' },
 
-  // ════ DOMAIN 5: People & Decision-Making ════
+  // â•â•â•â• DOMAIN 5: People & Decision-Making â•â•â•â•
   { section: 'business', domain: 'People & Decision-Making', type: 'Current Reality',
     text: 'Who are your key people, and what would break if one of them left?',
-    hint: 'What knowledge or decisions live in one person\'s head — including yours?' },
+    hint: 'What knowledge or decisions live in one person\'s head â€” including yours?' },
   { section: 'business', domain: 'People & Decision-Making', type: 'Pain & Cost',
     text: 'Where do decisions bottleneck or wait on you?',
     hint: 'What can\'t move forward until you personally approve it or figure it out?' },
@@ -1016,10 +1018,10 @@ const QUESTIONS = [
     text: 'Which decisions or communications depend on one person\'s knowledge that tools could support?',
     hint: 'The judgment calls and replies that only happen when a specific person is available.' },
 
-  // ════ DOMAIN 6: Information, Data & Systems ════
+  // â•â•â•â• DOMAIN 6: Information, Data & Systems â•â•â•â•
   { section: 'business', domain: 'Information & Systems', type: 'Current Reality',
     text: 'Where does the important information in your business actually live?',
-    hint: 'Client details, job history, finances, communications — across which tools, files, and people.' },
+    hint: 'Client details, job history, finances, communications â€” across which tools, files, and people.' },
   { section: 'business', domain: 'Information & Systems', type: 'Pain & Cost',
     text: 'Where is data incomplete, duplicated, or hard to find when you need it?',
     hint: 'What decisions get made on gut feel because the real numbers aren\'t at hand?' },
@@ -1030,7 +1032,7 @@ const QUESTIONS = [
     text: 'Which reports, summaries, or updates require manual pulling and formatting today?',
     hint: 'The status updates and recaps someone has to assemble by hand every week.' },
 
-  // ════ DOMAIN 7: AI Opportunity & Readiness ════
+  // â•â•â•â• DOMAIN 7: AI Opportunity & Readiness â•â•â•â•
   { section: 'business', domain: 'AI Opportunity', type: 'Current Reality',
     text: 'What tasks get done over and over, often from scratch?',
     hint: 'Where does the most time go on low-value, repetitive work each week?' },
@@ -1044,19 +1046,19 @@ const QUESTIONS = [
     text: 'Is the primary goal of this AI project to reduce operational workload, expand capacity for new revenue, or both?',
     hint: 'This helps separate personal time savings, payroll or admin efficiency, and growth capacity so the ROI model fits your real objective.' },
   { section: 'business', domain: 'AI Opportunity', type: 'Execution Reality',
-    text: 'Let\'s get specific: if we freed up 10–15 hours per week, walk me through exactly what you\'d do with that time. What specific revenue-generating or high-value activities?',
-    hint: 'Don\'t say "grow" or "improve" — be concrete. Which channel would you focus on? How many hours per week? Who would own it if it weren\'t you? This matters.' },
+    text: 'Let\'s get specific: if we freed up 10â€“15 hours per week, walk me through exactly what you\'d do with that time. What specific revenue-generating or high-value activities?',
+    hint: 'Don\'t say "grow" or "improve" â€” be concrete. Which channel would you focus on? How many hours per week? Who would own it if it weren\'t you? This matters.' },
   { section: 'business', domain: 'AI Opportunity', type: 'Execution Reality',
     text: 'When you commit to new work or goals for your business, what typically happens? Do they get done, get delayed, or get dropped?',
-    hint: 'Look back at the last 3–4 goals you set. Did you complete them, or did other things take priority?' },
+    hint: 'Look back at the last 3â€“4 goals you set. Did you complete them, or did other things take priority?' },
   { section: 'business', domain: 'AI Opportunity', type: 'AI Fit',
-    text: 'Which tasks involve reading, writing, summarizing, or researching — done many times a week?',
+    text: 'Which tasks involve reading, writing, summarizing, or researching â€” done many times a week?',
     hint: 'The language-and-information work that repeats constantly.' },
 
-  // ════ DOMAIN 8: Risk, Constraints & Adoption ════
+  // â•â•â•â• DOMAIN 8: Risk, Constraints & Adoption â•â•â•â•
   { section: 'business', domain: 'Risk & Adoption', type: 'Current Reality',
     text: 'What privacy, compliance, or confidentiality constraints apply to your business?',
-    hint: 'Client data, regulated information, industry rules — and how comfortable your team is with new tech.' },
+    hint: 'Client data, regulated information, industry rules â€” and how comfortable your team is with new tech.' },
   { section: 'business', domain: 'Risk & Adoption', type: 'Pain & Cost',
     text: 'What has blocked new technology from sticking in the past?',
     hint: 'Where does fear of error, cost, or disruption create hesitation?' },
@@ -1067,22 +1069,22 @@ const QUESTIONS = [
     text: 'Which low-risk, reversible AI uses could you try first to build confidence?',
     hint: 'Something easy to pilot and easy to undo, with no sensitive data exposed.' },
 
-  // ════ SECTION 9: OWNER MASTERY (6 categories, two-part) ════
+  // â•â•â•â• SECTION 9: OWNER MASTERY (6 categories, two-part) â•â•â•â•
   { section: 'mastery', domain: 'Personal Productivity & Mastery',
     text: 'Where are you right now with personal productivity and mastery?',
-    hint: 'This might mean focus, energy, how you structure your days, the systems you rely on, how on-top-of-things you feel — or whatever it means to you.' },
+    hint: 'This might mean focus, energy, how you structure your days, the systems you rely on, how on-top-of-things you feel â€” or whatever it means to you.' },
   { section: 'mastery', domain: 'Strategy & Decision-Making',
     text: 'Where are you right now with strategy and decision-making?',
-    hint: 'This might mean clarity of direction, how confidently you choose, how often you second-guess, how you weigh options — interpret it your own way.' },
+    hint: 'This might mean clarity of direction, how confidently you choose, how often you second-guess, how you weigh options â€” interpret it your own way.' },
   { section: 'mastery', domain: 'Time & Leverage',
     text: 'Where are you right now with time and leverage?',
-    hint: 'Leverage could mean leveraging your time, your money, your people, your tools, your reputation — wherever a little effort creates a lot of output for you.' },
+    hint: 'Leverage could mean leveraging your time, your money, your people, your tools, your reputation â€” wherever a little effort creates a lot of output for you.' },
   { section: 'mastery', domain: 'Sales & Influence',
     text: 'Where are you right now with sales and influence?',
-    hint: 'This might mean closing deals, persuading a room, building trust, negotiating, or simply getting people to say yes — whatever influence means in your world.' },
+    hint: 'This might mean closing deals, persuading a room, building trust, negotiating, or simply getting people to say yes â€” whatever influence means in your world.' },
   { section: 'mastery', domain: 'Marketing & Messaging',
     text: 'Where are you right now with marketing and messaging?',
-    hint: 'This might mean how clearly you explain what you do, your visibility, your brand, your content, how well people "get it" — your call on what counts.' },
+    hint: 'This might mean how clearly you explain what you do, your visibility, your brand, your content, how well people "get it" â€” your call on what counts.' },
   { section: 'mastery', domain: 'Operations & Efficiency',
     text: 'Where are you right now with operations and efficiency?',
     hint: 'Efficiency might be about operations, or it might be about time, money, or energy somewhere else entirely. Take it wherever it fits for you.' }
@@ -1092,7 +1094,7 @@ const QUESTIONS = [
 const MASTERY_FOLLOWUP = 'And if AI quietly handled this area for you, what would that free you up to do, or how would it change things?';
 const DRAFT_KEY = 'bridge-to-ai-intake-draft-v1';
 
-// State ──────────────────────────────────────────────────────────────────
+// State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 let currentQ = 0;
 let answers = [];              // base answer per question index
 let masteryFollowups = [];     // mastery follow-up answer per question index (only mastery uses it)
@@ -1102,7 +1104,7 @@ let domainProbes = {};         // { domainName: { question: '...', answer: '' } 
 let scenarioText = '';         // the AI-generated scenario the client reacts to
 let scenarioGood = '';         // their "best/proud" reply
 let scenarioBad = '';          // their "bad/off-brand" reply
-let scenarioStage = null;      // null | 'good' | 'bad' — which beat is showing
+let scenarioStage = null;      // null | 'good' | 'bad' â€” which beat is showing
 let scenarioDone = false;      // true once both beats are captured
 let clientName = '';
 let businessName = '';
@@ -1119,8 +1121,108 @@ let isRecording = false;
 let subStep = 'main';
 let activeProbe = null;        // { domain, question } when a probe is showing
 let draftAutosaveEnabled = true;
+let clientDraftId = '';
+let lastLoggedQuestionKey = '';
 
-// ── Screen management ──────────────────────────────────────────────────────
+// â”€â”€ Screen management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function ensureClientDraftId() {
+  if (clientDraftId) return clientDraftId;
+  clientDraftId = (crypto && crypto.randomUUID) ? crypto.randomUUID() : `draft_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  return clientDraftId;
+}
+
+function countWords(text) {
+  const cleaned = String(text || '').trim();
+  return cleaned ? cleaned.split(/\s+/).filter(Boolean).length : 0;
+}
+
+function currentQuestionMeta() {
+  const q = QUESTIONS[currentQ] || {};
+  return {
+    questionIndex: scenarioStage ? null : currentQ,
+    questionType: scenarioStage ? `scenario_${scenarioStage}` : (subStep === 'followup' ? 'mastery_followup' : subStep === 'probe' ? 'domain_probe' : q.type || ''),
+    domain: scenarioStage ? 'Voice & Standards' : q.domain || '',
+    stage: scenarioStage || subStep || 'main'
+  };
+}
+
+function logHermesEvent(eventType, status = 'info', details = {}) {
+  try {
+    readWelcomeFields();
+    const meta = currentQuestionMeta();
+    const payload = {
+      clientDraftId: ensureClientDraftId(),
+      clientName,
+      businessName,
+      businessCategory,
+      companySize,
+      ownerWorkStatus,
+      eventType,
+      status,
+      stage: meta.stage,
+      questionIndex: meta.questionIndex,
+      questionType: meta.questionType,
+      domain: meta.domain,
+      answerWordCount: countWords(document.getElementById('transcript')?.innerText || ''),
+      details: {
+        hasWebsite: !!websiteUrl,
+        departments,
+        ...details
+      }
+    };
+
+    const body = JSON.stringify(payload);
+    if (navigator.sendBeacon) {
+      const blob = new Blob([body], { type: 'application/json' });
+      if (navigator.sendBeacon('/api/hermes-log', blob)) return;
+    }
+
+    fetch('/api/hermes-log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+      keepalive: true
+    }).catch(() => {});
+  } catch (e) { /* monitoring must never block the interview */ }
+}
+function hermesSectionKey(sectionType, sectionName) {
+  return `${sectionType}:${sectionName || 'unknown'}`;
+}
+
+function logHermesSectionStarted(sectionType, sectionName, details = {}) {
+  const key = hermesSectionKey(sectionType, sectionName);
+  if (loggedSectionStarts[key]) return;
+  loggedSectionStarts[key] = true;
+  sectionStartTimes[key] = Date.now();
+  logHermesEvent(`${sectionType}_started`, 'success', { section: sectionName, ...details });
+}
+
+function logHermesSectionCompleted(sectionType, sectionName, details = {}) {
+  const key = hermesSectionKey(sectionType, sectionName);
+  if (loggedSectionCompletes[key]) return;
+  loggedSectionCompletes[key] = true;
+  const durationSeconds = sectionStartTimes[key] ? Math.round((Date.now() - sectionStartTimes[key]) / 1000) : null;
+  logHermesEvent(`${sectionType}_completed`, 'success', { section: sectionName, durationSeconds, ...details });
+}
+
+function domainAnswerStats(domainName) {
+  const indexes = QUESTIONS
+    .map((q, i) => ({ q, i }))
+    .filter(x => x.q.section === 'business' && x.q.domain === domainName);
+  const baseWords = indexes.reduce((sum, x) => sum + countWords(answers[x.i] || ''), 0);
+  const probeWords = countWords(domainProbes[domainName]?.answer || '');
+  return {
+    questionCount: indexes.length + (domainProbes[domainName]?.asked && domainProbes[domainName]?.question ? 1 : 0),
+    totalWordCount: baseWords + probeWords
+  };
+}
+
+function masteryAnswerStats(qIndex) {
+  return {
+    questionCount: 2,
+    totalWordCount: countWords(answers[qIndex] || '') + countWords(masteryFollowups[qIndex] || '')
+  };
+}
 function captureVisibleTranscript() {
   const box = document.getElementById('transcript');
   if (!box) return;
@@ -1166,6 +1268,7 @@ function saveDraft(captureTranscript = true) {
     const payload = {
       version: 1,
       savedAt: new Date().toISOString(),
+      clientDraftId: ensureClientDraftId(),
       clientName,
       businessName,
       businessCategory,
@@ -1189,7 +1292,7 @@ function saveDraft(captureTranscript = true) {
       interviewStarted: scenarioDone || !!scenarioStage || answers.some(Boolean) || masteryFollowups.some(Boolean) || Object.keys(domainProbes).length > 0
     };
     localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
-  } catch (e) { /* local draft storage unavailable */ }
+  } catch (e) { logHermesEvent('autosave_failed', 'failed', { autosaveTarget: 'browser_local_storage', error: 'Local draft storage unavailable' }); }
 }
 
 function loadDraft() {
@@ -1206,6 +1309,7 @@ function showResumeCardIfNeeded() {
   const card = document.getElementById('resume-card');
   if (!card || !draft) return;
 
+  clientDraftId = draft.clientDraftId || '';
   clientName = draft.clientName || '';
   businessName = draft.businessName || '';
   businessCategory = draft.businessCategory || '';
@@ -1216,6 +1320,7 @@ function showResumeCardIfNeeded() {
   applyWelcomeFields();
 
   if (draft.interviewStarted) {
+    logHermesEvent('resume_prompt_shown', 'success', { autosaveTarget: 'browser_local_storage', resumeUsed: false });
     const when = draft.savedAt ? new Date(draft.savedAt).toLocaleString() : 'recently';
     document.getElementById('resume-summary').textContent = `Saved progress for ${draft.businessName || draft.clientName || 'this interview'} from ${when}.`;
     card.style.display = 'block';
@@ -1227,6 +1332,7 @@ function resumeSavedInterview() {
   const draft = loadDraft();
   if (!draft) return;
 
+  clientDraftId = draft.clientDraftId || '';
   clientName = draft.clientName || '';
   businessName = draft.businessName || '';
   businessCategory = draft.businessCategory || '';
@@ -1249,6 +1355,7 @@ function resumeSavedInterview() {
   activeProbe = draft.activeProbe || null;
 
   applyWelcomeFields();
+  logHermesEvent('interview_resumed', 'success', { resumeUsed: true });
   showScreen('screen-interview');
   if (scenarioStage) renderScenario();
   else renderQuestion();
@@ -1276,7 +1383,7 @@ function showScreen(id) {
   window.scrollTo(0, 0);
 }
 
-// ── Welcome → Interview ────────────────────────────────────────────────────
+// â”€â”€ Welcome â†’ Interview â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function startInterview() {
   clientName = document.getElementById('client-name').value.trim();
   businessName = document.getElementById('business-name').value.trim();
@@ -1306,15 +1413,18 @@ async function startInterview() {
   subStep = 'main';
 
   draftAutosaveEnabled = true;
+  clientDraftId = '';
+  ensureClientDraftId();
   clearSavedInterview(false);
   saveDraft(false);
+  logHermesEvent('interview_started', 'success');
 
   // Generate the tailored scenario, then run the two writing beats before Q1.
   const startBtn = event && event.target ? event.target : null;
-  if (startBtn) { startBtn.disabled = true; startBtn.textContent = 'Setting up your session…'; }
+  if (startBtn) { startBtn.disabled = true; startBtn.textContent = 'Setting up your sessionâ€¦'; }
   await researchBusinessContext();
   await generateScenario();
-  if (startBtn) { startBtn.disabled = false; startBtn.textContent = 'Begin my discovery session →'; }
+  if (startBtn) { startBtn.disabled = false; startBtn.textContent = 'Begin my discovery session â†’'; }
   saveDraft(false);
 
   showScreen('screen-interview');
@@ -1322,7 +1432,7 @@ async function startInterview() {
   renderScenario();
 }
 
-// ── Quiet background context research ─────────────────────────────────────
+// â”€â”€ Quiet background context research â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function researchBusinessContext() {
   try {
     const resp = await fetch('/api/research-business', {
@@ -1339,7 +1449,7 @@ async function researchBusinessContext() {
   }
 }
 
-// ── Generate a business-tailored scenario ───────────────────────────────────
+// â”€â”€ Generate a business-tailored scenario â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function generateScenario() {
   try {
     const resp = await fetch('/api/scenario', {
@@ -1358,11 +1468,12 @@ async function generateScenario() {
   }
 }
 
-// ── Render the scenario beats (good reply, then bad reply) ───────────────────
+// â”€â”€ Render the scenario beats (good reply, then bad reply) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function renderScenario() {
   document.getElementById('answer-error').style.display = 'none';
+  logHermesSectionStarted('scenario', 'Voice & Standards', { questionCount: 2 });
   document.getElementById('btn-back').style.visibility = (scenarioStage === 'good') ? 'hidden' : 'visible';
-  document.getElementById('btn-next').textContent = 'Continue →';
+  document.getElementById('btn-next').textContent = 'Continue â†’';
 
   // Progress: treat the 2 scenario beats as the very first steps
   document.getElementById('progress-fill').style.width = '2%';
@@ -1370,16 +1481,16 @@ function renderScenario() {
   let label, text, hint, saved;
   if (scenarioStage === 'good') {
     label = 'Your Voice & Standards';
-    text = 'Read the situation below, then write the reply you\'d be proud of — the one that shows your business at its best.';
+    text = 'Read the situation below, then write the reply you\'d be proud of â€” the one that shows your business at its best.';
     hint = 'SCENARIO: ' + scenarioText + '\n\nDon\'t worry about being polished. Write it the way you actually would, in your own words.';
     saved = scenarioGood;
-    document.getElementById('progress-count').textContent = 'Your voice · best reply';
+    document.getElementById('progress-count').textContent = 'Your voice Â· best reply';
   } else {
     label = 'Your Voice & Standards';
-    text = 'Now write the kind of reply you\'ve seen go wrong — rushed, dismissive, or off-brand. The kind you\'d never want sent.';
+    text = 'Now write the kind of reply you\'ve seen go wrong â€” rushed, dismissive, or off-brand. The kind you\'d never want sent.';
     hint = 'Same situation as before. Showing what "bad" looks like helps us understand your standards just as much as the good version.';
     saved = scenarioBad;
-    document.getElementById('progress-count').textContent = 'Your voice · what to avoid';
+    document.getElementById('progress-count').textContent = 'Your voice Â· what to avoid';
   }
 
   document.getElementById('q-domain').textContent = label;
@@ -1394,7 +1505,7 @@ function renderScenario() {
   saveDraft(false);
 }
 
-// ── Advance through the scenario beats ──────────────────────────────────────
+// â”€â”€ Advance through the scenario beats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function normalizedCompanySizeNumber() {
   const match = String(companySize || '').match(/\d+/);
   return match ? Number(match[0]) : null;
@@ -1453,6 +1564,7 @@ function nextScenario() {
     renderScenario();
   } else {
     scenarioBad = val;
+    logHermesSectionCompleted('scenario', 'Voice & Standards', { questionCount: 2, totalWordCount: countWords(scenarioGood) + countWords(scenarioBad) });
     scenarioDone = true;
     saveDraft(false);
     scenarioStage = null;
@@ -1473,9 +1585,14 @@ function prevScenario() {
   }
 }
 
-// ── Render current question ────────────────────────────────────────────────
+// â”€â”€ Render current question â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function renderQuestion() {
   const q = QUESTIONS[currentQ];
+  if (q && subStep === 'main') {
+    if (q.section === 'business') logHermesSectionStarted('business_domain', q.domain);
+    if (q.section === 'mastery') logHermesSectionStarted('owner_self_assessment', q.domain, { questionCount: 2 });
+  }
+  if (subStep === 'probe' && activeProbe) logHermesSectionStarted('adaptive_probe', activeProbe.domain, { questionCount: 1 });
   const total = QUESTIONS.length;
   const pct = Math.round(((currentQ + 1) / total) * 100);
 
@@ -1492,15 +1609,15 @@ function renderQuestion() {
   let savedValue = answers[currentQ] || '';
 
   if (subStep === 'followup') {
-    // Mastery second beat — smart reflective question if available, else generic
-    domainLabel = q.domain + ' — looking ahead';
+    // Mastery second beat â€” smart reflective question if available, else generic
+    domainLabel = q.domain + ' â€” looking ahead';
     qText = masteryFollowupQ[currentQ] || MASTERY_FOLLOWUP;
     qHint = 'There\'s no wrong answer. Picture it actually handled, and tell us what changes.';
     savedValue = masteryFollowups[currentQ] || '';
     countText = 'Follow-up';
   } else if (subStep === 'probe' && activeProbe) {
     // AI-generated probe at end of a business domain
-    domainLabel = activeProbe.domain + ' — one more thing';
+    domainLabel = activeProbe.domain + ' â€” one more thing';
     qText = activeProbe.question;
     qHint = 'A quick follow-up to make sure we capture this accurately.';
     savedValue = (domainProbes[activeProbe.domain] && domainProbes[activeProbe.domain].answer) || '';
@@ -1520,7 +1637,7 @@ function renderQuestion() {
   document.getElementById('q-hint').textContent = qHint;
   document.getElementById('progress-label').textContent = domainLabel;
   document.getElementById('progress-count').textContent =
-    countText ? `${countText} · ${currentQ + 1} of ${total}` : `Question ${currentQ + 1} of ${total}`;
+    countText ? `${countText} Â· ${currentQ + 1} of ${total}` : `Question ${currentQ + 1} of ${total}`;
 
   // Button label: "Submit" only on the very last sub-step of the whole interview
   const isLastItem = (currentQ === total - 1);
@@ -1533,7 +1650,7 @@ function renderQuestion() {
       isFinalSubStep = (subStep === 'probe' || subStep === 'main'); // business: submit after main or its probe
     }
   }
-  document.getElementById('btn-next').textContent = isFinalSubStep ? 'Submit answers →' : 'Continue →';
+  document.getElementById('btn-next').textContent = isFinalSubStep ? 'Submit answers â†’' : 'Continue â†’';
 
   const box = document.getElementById('transcript');
   box.textContent = savedValue;
@@ -1543,7 +1660,7 @@ function renderQuestion() {
   saveDraft(false);
 }
 
-// ── Navigation ─────────────────────────────────────────────────────────────
+// â”€â”€ Navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function saveCurrentAnswer() {
   const val = document.getElementById('transcript').innerText.trim();
   if (subStep === 'followup') {
@@ -1563,6 +1680,7 @@ async function nextQuestion() {
 
   saveCurrentAnswer();
   const val = document.getElementById('transcript').innerText.trim();
+  logHermesEvent('answer_saved', 'success');
   if (!val || val.length < 3) {
     document.getElementById('answer-error').style.display = 'block';
     return;
@@ -1572,9 +1690,9 @@ async function nextQuestion() {
   const q = QUESTIONS[currentQ];
   const total = QUESTIONS.length;
 
-  // ── Handle sub-steps first ──
+  // â”€â”€ Handle sub-steps first â”€â”€
   if (subStep === 'followup') {
-    // finished a mastery follow-up → advance to next question
+    // finished a mastery follow-up â†’ advance to next question
     subStep = 'main';
     saveDraft(false);
     if (currentQ < total - 1) { currentQ++; saveDraft(false); renderQuestion(); }
@@ -1582,7 +1700,7 @@ async function nextQuestion() {
     return;
   }
   if (subStep === 'probe') {
-    // finished a domain probe → advance to next question (or submit)
+    // finished a domain probe â†’ advance to next question (or submit)
     subStep = 'main';
     activeProbe = null;
     if (currentQ < total - 1) { currentQ++; saveDraft(false); renderQuestion(); }
@@ -1590,7 +1708,7 @@ async function nextQuestion() {
     return;
   }
 
-  // ── Main step ──
+  // â”€â”€ Main step â”€â”€
   if (q.section === 'mastery') {
     // Generate a smart, reflective follow-up conditionally; fall back to generic.
     await runMasteryFollowup(currentQ);
@@ -1603,6 +1721,7 @@ async function nextQuestion() {
     // Probe-guard: only probe a domain once. If already probed on a prior pass,
     // skip straight ahead (saves API calls, avoids repetition on backtrack).
     if (domainProbes[q.domain] && domainProbes[q.domain].asked) {
+      logHermesSectionCompleted('business_domain', q.domain, domainAnswerStats(q.domain));
       if (currentQ < total - 1) { currentQ++; saveDraft(false); renderQuestion(); }
       else { submitInterview(); }
       return;
@@ -1616,7 +1735,23 @@ async function nextQuestion() {
   else { submitInterview(); }
 }
 
-// ── AI probe: ask Claude if this domain's answers need one follow-up ────────
+// â”€â”€ AI probe: ask Claude if this domain's answers need one follow-up â”€â”€â”€â”€â”€â”€â”€â”€
+function isRepetitiveProbeQuestion(question) {
+  const q = String(question || '').toLowerCase();
+  const broadProcessPhrases = [
+    'current process look like',
+    'walk me through',
+    'first contact to',
+    'fully onboarded',
+    'delivering results',
+    'is that mostly in your head',
+    'documented somewhere',
+    'have any of it documented',
+    'from first contact',
+    'what happens from first contact'
+  ];
+  return broadProcessPhrases.some(phrase => q.includes(phrase));
+}
 async function runDomainProbe(domainName) {
   // Gather this domain's Q&A
   const domainQA = QUESTIONS
@@ -1630,6 +1765,8 @@ async function runDomainProbe(domainName) {
   const originalLabel = btn.textContent;
   btn.textContent = 'One moment…';
   btn.disabled = true;
+  logHermesEvent('adaptive_probe_requested', 'info', { domain: domainName });
+  logHermesSectionStarted('adaptive_probe', domainName, { questionCount: 1 });
 
   let probeQuestion = null;
   try {
@@ -1641,11 +1778,17 @@ async function runDomainProbe(domainName) {
     if (resp.ok) {
       const data = await resp.json();
       if (data.followup && data.followup.trim() && data.followup.trim().toUpperCase() !== 'NONE') {
-        probeQuestion = data.followup.trim();
+        const candidate = data.followup.trim();
+        if (isRepetitiveProbeQuestion(candidate)) {
+          logHermesEvent('adaptive_probe_rejected_as_repetitive', 'success', { domain: domainName, repetitiveProbe: true });
+          probeQuestion = null;
+        } else {
+          probeQuestion = candidate;
+        }
       }
     }
   } catch (e) {
-    probeQuestion = null; // fail gracefully — just skip the probe
+    probeQuestion = null; // fail gracefully â€” just skip the probe
   }
 
   btn.disabled = false;
@@ -1654,14 +1797,18 @@ async function runDomainProbe(domainName) {
   const total = QUESTIONS.length;
 
   if (probeQuestion) {
+    logHermesEvent('domain_probe_generated', 'success', { domain: domainName });
     activeProbe = { domain: domainName, question: probeQuestion };
     domainProbes[domainName] = { question: probeQuestion, answer: '', asked: true };
     subStep = 'probe';
     saveDraft(false);
     renderQuestion();
   } else {
-    // no probe needed — mark asked so we don't retry on backtrack, then advance
+    // no probe needed â€” mark asked so we don't retry on backtrack, then advance
+    logHermesEvent('domain_probe_skipped', 'success', { domain: domainName });
     domainProbes[domainName] = { question: null, answer: '', asked: true };
+    logHermesSectionCompleted('adaptive_probe', domainName, { questionCount: 0, totalWordCount: 0 });
+    logHermesSectionCompleted('business_domain', domainName, domainAnswerStats(domainName));
     subStep = 'main';
     saveDraft(false);
     if (currentQ < total - 1) { currentQ++; saveDraft(false); renderQuestion(); }
@@ -1669,7 +1816,7 @@ async function runDomainProbe(domainName) {
   }
 }
 
-// ── Smart mastery follow-up: reflect back what they said, conditionally ──────
+// â”€â”€ Smart mastery follow-up: reflect back what they said, conditionally â”€â”€â”€â”€â”€â”€
 async function runMasteryFollowup(qIndex) {
   const q = QUESTIONS[qIndex];
   const answer = answers[qIndex] || '';
@@ -1683,7 +1830,7 @@ async function runMasteryFollowup(qIndex) {
     return;
   }
 
-  // Thin answers don't get a smart follow-up — use the generic line directly.
+  // Thin answers don't get a smart follow-up â€” use the generic line directly.
   if (answer.trim().split(/\s+/).filter(Boolean).length < 12) {
     masteryFollowupQ[qIndex] = MASTERY_FOLLOWUP;
     subStep = 'followup';
@@ -1696,6 +1843,7 @@ async function runMasteryFollowup(qIndex) {
   const originalLabel = btn.textContent;
   btn.textContent = 'One moment…';
   btn.disabled = true;
+  logHermesEvent('mastery_followup_requested', 'info', { domain: q.domain });
 
   let followup = null;
   try {
@@ -1718,6 +1866,7 @@ async function runMasteryFollowup(qIndex) {
   btn.textContent = originalLabel;
 
   // Smart follow-up if we got one; otherwise the generic AI-future line.
+  logHermesEvent(followup ? 'mastery_followup_generated' : 'mastery_followup_fallback', 'success', { domain: q.domain });
   masteryFollowupQ[qIndex] = followup || MASTERY_FOLLOWUP;
   subStep = 'followup';
   saveDraft(false);
@@ -1745,7 +1894,7 @@ function prevQuestion() {
   }
 }
 
-// ── Word count ─────────────────────────────────────────────────────────────
+// â”€â”€ Word count â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 document.getElementById('transcript').addEventListener('input', () => { updateWordCount(); saveDraft(); });
 
 document.querySelectorAll('#screen-welcome input').forEach(input => {
@@ -1762,7 +1911,7 @@ function updateWordCount() {
   document.getElementById('char-count').textContent = words + (words === 1 ? ' word' : ' words');
 }
 
-// ── Voice recording ────────────────────────────────────────────────────────
+// â”€â”€ Voice recording â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function toggleRecording() {
   if (isRecording) {
     stopRecording();
@@ -1815,7 +1964,7 @@ function startRecording() {
 
   const btn = document.getElementById('voice-btn');
   btn.classList.add('recording');
-  document.getElementById('voice-label').textContent = 'Recording — tap to stop';
+  document.getElementById('voice-label').textContent = 'Recording â€” tap to stop';
 }
 
 function stopRecording() {
@@ -1830,7 +1979,7 @@ function stopRecording() {
   document.getElementById('voice-label').textContent = 'Hold to speak';
 }
 
-// ── Submit & process ───────────────────────────────────────────────────────
+// â”€â”€ Submit & process â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function submitInterview() {
   showScreen('screen-processing');
   animateProcessingSteps();
@@ -1839,7 +1988,7 @@ async function submitInterview() {
     const dnaContent = await generateDNAWithClaude();
 
     // Save to Google Drive first (permanent record). Never let a Drive failure
-    // block the email — capture the link if we get one, continue regardless.
+    // block the email â€” capture the link if we get one, continue regardless.
     let driveLink = '';
     try {
       const safeName = (businessName || clientName || 'client').replace(/[^a-zA-Z0-9]/g, '_');
@@ -1851,19 +2000,22 @@ async function submitInterview() {
       });
       if (driveResp.ok) {
         const d = await driveResp.json();
+        logHermesEvent('drive_save_result', d.saved ? 'success' : 'failed', { driveSaved: !!d.saved, driveReason: d.reason || '', error: d.missing ? `Missing: ${d.missing.join(', ')}` : '' });
         if (d.saved && d.link) driveLink = d.link;
       }
-    } catch (e) { /* Drive failed — email still fires below */ }
+    } catch (e) { logHermesEvent('drive_save_result', 'failed', { driveSaved: false, error: e.message || 'Drive save failed' }); }
 
     await sendEmailWithDNA(dnaContent, driveLink);
+    logHermesEvent('email_delivery_result', 'success', { emailDelivered: true, driveSaved: !!driveLink });
 
     draftAutosaveEnabled = false;
     clearSavedInterview(false);
     showScreen('screen-complete');
     document.getElementById('complete-message').textContent =
-      `Thank you, ${clientName}. Your business profile has been encrypted and securely saved. It will be used only to prepare your custom AI plan — never shared, never sold, never made public.`;
+      `Thank you, ${clientName}. Your business profile has been encrypted and securely saved. It will be used only to prepare your custom AI plan â€” never shared, never sold, never made public.`;
   } catch (err) {
     console.error('Submission error:', err);
+    logHermesEvent('submission_failed', 'failed', { emailDelivered: false, error: err.message || 'Submission failed' });
     showScreen('screen-complete');
     document.getElementById('complete-message').textContent =
       `Thank you, ${clientName}. Your interview was completed, but automatic delivery did not confirm. Please contact team@bridgetoai.ca so we can recover or re-run the submission.`;
@@ -1872,25 +2024,49 @@ async function submitInterview() {
 
 function animateProcessingSteps() {
   const steps = ['pstep-1', 'pstep-2', 'pstep-3', 'pstep-4'];
-  let i = 0;
-  const interval = setInterval(() => {
-    if (i > 0) {
-      document.getElementById(steps[i - 1]).classList.remove('active');
-      document.getElementById(steps[i - 1]).classList.add('done');
-      document.getElementById(steps[i - 1]).querySelector('.p-icon').textContent = '✓';
+  const messages = [
+    'Reviewing the full interview for business patterns and constraints.',
+    'Creating the private advisor report. Longer answers can take a little more time.',
+    'Ranking AI opportunities against feasibility, readiness, and likely business value.',
+    'Saving the file and sending the completed profile to the Bridge Team.',
+    'Still working. This is normal for a detailed profile, especially after a full interview.'
+  ];
+  const startedAt = Date.now();
+  let activeStep = 0;
+
+  steps.forEach((id, index) => {
+    const step = document.getElementById(id);
+    step.classList.toggle('active', index === 0);
+    step.classList.remove('done');
+    step.querySelector('.p-icon').textContent = String(index + 1);
+  });
+
+  const timer = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+    const minutes = Math.floor(elapsed / 60);
+    const seconds = String(elapsed % 60).padStart(2, '0');
+    const timerEl = document.getElementById('processing-timer');
+    const bodyEl = document.getElementById('processing-body');
+
+    if (timerEl) timerEl.textContent = `Working for ${minutes}:${seconds}. Please keep this tab open until you see the confirmation screen.`;
+    if (bodyEl) bodyEl.textContent = messages[Math.min(Math.floor(elapsed / 25), messages.length - 1)];
+
+    const nextStep = Math.min(Math.floor(elapsed / 30), steps.length - 1);
+    if (nextStep !== activeStep) {
+      document.getElementById(steps[activeStep]).classList.remove('active');
+      document.getElementById(steps[activeStep]).classList.add('done');
+      document.getElementById(steps[activeStep]).querySelector('.p-icon').textContent = '?';
+      activeStep = nextStep;
+      document.getElementById(steps[activeStep]).classList.add('active');
     }
-    if (i < steps.length) {
-      document.getElementById(steps[i]).classList.add('active');
-      i++;
-    } else {
-      clearInterval(interval);
-    }
-  }, 2000);
+  }, 1000);
+
+  window.processingTimer = timer;
 }
 
-// ── Build prompt for Claude ────────────────────────────────────────────────
+// â”€â”€ Build prompt for Claude â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function buildPrompt() {
-  // ── Business answers, grouped by domain, with any AI probe appended ──
+  // â”€â”€ Business answers, grouped by domain, with any AI probe appended â”€â”€
   let businessBlock = '';
   let lastDomain = null;
   QUESTIONS.forEach((q, i) => {
@@ -1903,14 +2079,14 @@ function buildPrompt() {
       businessBlock += `\n### DOMAIN: ${q.domain}\n`;
       lastDomain = q.domain;
     }
-    businessBlock += `[${q.type}] ${q.text}\n→ ${answers[i] || '(no answer provided)'}\n`;
+    businessBlock += `[${q.type}] ${q.text}\nâ†’ ${answers[i] || '(no answer provided)'}\n`;
   });
   // close the final domain's probe
   if (lastDomain && domainProbes[lastDomain] && domainProbes[lastDomain].answer) {
     businessBlock += `  FOLLOW-UP: ${domainProbes[lastDomain].question}\n  ANSWER: ${domainProbes[lastDomain].answer}\n`;
   }
 
-  // ── Owner-mastery answers, each with its AI-future follow-up ──
+  // â”€â”€ Owner-mastery answers, each with its AI-future follow-up â”€â”€
   let masteryBlock = '';
   QUESTIONS.forEach((q, i) => {
     if (q.section !== 'mastery') return;
@@ -1919,7 +2095,7 @@ function buildPrompt() {
     masteryBlock += `If AI handled it: ${masteryFollowups[i] || '(no answer provided)'}\n`;
   });
 
-  // ── Voice & Standards: the good vs. bad reply contrast ──
+  // â”€â”€ Voice & Standards: the good vs. bad reply contrast â”€â”€
   const voiceBlock = `
 SCENARIO PRESENTED: ${scenarioText || '(none)'}
 
@@ -1948,7 +2124,7 @@ Use this as background signal only. Do not claim that website observations are f
 
   return `You are a business analyst for Bridge To AI, an AI implementation consulting firm run by Darren Randles (Kandar Consulting, Alberta, Canada).
 
-A new client has just completed their Business DNA Discovery Interview — a deep 8-domain business diagnostic plus a 6-part owner self-assessment. Your job is to produce a complete, structured Business DNA file from their answers. This file is CONFIDENTIAL — it goes directly to Darren, not to the client.
+A new client has just completed their Business DNA Discovery Interview â€” a deep 8-domain business diagnostic plus a 6-part owner self-assessment. Your job is to produce a complete, structured Business DNA file from their answers. This file is CONFIDENTIAL â€” it goes directly to Darren, not to the client.
 
 CLIENT INFORMATION:
 Owner Name: ${clientName}
@@ -1964,34 +2140,34 @@ Use company size, owner work status, and department structure to calibrate your 
 
 ${contextBlock}
 
-═══════════════════════════════════════
-PART A — BUSINESS DIAGNOSTIC (8 domains)
-═══════════════════════════════════════
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+PART A â€” BUSINESS DIAGNOSTIC (8 domains)
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 ${businessBlock}
 
-═══════════════════════════════════════
-PART B — OWNER SELF-ASSESSMENT (6 areas)
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+PART B â€” OWNER SELF-ASSESSMENT (6 areas)
 Each area: where the owner is today, and what they'd want AI to free up.
-═══════════════════════════════════════
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 ${masteryBlock}
 
-═══════════════════════════════════════
-PART C — VOICE & STANDARDS
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+PART C â€” VOICE & STANDARDS
 The client reacted to a scenario twice: their best reply, and a deliberately bad one.
 The CONTRAST reveals their brand voice, tone, and the standards they hold.
-═══════════════════════════════════════
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 ${voiceBlock}
 
 Produce a complete Business DNA file in markdown format with these sections:
 
-# [BUSINESS NAME] — VENTURE DNA
+# [BUSINESS NAME] â€” VENTURE DNA
 ## Business DNA Interview | ${new Date().toLocaleDateString('en-CA')}
 
 ### SECTION 1: CLIENT IDENTITY
 Business name, owner, category, date, interview method.
 
 ### SECTION 2: WHAT THIS BUSINESS DOES
-2–3 sentence summary of their revenue model, core deliverable, and who benefits. Use their actual words where possible.
+2â€“3 sentence summary of their revenue model, core deliverable, and who benefits. Use their actual words where possible.
 
 ### SECTION 3: IDEAL CLIENT PROFILE
 Who they serve, who they don't, what triggers a buying decision, what success looks like for their clients.
@@ -2009,16 +2185,16 @@ Where data lives, what tools are in use, data quality issues, what decisions are
 Who owns what, where tribal knowledge is locked, where decisions require the owner, what would break without them.
 
 ### SECTION 8: OWNER MASTERY PROFILE
-Synthesize Part B. For each of the 6 areas (Personal Productivity, Strategy & Decision-Making, Time & Leverage, Sales & Influence, Marketing & Messaging, Operations & Efficiency): where the owner currently stands, and — critically — where THEY said they want AI to help. This is the owner telling you in their own words where AI should go. Treat it as high-signal.
+Synthesize Part B. For each of the 6 areas (Personal Productivity, Strategy & Decision-Making, Time & Leverage, Sales & Influence, Marketing & Messaging, Operations & Efficiency): where the owner currently stands, and â€” critically â€” where THEY said they want AI to help. This is the owner telling you in their own words where AI should go. Treat it as high-signal.
 
 ### SECTION 9: VOICE & STANDARDS PROFILE
 Synthesize Part C. From the contrast between their "best" and "bad" replies, capture: their brand voice and tone (the words, warmth, and style of the good reply), the specific standards they hold (what made the bad version bad in their eyes), and the dos/don'ts an AI clone must follow to sound like them. This is the raw material for matching their voice in any AI build. Quote directly where it reveals their voice.
 
 ### SECTION 10: AI OPPORTUNITY PORTFOLIO
-List 6–10 specific AI opportunities ranked by Impact × Feasibility (both scored 1–5, multiply). Format as a table. Draw from the business diagnostic, the owner's stated AI wishes in Part B, the Revenue Engine value anchor, the AI Opportunity commercial objective, and the voice/standards in Part C. Where the client provided numbers, include a practical ROI note using average deal value, saved hours, revenue capacity, cost reduction, or margin protection. If numbers are missing, state the assumption needed rather than inventing one.
+List 6â€“10 specific AI opportunities ranked by Impact Ã— Feasibility (both scored 1â€“5, multiply). Format as a table. Draw from the business diagnostic, the owner's stated AI wishes in Part B, the Revenue Engine value anchor, the AI Opportunity commercial objective, and the voice/standards in Part C. Where the client provided numbers, include a practical ROI note using average deal value, saved hours, revenue capacity, cost reduction, or margin protection. If numbers are missing, state the assumption needed rather than inventing one.
 
 ### SECTION 11: READINESS SCORECARD
-Score these 5 dimensions 1–5 with one-line finding each:
+Score these 5 dimensions 1â€“5 with one-line finding each:
 - Data & Information Quality
 - Workflow Documentation
 - Tools & Tech Stack
@@ -2029,19 +2205,19 @@ Total score out of 25. Assign a readiness tier: Launch-Ready (21-25), Near-Ready
 ### SECTION 12: DO NOW / BUILD NEXT / AVOID FOR NOW
 Three clear boxes. Each action includes what to do and why.
 
-### SECTION 13: 30–60–90 DAY ROADMAP
+### SECTION 13: 30â€“60â€“90 DAY ROADMAP
 Three phases with specific tasks, owners, effort estimates, and outputs. Include 90-day success metrics.
 
 ### SECTION 14: KEY QUOTES
-Capture 4–6 direct quotes from the client's answers (business, owner, or voice sections) that reveal their mindset, priorities, or hidden constraints.
+Capture 4â€“6 direct quotes from the client's answers (business, owner, or voice sections) that reveal their mindset, priorities, or hidden constraints.
 
 ### SECTION 15: CONSULTANT NOTES FOR DARREN
-What stood out. What the client didn't say but implied. What to probe in the next conversation. Any risks or red flags. Note especially any mismatch between where the business needs AI and where the OWNER wants AI — that gap is where engagements succeed or fail. Pay special attention to their execution track record (Section 8, "Execution Reality" questions) and whether freed time will be redirected to revenue work or wasted.
+What stood out. What the client didn't say but implied. What to probe in the next conversation. Any risks or red flags. Note especially any mismatch between where the business needs AI and where the OWNER wants AI â€” that gap is where engagements succeed or fail. Pay special attention to their execution track record (Section 8, "Execution Reality" questions) and whether freed time will be redirected to revenue work or wasted.
 
 Be specific, direct, and honest. Do not soften constraints or inflate readiness scores. Use the client's actual language where it reveals something true about how they think.`;
 }
 
-// ── Call Anthropic API ─────────────────────────────────────────────────────
+// â”€â”€ Call Anthropic API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function generateDNAWithClaude() {
   const response = await fetch('/api/generate-dna', {
     method: 'POST',
@@ -2051,15 +2227,23 @@ async function generateDNAWithClaude() {
 
   if (!response.ok) throw new Error('DNA generation failed');
   const data = await response.json();
+  if (data.hermesPrivacy) {
+    logHermesEvent('anonymization_result', data.hermesPrivacy.anonymized ? 'success' : 'failed', {
+      privacyAnonymized: !!data.hermesPrivacy.anonymized,
+      anonymizationReplacements: data.hermesPrivacy.stats?.replacements || 0,
+      driveSaved: !!data.hermesPrivacy.mappingSaved,
+      driveReason: data.hermesPrivacy.mappingSaveReason || ''
+    });
+  }
   return data.dnaContent;
 }
 
-// ── Send email via serverless function ────────────────────────────────────
+// â”€â”€ Send email via serverless function â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function sendEmailWithDNA(dnaContent, driveLink) {
   const payload = {
     to: CONFIG.DARREN_EMAIL,
-    subject: `New DNA Interview Complete — ${businessName} (${businessCategory})`,
-    clientName: `${clientName} — ${businessName}`,
+    subject: `New DNA Interview Complete â€” ${businessName} (${businessCategory})`,
+    clientName: `${clientName} â€” ${businessName}`,
     businessCategory,
     companySize,
     ownerWorkStatus,
@@ -2087,3 +2271,9 @@ async function sendEmailWithDNA(dnaContent, driveLink) {
 </script>
 </body>
 </html>
+
+
+
+
+
+

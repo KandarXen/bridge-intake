@@ -103,13 +103,12 @@ ${dnaContent}
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-  from: 'The Bridge Team <team@bridgetoai.ca>',
-  to: [to],
-  bcc: ['darren@ourcopacker.ca'],
-  subject: subject,
-  html: htmlBody,
-  text: textBody,
-  attachments: [
+        from: 'The Bridge Team <team@bridgetoai.ca>',
+        to: [to],
+        subject: subject,
+        html: htmlBody,
+        text: textBody,
+        attachments: [
           {
             filename: `${clientName.replace(/[^a-zA-Z0-9]/g, '_')}_VENTURE_DNA.md`,
             content: Buffer.from(dnaContent).toString('base64'),
