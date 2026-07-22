@@ -1517,7 +1517,8 @@ function normalizedCompanySizeNumber() {
 
 function isSoloOrNoStaff() {
   const size = normalizedCompanySizeNumber();
-  const status = `${ownerWorkStatus || ''} ${businessCategory || ''} ${departments.join(' ')}`.toLowerCase();
+  const deptList = Array.isArray(departments) ? departments : [];
+  const status = `${ownerWorkStatus || ''} ${businessCategory || ''} ${deptList.join(' ')}`.toLowerCase();
   return size === 0 || size === 1 || status.includes('semi-retired') || status.includes('semi retired') || status.includes('mostly just me') || status.includes('solo') || status.includes('self-employed') || status.includes('self employed') || status.includes('no employees');
 }
 
@@ -1591,79 +1592,79 @@ function prevScenario() {
 
 // -- Render current question ------------------------------------------------
 function renderQuestion() {
-  const q = QUESTIONS[currentQ];
-  if (q && subStep === 'main') {
-    if (q.section === 'business') logHermesSectionStarted('business_domain', q.domain);
-    if (q.section === 'mastery') logHermesSectionStarted('owner_self_assessment', q.domain, { questionCount: 2 });
-  }
-  if (subStep === 'probe' && activeProbe) logHermesSectionStarted('adaptive_probe', activeProbe.domain, { questionCount: 1 });
-  const total = QUESTIONS.length;
-  const pct = Math.round(((currentQ + 1) / total) * 100);
+  try {
+    const total = Array.isArray(QUESTIONS) ? QUESTIONS.length : 0;
+    const q = total ? (QUESTIONS[currentQ] || QUESTIONS[0]) : null;
+    if (!q) throw new Error('No interview questions are available.');
+    if (!QUESTIONS[currentQ]) currentQ = 0;
 
-  // Default progress + nav
-  document.getElementById('progress-fill').style.width = pct + '%';
-  document.getElementById('btn-back').style.visibility = (currentQ === 0 && subStep === 'main') ? 'hidden' : 'visible';
-  document.getElementById('answer-error').style.display = 'none';
+    if (q && subStep === 'main') {
+      if (q.section === 'business') logHermesSectionStarted('business_domain', q.domain);
+      if (q.section === 'mastery') logHermesSectionStarted('owner_self_assessment', q.domain, { questionCount: 2 });
+    }
+    if (subStep === 'probe' && activeProbe) logHermesSectionStarted('adaptive_probe', activeProbe.domain, { questionCount: 1 });
 
-  let domainLabel = q.domain;
-  const adapted = adaptQuestionForContext(q);
-  let qText = adapted.text;
-  let qHint = adapted.hint;
-  let countText = '';
-  let savedValue = answers[currentQ] || '';
+    const pct = Math.round(((currentQ + 1) / total) * 100);
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('btn-back').style.visibility = (currentQ === 0 && subStep === 'main') ? 'hidden' : 'visible';
+    document.getElementById('answer-error').style.display = 'none';
 
-  if (subStep === 'followup') {
-    // Mastery second beat - smart reflective question if available, else generic
-    domainLabel = q.domain + ' - looking ahead';
-    qText = masteryFollowupQ[currentQ] || MASTERY_FOLLOWUP;
-    qHint = 'There\'s no wrong answer. Picture it actually handled, and tell us what changes.';
-    savedValue = masteryFollowups[currentQ] || '';
-    countText = 'Follow-up';
-  } else if (subStep === 'probe' && activeProbe) {
-    // AI-generated probe at end of a business domain
-    domainLabel = activeProbe.domain + ' - one more thing';
-    qText = activeProbe.question;
-    qHint = 'A quick follow-up to make sure we capture this accurately.';
-    savedValue = (domainProbes[activeProbe.domain] && domainProbes[activeProbe.domain].answer) || '';
-    countText = 'Follow-up';
-  } else {
-    // Main question
-    if (q.section === 'mastery') {
-      domainLabel = q.domain;
+    let domainLabel = q.domain || 'Discovery Question';
+    const adapted = adaptQuestionForContext(q) || {};
+    let qText = adapted.text || q.text || 'Tell us what matters most about this part of your business.';
+    let qHint = adapted.hint || q.hint || 'Answer in your own words. A rough answer is better than a polished one.';
+    let countText = '';
+    let savedValue = answers[currentQ] || '';
+
+    if (subStep === 'followup') {
+      domainLabel = (q.domain || 'Discovery Question') + ' - looking ahead';
+      qText = masteryFollowupQ[currentQ] || MASTERY_FOLLOWUP;
+      qHint = 'There\'s no wrong answer. Picture it actually handled, and tell us what changes.';
+      savedValue = masteryFollowups[currentQ] || '';
+      countText = 'Follow-up';
+    } else if (subStep === 'probe' && activeProbe) {
+      domainLabel = (activeProbe.domain || 'Discovery Question') + ' - one more thing';
+      qText = activeProbe.question || 'What else should we understand about this before moving on?';
+      qHint = 'A quick follow-up to make sure we capture this accurately.';
+      savedValue = (domainProbes[activeProbe.domain] && domainProbes[activeProbe.domain].answer) || '';
+      countText = 'Follow-up';
+    } else if (q.section === 'mastery') {
       countText = 'About you';
     } else {
-      countText = q.type;
+      countText = q.type || 'Question';
     }
-  }
 
-  document.getElementById('q-domain').textContent = domainLabel;
-  document.getElementById('q-text').textContent = qText;
-  document.getElementById('q-hint').textContent = qHint;
-  document.getElementById('progress-label').textContent = domainLabel;
-  document.getElementById('progress-count').textContent =
-    countText ? `${countText} - ${currentQ + 1} of ${total}` : `Question ${currentQ + 1} of ${total}`;
+    document.getElementById('q-domain').textContent = domainLabel;
+    document.getElementById('q-text').textContent = qText;
+    document.getElementById('q-hint').textContent = qHint;
+    document.getElementById('progress-label').textContent = domainLabel;
+    document.getElementById('progress-count').textContent =
+      countText ? `${countText} - ${currentQ + 1} of ${total}` : `Question ${currentQ + 1} of ${total}`;
 
-  // Button label: "Submit" only on the very last sub-step of the whole interview
-  const isLastItem = (currentQ === total - 1);
-  const lastQ = QUESTIONS[total - 1];
-  let isFinalSubStep = false;
-  if (isLastItem) {
-    if (lastQ.section === 'mastery') {
-      isFinalSubStep = (subStep === 'followup'); // mastery: submit after the AI-future follow-up
-    } else {
-      isFinalSubStep = (subStep === 'probe' || subStep === 'main'); // business: submit after main or its probe
+    const isLastItem = (currentQ === total - 1);
+    const lastQ = QUESTIONS[total - 1] || {};
+    let isFinalSubStep = false;
+    if (isLastItem) {
+      isFinalSubStep = lastQ.section === 'mastery' ? (subStep === 'followup') : (subStep === 'probe' || subStep === 'main');
     }
+    document.getElementById('btn-next').textContent = isFinalSubStep ? 'Submit answers ->' : 'Continue ->';
+
+    const box = document.getElementById('transcript');
+    box.textContent = savedValue;
+    updateWordCount();
+
+    if (isRecording) stopRecording();
+    saveDraft(false);
+  } catch (err) {
+    console.error('Question render error:', err);
+    document.getElementById('q-domain').textContent = 'Discovery Question';
+    document.getElementById('q-text').textContent = 'Tell us what matters most about your business right now.';
+    document.getElementById('q-hint').textContent = 'The interview had trouble loading this question, but your answer can still be captured.';
+    document.getElementById('progress-label').textContent = 'Discovery Question';
+    document.getElementById('progress-count').textContent = `Question ${currentQ + 1}`;
+    document.getElementById('btn-next').textContent = 'Continue ->';
   }
-  document.getElementById('btn-next').textContent = isFinalSubStep ? 'Submit answers ->' : 'Continue ->';
-
-  const box = document.getElementById('transcript');
-  box.textContent = savedValue;
-  updateWordCount();
-
-  if (isRecording) stopRecording();
-  saveDraft(false);
 }
-
 // -- Navigation -------------------------------------------------------------
 function saveCurrentAnswer() {
   const val = document.getElementById('transcript').innerText.trim();
