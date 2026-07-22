@@ -58,6 +58,24 @@ async function fetchWebsiteText(websiteUrl) {
   }
 }
 
+function parseClaudeJson(text) {
+  const raw = String(text || '').trim();
+  if (!raw) throw new Error('Claude returned an empty context response');
+
+  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  const candidate = (fenced ? fenced[1] : raw).trim();
+
+  try {
+    return JSON.parse(candidate);
+  } catch (firstErr) {
+    const start = candidate.indexOf('{');
+    const end = candidate.lastIndexOf('}');
+    if (start !== -1 && end !== -1 && end > start) {
+      return JSON.parse(candidate.slice(start, end + 1));
+    }
+    throw firstErr;
+  }
+}
 function fallbackContext({ businessCategory, websiteUrl }) {
   return {
     summary: '',
@@ -90,7 +108,7 @@ Client-provided information:
 Website text, if available:
 ${websiteText || '(no website text available)'}
 
-Return ONLY valid JSON with this exact shape:
+Return ONLY raw valid JSON with this exact shape. Do not wrap it in markdown, code fences, or explanatory text:
 {
   "summary": "1-2 sentence private internal summary",
   "offers": ["visible or likely offer"],
@@ -126,7 +144,7 @@ Rules:
   if (!response.ok) throw new Error('Context generation failed: ' + await response.text());
   const data = await response.json();
   const text = data.content && data.content[0] && data.content[0].text ? data.content[0].text.trim() : '';
-  return JSON.parse(text);
+  return parseClaudeJson(text);
 }
 
 export default async function handler(req, res) {
