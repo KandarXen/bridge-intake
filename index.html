@@ -711,7 +711,7 @@
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag">Business Discovery Session</span>
-    <span class="header-version">v1.46</span>
+    <span class="header-version">v1.47</span>
   </div>
 </header>
 
@@ -834,9 +834,9 @@
     </div>
 
     <div class="nav-row">
-      <button class="btn-secondary" id="btn-back" onclick="prevQuestion()"><- Back</button>
+      <button type="button" class="btn-secondary" id="btn-back" onclick="prevQuestion()"><- Back</button>
       <span class="nav-reassure">You can go back anytime to review or change an answer</span>
-      <button class="btn-primary" id="btn-next" onclick="nextQuestion()">Continue -></button>
+      <button type="button" class="btn-primary" id="btn-next" onclick="nextQuestion()">Continue -></button>
     </div>
   </div>
 
@@ -1665,6 +1665,17 @@ function renderQuestion() {
     document.getElementById('btn-next').textContent = 'Continue ->';
   }
 }
+function getTranscriptValue() {
+  const box = document.getElementById('transcript');
+  return box ? (box.innerText || box.textContent || '').trim() : '';
+}
+
+function showAnswerError(message) {
+  const err = document.getElementById('answer-error');
+  if (!err) return;
+  if (message) err.textContent = message;
+  err.style.display = 'block';
+}
 // -- Navigation -------------------------------------------------------------
 function saveCurrentAnswer() {
   const val = document.getElementById('transcript').innerText.trim();
@@ -1680,64 +1691,77 @@ function saveCurrentAnswer() {
 }
 
 async function nextQuestion() {
-  // If we're in the opening scenario phase, handle that separately
-  if (scenarioStage) { nextScenario(); return; }
+  const btn = document.getElementById('btn-next');
+  const originalLabel = btn ? btn.textContent : '';
+  try {
+    if (scenarioStage) { nextScenario(); return; }
 
-  saveCurrentAnswer();
-  const val = document.getElementById('transcript').innerText.trim();
-  logHermesEvent('answer_saved', 'success');
-  if (!val || val.length < 3) {
-    document.getElementById('answer-error').style.display = 'block';
-    return;
-  }
-  document.getElementById('answer-error').style.display = 'none';
+    saveCurrentAnswer();
+    const val = getTranscriptValue();
+    logHermesEvent('answer_saved', 'success');
+    if (!val || val.length < 3) {
+      showAnswerError('Please type or speak at least a few words before continuing.');
+      return;
+    }
+    document.getElementById('answer-error').style.display = 'none';
 
-  const q = QUESTIONS[currentQ];
-  const total = QUESTIONS.length;
+    const total = Array.isArray(QUESTIONS) ? QUESTIONS.length : 0;
+    const q = total ? QUESTIONS[currentQ] : null;
+    if (!q) throw new Error(`Missing question at index ${currentQ}`);
 
-  // -- Handle sub-steps first --
-  if (subStep === 'followup') {
-    // finished a mastery follow-up -> advance to next question
-    subStep = 'main';
-    saveDraft(false);
-    if (currentQ < total - 1) { currentQ++; saveDraft(false); renderQuestion(); }
-    else { submitInterview(); }
-    return;
-  }
-  if (subStep === 'probe') {
-    // finished a domain probe -> advance to next question (or submit)
-    subStep = 'main';
-    activeProbe = null;
-    if (currentQ < total - 1) { currentQ++; saveDraft(false); renderQuestion(); }
-    else { submitInterview(); }
-    return;
-  }
+    if (btn) { btn.disabled = true; btn.textContent = 'Loading next question...'; }
 
-  // -- Main step --
-  if (q.section === 'mastery') {
-    // Generate a smart, reflective follow-up conditionally; fall back to generic.
-    await runMasteryFollowup(currentQ);
-    return;
-  }
-
-  // Business question: check if this is the LAST question of its domain
-  const isDomainEnd = (currentQ === total - 1) || (QUESTIONS[currentQ + 1].domain !== q.domain) || (QUESTIONS[currentQ + 1].section !== 'business');
-  if (isDomainEnd) {
-    // Probe-guard: only probe a domain once. If already probed on a prior pass,
-    // skip straight ahead (saves API calls, avoids repetition on backtrack).
-    if (domainProbes[q.domain] && domainProbes[q.domain].asked) {
-      logHermesSectionCompleted('business_domain', q.domain, domainAnswerStats(q.domain));
+    if (subStep === 'followup') {
+      subStep = 'main';
+      saveDraft(false);
       if (currentQ < total - 1) { currentQ++; saveDraft(false); renderQuestion(); }
       else { submitInterview(); }
       return;
     }
-    await runDomainProbe(q.domain);
-    return;
-  }
 
-  // otherwise just advance
-  if (currentQ < total - 1) { currentQ++; saveDraft(false); renderQuestion(); }
-  else { submitInterview(); }
+    if (subStep === 'probe') {
+      subStep = 'main';
+      activeProbe = null;
+      if (currentQ < total - 1) { currentQ++; saveDraft(false); renderQuestion(); }
+      else { submitInterview(); }
+      return;
+    }
+
+    if (q.section === 'mastery') {
+      await runMasteryFollowup(currentQ);
+      return;
+    }
+
+    const nextQ = QUESTIONS[currentQ + 1];
+    const isDomainEnd = (currentQ === total - 1) || !nextQ || (nextQ.domain !== q.domain) || (nextQ.section !== 'business');
+    if (isDomainEnd) {
+      if (domainProbes[q.domain] && domainProbes[q.domain].asked) {
+        logHermesSectionCompleted('business_domain', q.domain, domainAnswerStats(q.domain));
+        if (currentQ < total - 1) { currentQ++; saveDraft(false); renderQuestion(); }
+        else { submitInterview(); }
+        return;
+      }
+      await runDomainProbe(q.domain);
+      return;
+    }
+
+    if (currentQ < total - 1) { currentQ++; saveDraft(false); renderQuestion(); }
+    else { submitInterview(); }
+  } catch (err) {
+    console.error('Next question error:', err);
+    logHermesEvent('next_question_failed', 'failed', { error: err.message || 'Next question failed', currentQ, subStep });
+    const total = Array.isArray(QUESTIONS) ? QUESTIONS.length : 0;
+    if (total && currentQ < total - 1) {
+      currentQ++;
+      subStep = 'main';
+      activeProbe = null;
+      renderQuestion();
+    } else {
+      showAnswerError('Something interrupted the next question. Please refresh this page, then use Resume if needed.');
+    }
+  } finally {
+    if (btn) { btn.disabled = false; if (btn.textContent === 'Loading next question...') btn.textContent = originalLabel || 'Continue ->'; }
+  }
 }
 
 // -- AI probe: ask Claude if this domain's answers need one follow-up --------
