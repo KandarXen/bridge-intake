@@ -204,7 +204,7 @@ async function saveAnonymizationMapping(mapping, stats) {
       mapping
     }, null, 2);
 
-    return uploadMappingFile(filename, content);
+    return await uploadMappingFile(filename, content);
   } catch (err) {
     console.error('Hermes mapping save failed:', err);
     return { saved: false, reason: err.message };
