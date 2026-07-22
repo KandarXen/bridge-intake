@@ -711,7 +711,7 @@
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag">Business Discovery Session</span>
-    <span class="header-version">v1.47</span>
+    <span class="header-version">v1.48</span>
   </div>
 </header>
 
@@ -1123,6 +1123,9 @@ let activeProbe = null;        // { domain, question } when a probe is showing
 let draftAutosaveEnabled = true;
 let clientDraftId = '';
 let lastLoggedQuestionKey = '';
+let loggedSectionStarts = {};
+let loggedSectionCompletes = {};
+let sectionStartTimes = {};
 
 // -- Screen management ------------------------------------------------------
 function ensureClientDraftId() {
@@ -1591,14 +1594,38 @@ function prevScenario() {
 }
 
 // -- Render current question ------------------------------------------------
+function clampQuestionIndex(index) {
+  const total = Array.isArray(QUESTIONS) ? QUESTIONS.length : 0;
+  if (!total) return 0;
+  const n = Number.isInteger(index) ? index : 0;
+  return Math.max(0, Math.min(n, total - 1));
+}
+
+function setTranscriptValue(value = '') {
+  const box = document.getElementById('transcript');
+  if (!box) return;
+  const nextValue = value || '';
+  box.textContent = nextValue;
+  box.innerText = nextValue;
+  updateWordCount();
+}
+
+function transitionToQuestion(index, nextSubStep = 'main', nextProbe = null) {
+  currentQ = clampQuestionIndex(index);
+  subStep = nextSubStep;
+  activeProbe = nextProbe;
+  renderQuestion();
+}
+
 function renderQuestion() {
   try {
     const total = Array.isArray(QUESTIONS) ? QUESTIONS.length : 0;
-    const q = total ? (QUESTIONS[currentQ] || QUESTIONS[0]) : null;
-    if (!q) throw new Error('No interview questions are available.');
-    if (!QUESTIONS[currentQ]) currentQ = 0;
+    if (!total) throw new Error('No interview questions are available.');
+    currentQ = clampQuestionIndex(currentQ);
+    const q = QUESTIONS[currentQ];
+    if (!q) throw new Error(`Missing question at index ${currentQ}`);
 
-    if (q && subStep === 'main') {
+    if (subStep === 'main') {
       if (q.section === 'business') logHermesSectionStarted('business_domain', q.domain);
       if (q.section === 'mastery') logHermesSectionStarted('owner_self_assessment', q.domain, { questionCount: 2 });
     }
@@ -1643,26 +1670,22 @@ function renderQuestion() {
 
     const isLastItem = (currentQ === total - 1);
     const lastQ = QUESTIONS[total - 1] || {};
-    let isFinalSubStep = false;
-    if (isLastItem) {
-      isFinalSubStep = lastQ.section === 'mastery' ? (subStep === 'followup') : (subStep === 'probe' || subStep === 'main');
-    }
+    const isFinalSubStep = isLastItem && (lastQ.section === 'mastery' ? subStep === 'followup' : (subStep === 'probe' || subStep === 'main'));
     document.getElementById('btn-next').textContent = isFinalSubStep ? 'Submit answers ->' : 'Continue ->';
 
-    const box = document.getElementById('transcript');
-    box.textContent = savedValue;
-    updateWordCount();
-
+    setTranscriptValue(savedValue);
     if (isRecording) stopRecording();
     saveDraft(false);
   } catch (err) {
     console.error('Question render error:', err);
+    logHermesEvent('question_render_failed', 'failed', { error: err.message || 'Question render failed', currentQ, subStep });
     document.getElementById('q-domain').textContent = 'Discovery Question';
     document.getElementById('q-text').textContent = 'Tell us what matters most about your business right now.';
-    document.getElementById('q-hint').textContent = 'The interview had trouble loading this question, but your answer can still be captured.';
+    document.getElementById('q-hint').textContent = 'The interview had trouble loading this question. Please refresh and resume if this repeats.';
     document.getElementById('progress-label').textContent = 'Discovery Question';
-    document.getElementById('progress-count').textContent = `Question ${currentQ + 1}`;
+    document.getElementById('progress-count').textContent = `Question ${clampQuestionIndex(currentQ) + 1}`;
     document.getElementById('btn-next').textContent = 'Continue ->';
+    setTranscriptValue('');
   }
 }
 function getTranscriptValue() {
@@ -1677,8 +1700,8 @@ function showAnswerError(message) {
   err.style.display = 'block';
 }
 // -- Navigation -------------------------------------------------------------
-function saveCurrentAnswer() {
-  const val = document.getElementById('transcript').innerText.trim();
+function saveCurrentAnswer(value = null) {
+  const val = value === null ? getTranscriptValue() : String(value || '').trim();
   if (subStep === 'followup') {
     masteryFollowups[currentQ] = val;
   } else if (subStep === 'probe' && activeProbe) {
@@ -1692,38 +1715,35 @@ function saveCurrentAnswer() {
 
 async function nextQuestion() {
   const btn = document.getElementById('btn-next');
-  const originalLabel = btn ? btn.textContent : '';
   try {
     if (scenarioStage) { nextScenario(); return; }
 
-    saveCurrentAnswer();
     const val = getTranscriptValue();
-    logHermesEvent('answer_saved', 'success');
     if (!val || val.length < 3) {
       showAnswerError('Please type or speak at least a few words before continuing.');
       return;
     }
+
+    saveCurrentAnswer(val);
+    logHermesEvent('answer_saved', 'success');
     document.getElementById('answer-error').style.display = 'none';
 
     const total = Array.isArray(QUESTIONS) ? QUESTIONS.length : 0;
-    const q = total ? QUESTIONS[currentQ] : null;
+    currentQ = clampQuestionIndex(currentQ);
+    const q = QUESTIONS[currentQ];
     if (!q) throw new Error(`Missing question at index ${currentQ}`);
 
     if (btn) { btn.disabled = true; btn.textContent = 'Loading next question...'; }
 
     if (subStep === 'followup') {
-      subStep = 'main';
-      saveDraft(false);
-      if (currentQ < total - 1) { currentQ++; saveDraft(false); renderQuestion(); }
-      else { submitInterview(); }
+      if (currentQ < total - 1) transitionToQuestion(currentQ + 1, 'main', null);
+      else submitInterview();
       return;
     }
 
     if (subStep === 'probe') {
-      subStep = 'main';
-      activeProbe = null;
-      if (currentQ < total - 1) { currentQ++; saveDraft(false); renderQuestion(); }
-      else { submitInterview(); }
+      if (currentQ < total - 1) transitionToQuestion(currentQ + 1, 'main', null);
+      else submitInterview();
       return;
     }
 
@@ -1737,33 +1757,27 @@ async function nextQuestion() {
     if (isDomainEnd) {
       if (domainProbes[q.domain] && domainProbes[q.domain].asked) {
         logHermesSectionCompleted('business_domain', q.domain, domainAnswerStats(q.domain));
-        if (currentQ < total - 1) { currentQ++; saveDraft(false); renderQuestion(); }
-        else { submitInterview(); }
+        if (currentQ < total - 1) transitionToQuestion(currentQ + 1, 'main', null);
+        else submitInterview();
         return;
       }
       await runDomainProbe(q.domain);
       return;
     }
 
-    if (currentQ < total - 1) { currentQ++; saveDraft(false); renderQuestion(); }
-    else { submitInterview(); }
+    if (currentQ < total - 1) transitionToQuestion(currentQ + 1, 'main', null);
+    else submitInterview();
   } catch (err) {
     console.error('Next question error:', err);
     logHermesEvent('next_question_failed', 'failed', { error: err.message || 'Next question failed', currentQ, subStep });
-    const total = Array.isArray(QUESTIONS) ? QUESTIONS.length : 0;
-    if (total && currentQ < total - 1) {
-      currentQ++;
-      subStep = 'main';
-      activeProbe = null;
-      renderQuestion();
-    } else {
-      showAnswerError('Something interrupted the next question. Please refresh this page, then use Resume if needed.');
-    }
+    showAnswerError('The next question did not load correctly. Please refresh this page, then use Resume.');
   } finally {
-    if (btn) { btn.disabled = false; if (btn.textContent === 'Loading next question...') btn.textContent = originalLabel || 'Continue ->'; }
+    if (btn) {
+      btn.disabled = false;
+      if (btn.textContent === 'Loading next question...') btn.textContent = 'Continue ->';
+    }
   }
 }
-
 // -- AI probe: ask Claude if this domain's answers need one follow-up --------
 function isRepetitiveProbeQuestion(question) {
   const q = String(question || '').toLowerCase();
@@ -1829,18 +1843,15 @@ async function runDomainProbe(domainName) {
     logHermesEvent('domain_probe_generated', 'success', { domain: domainName });
     activeProbe = { domain: domainName, question: probeQuestion };
     domainProbes[domainName] = { question: probeQuestion, answer: '', asked: true };
-    subStep = 'probe';
     saveDraft(false);
-    renderQuestion();
+    transitionToQuestion(currentQ, 'probe', activeProbe);
   } else {
     // no probe needed - mark asked so we don't retry on backtrack, then advance
     logHermesEvent('domain_probe_skipped', 'success', { domain: domainName });
     domainProbes[domainName] = { question: null, answer: '', asked: true };
     logHermesSectionCompleted('adaptive_probe', domainName, { questionCount: 0, totalWordCount: 0 });
     logHermesSectionCompleted('business_domain', domainName, domainAnswerStats(domainName));
-    subStep = 'main';
-    saveDraft(false);
-    if (currentQ < total - 1) { currentQ++; saveDraft(false); renderQuestion(); }
+    if (currentQ < total - 1) transitionToQuestion(currentQ + 1, 'main', null);
     else { submitInterview(); }
   }
 }
@@ -1853,18 +1864,14 @@ async function runMasteryFollowup(qIndex) {
 
   // If we already generated a follow-up for this item (e.g. on backtrack), reuse it.
   if (masteryFollowupQ[qIndex]) {
-    subStep = 'followup';
-    saveDraft(false);
-    renderQuestion();
+    transitionToQuestion(qIndex, 'followup', null);
     return;
   }
 
   // Thin answers don't get a smart follow-up - use the generic line directly.
   if (answer.trim().split(/\s+/).filter(Boolean).length < 12) {
     masteryFollowupQ[qIndex] = MASTERY_FOLLOWUP;
-    subStep = 'followup';
-    saveDraft(false);
-    renderQuestion();
+    transitionToQuestion(qIndex, 'followup', null);
     return;
   }
 
@@ -1897,32 +1904,21 @@ async function runMasteryFollowup(qIndex) {
   // Smart follow-up if we got one; otherwise the generic AI-future line.
   logHermesEvent(followup ? 'mastery_followup_generated' : 'mastery_followup_fallback', 'success', { domain: q.domain });
   masteryFollowupQ[qIndex] = followup || MASTERY_FOLLOWUP;
-  subStep = 'followup';
-  saveDraft(false);
-  renderQuestion();
+  transitionToQuestion(qIndex, 'followup', null);
 }
 
 function prevQuestion() {
-  // If we're in the opening scenario phase, handle that separately
   if (scenarioStage) { prevScenario(); return; }
 
   saveCurrentAnswer();
-  // From a sub-step, go back to the main question of the current item
   if (subStep === 'followup' || subStep === 'probe') {
-    subStep = 'main';
-    activeProbe = null;
-    saveDraft(false);
-    renderQuestion();
+    transitionToQuestion(currentQ, 'main', null);
     return;
   }
   if (currentQ > 0) {
-    currentQ--;
-    subStep = 'main';
-    saveDraft(false);
-    renderQuestion();
+    transitionToQuestion(currentQ - 1, 'main', null);
   }
 }
-
 // -- Word count -------------------------------------------------------------
 document.getElementById('transcript').addEventListener('input', () => { updateWordCount(); saveDraft(); });
 
