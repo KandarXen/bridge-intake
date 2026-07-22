@@ -711,7 +711,7 @@
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag">Business Discovery Session</span>
-    <span class="header-version">v1.48</span>
+      <span class="header-version">v1.49</span>
   </div>
 </header>
 
@@ -1116,6 +1116,7 @@ let departments = [];
 let businessContext = null;
 let recognition = null;
 let isRecording = false;
+let recognitionSessionId = 0;
 
 // Sub-step within a question: 'main' = base question, 'followup' = mastery AI-future Q, 'probe' = AI probe
 let subStep = 'main';
@@ -1477,6 +1478,7 @@ async function generateScenario() {
 
 // -- Render the scenario beats (good reply, then bad reply) -------------------
 function renderScenario() {
+  if (isRecording) stopRecording();
   document.getElementById('answer-error').style.display = 'none';
   logHermesSectionStarted('scenario', 'Voice & Standards', { questionCount: 2 });
   document.getElementById('btn-back').style.visibility = (scenarioStage === 'good') ? 'hidden' : 'visible';
@@ -1563,6 +1565,7 @@ function nextScenario() {
     document.getElementById('answer-error').style.display = 'block';
     return;
   }
+  if (isRecording) stopRecording();
   document.getElementById('answer-error').style.display = 'none';
 
   if (scenarioStage === 'good') {
@@ -1585,6 +1588,7 @@ function nextScenario() {
 
 function prevScenario() {
   const val = document.getElementById('transcript').innerText.trim();
+  if (isRecording) stopRecording();
   if (scenarioStage === 'bad') {
     scenarioBad = val;
     scenarioStage = 'good';
@@ -1605,8 +1609,8 @@ function setTranscriptValue(value = '') {
   const box = document.getElementById('transcript');
   if (!box) return;
   const nextValue = value || '';
-  box.textContent = nextValue;
-  box.innerText = nextValue;
+  recognitionSessionId += 1;
+  box.replaceChildren(document.createTextNode(nextValue));
   updateWordCount();
 }
 
@@ -1619,6 +1623,7 @@ function transitionToQuestion(index, nextSubStep = 'main', nextProbe = null) {
 
 function renderQuestion() {
   try {
+    if (isRecording) stopRecording();
     const total = Array.isArray(QUESTIONS) ? QUESTIONS.length : 0;
     if (!total) throw new Error('No interview questions are available.');
     currentQ = clampQuestionIndex(currentQ);
@@ -1724,6 +1729,7 @@ async function nextQuestion() {
       return;
     }
 
+    if (isRecording) stopRecording();
     saveCurrentAnswer(val);
     logHermesEvent('answer_saved', 'success');
     document.getElementById('answer-error').style.display = 'none';
@@ -1911,6 +1917,7 @@ function prevQuestion() {
   if (scenarioStage) { prevScenario(); return; }
 
   saveCurrentAnswer();
+  if (isRecording) stopRecording();
   if (subStep === 'followup' || subStep === 'probe') {
     transitionToQuestion(currentQ, 'main', null);
     return;
@@ -1952,16 +1959,20 @@ function startRecording() {
     return;
   }
 
-  recognition = new SpeechRecognition();
-  recognition.continuous = true;
-  recognition.interimResults = true;
-  recognition.lang = 'en-CA';
+  recognitionSessionId += 1;
+  const sessionId = recognitionSessionId;
+  const activeRecognition = new SpeechRecognition();
+  recognition = activeRecognition;
+  activeRecognition.continuous = true;
+  activeRecognition.interimResults = true;
+  activeRecognition.lang = 'en-CA';
 
   const box = document.getElementById('transcript');
   let baseText = box.innerText.trim();
   if (baseText) baseText += ' ';
 
-  recognition.onresult = (e) => {
+  activeRecognition.onresult = (e) => {
+    if (sessionId !== recognitionSessionId || recognition !== activeRecognition) return;
     let interim = '';
     let final = '';
     for (let i = e.resultIndex; i < e.results.length; i++) {
@@ -1976,15 +1987,16 @@ function startRecording() {
     updateWordCount();
   };
 
-  recognition.onerror = (e) => {
+  activeRecognition.onerror = (e) => {
+    if (sessionId !== recognitionSessionId || recognition !== activeRecognition) return;
     if (e.error !== 'no-speech') stopRecording();
   };
 
-  recognition.onend = () => {
-    if (isRecording) recognition.start();
+  activeRecognition.onend = () => {
+    if (sessionId === recognitionSessionId && isRecording && recognition === activeRecognition) activeRecognition.start();
   };
 
-  recognition.start();
+  activeRecognition.start();
   isRecording = true;
 
   const btn = document.getElementById('voice-btn');
@@ -1993,10 +2005,12 @@ function startRecording() {
 }
 
 function stopRecording() {
-  if (recognition) {
-    recognition.onend = null;
-    recognition.stop();
-    recognition = null;
+  recognitionSessionId += 1;
+  const activeRecognition = recognition;
+  recognition = null;
+  if (activeRecognition) {
+    activeRecognition.onend = null;
+    try { activeRecognition.stop(); } catch (e) { /* ignore already-stopped recognition */ }
   }
   isRecording = false;
   const btn = document.getElementById('voice-btn');
