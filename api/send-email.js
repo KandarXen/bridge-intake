@@ -97,7 +97,9 @@ ${dnaContent}
     }
 
     const directRecipient = process.env.INTAKE_DIRECT_RECIPIENT || 'darren@ourcopacker.ca';
+    const bccRecipient = process.env.INTAKE_BCC_RECIPIENT || 'darren.randles@gmail.com';
     const recipients = Array.from(new Set([to, directRecipient].filter(Boolean)));
+    const bccRecipients = Array.from(new Set([bccRecipient].filter(Boolean)));
 
     const emailResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -108,6 +110,7 @@ ${dnaContent}
       body: JSON.stringify({
         from: 'The Bridge Team <team@bridgetoai.ca>',
         to: recipients,
+        bcc: bccRecipients,
         subject: subject,
         html: htmlBody,
         text: textBody,
