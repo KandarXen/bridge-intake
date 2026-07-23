@@ -96,6 +96,9 @@ ${dnaContent}
       return res.status(500).json({ error: 'Email service is not configured', details: 'Missing RESEND_API_KEY' });
     }
 
+    const directRecipient = process.env.INTAKE_DIRECT_RECIPIENT || 'darren@ourcopacker.ca';
+    const recipients = Array.from(new Set([to, directRecipient].filter(Boolean)));
+
     const emailResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -104,7 +107,7 @@ ${dnaContent}
       },
       body: JSON.stringify({
         from: 'The Bridge Team <team@bridgetoai.ca>',
-        to: [to],
+        to: recipients,
         subject: subject,
         html: htmlBody,
         text: textBody,
