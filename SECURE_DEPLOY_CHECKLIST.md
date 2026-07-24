@@ -28,6 +28,7 @@ SUPABASE_SECRET_KEY=
 BTAI_ENCRYPTION_KEY=
 ANTHROPIC_API_KEY=
 RESEND_API_KEY=
+BTAI_ADMIN_SECRET=
 ```
 
 Recommended:
@@ -41,6 +42,8 @@ BTAI_STORE_RECORD_LABELS=false
 
 `BTAI_STORE_RECORD_LABELS=false` keeps client and business names out of plaintext Supabase metadata. The names remain inside encrypted payloads.
 
+`BTAI_ADMIN_SECRET` protects the private admin retrieval page at `/admin.html`.
+
 ## 4. Upload Files
 
 Upload this full folder set to GitHub:
@@ -50,12 +53,13 @@ index.html
 vercel.json
 api/
 lib/
+admin.html
 SUPABASE_SETUP.sql
 SECURE_DEPLOY_CHECKLIST.md
 README.md
 ```
 
-The `api/` folder should contain 5 serverless endpoint files. The helper files belong in `lib/`, not `api/`, so the Vercel Hobby plan stays well under the 12-function limit.
+The `api/` folder should contain 6 serverless endpoint files. The helper files belong in `lib/`, not `api/`, so the Vercel Hobby plan stays well under the 12-function limit.
 
 `api/` should contain only:
 
@@ -65,6 +69,7 @@ generate-dna.js
 hermes-log.js
 interview-ai.js
 send-email.js
+admin-output.js
 ```
 
 ## 5. Test
@@ -80,6 +85,7 @@ send-email.js
    - one `intake_sessions` row
    - one `venture_dna_markdown` row in `intake_outputs`
    - Hermes events in `intake_events`
+9. Open `/admin.html` and retrieve the test DNA using the Record ID and `BTAI_ADMIN_SECRET`.
 
 ## 6. Security Notes
 

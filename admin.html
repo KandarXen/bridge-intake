@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BTAI Admin Output Retrieval</title>
+  <style>
+    :root {
+      --green: #0d6e5e;
+      --ink: #171717;
+      --muted: #6f7378;
+      --line: #dedbd4;
+      --paper: #fafaf8;
+      --warn: #8a5b00;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    main {
+      width: min(720px, 100%);
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 28px;
+      box-shadow: 0 16px 42px rgba(0,0,0,.06);
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 1.35rem;
+      letter-spacing: 0;
+    }
+    p {
+      margin: 0 0 20px;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+    label {
+      display: block;
+      font-weight: 650;
+      margin: 18px 0 7px;
+      font-size: .9rem;
+    }
+    input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 12px 13px;
+      font-size: 1rem;
+    }
+    button {
+      margin-top: 22px;
+      background: var(--green);
+      color: #fff;
+      border: 0;
+      border-radius: 6px;
+      padding: 12px 18px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button:disabled {
+      opacity: .65;
+      cursor: wait;
+    }
+    .notice {
+      margin-top: 20px;
+      border: 1px solid #ecd596;
+      background: #fff8e6;
+      color: var(--warn);
+      border-radius: 6px;
+      padding: 12px 14px;
+      font-size: .9rem;
+    }
+    .status {
+      margin-top: 18px;
+      white-space: pre-wrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .86rem;
+      color: #374151;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>BTAI Admin Output Retrieval</h1>
+    <p>Use the Record ID from the intake notification email to securely retrieve the encrypted Venture DNA markdown file.</p>
+
+    <label for="record-id">Record ID / clientDraftId</label>
+    <input id="record-id" autocomplete="off" placeholder="Paste the Record ID from the notification email">
+
+    <label for="admin-secret">Admin secret</label>
+    <input id="admin-secret" type="password" autocomplete="current-password" placeholder="Paste BTAI_ADMIN_SECRET">
+
+    <label for="filename">Filename label (optional)</label>
+    <input id="filename" autocomplete="off" placeholder="Example_Client_Name">
+
+    <button id="download-btn" type="button">Download Venture DNA .md</button>
+
+    <div class="notice">Do not share this page or admin secret. The file is decrypted only after the server verifies the admin secret.</div>
+    <div id="status" class="status"></div>
+  </main>
+
+  <script>
+    const btn = document.getElementById('download-btn');
+    const statusEl = document.getElementById('status');
+
+    function downloadText(filename, text) {
+      const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    btn.addEventListener('click', async () => {
+      const clientDraftId = document.getElementById('record-id').value.trim();
+      const adminSecret = document.getElementById('admin-secret').value;
+      const filename = document.getElementById('filename').value.trim();
+
+      if (!clientDraftId || !adminSecret) {
+        statusEl.textContent = 'Record ID and admin secret are required.';
+        return;
+      }
+
+      btn.disabled = true;
+      statusEl.textContent = 'Retrieving encrypted output...';
+
+      try {
+        const resp = await fetch('/api/admin-output', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-btai-admin-secret': adminSecret
+          },
+          body: JSON.stringify({ clientDraftId, filename })
+        });
+        const data = await resp.json();
+        if (!resp.ok || !data.success) {
+          throw new Error(data.error || data.message || 'Download failed');
+        }
+        downloadText(data.filename, data.dnaContent);
+        statusEl.textContent = `Downloaded ${data.filename}\nOutput ID: ${data.outputId}\nCreated: ${data.createdAt}`;
+      } catch (err) {
+        statusEl.textContent = `Error: ${err.message}`;
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
