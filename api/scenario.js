@@ -3,6 +3,8 @@
 // client's business category and private business context. The client-facing
 // wording must feel industry-informed, not like background research was done.
 
+import { anonymizeText, privacyHeader, reidentifyText } from './_privacy.js';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -28,6 +30,7 @@ Rules:
 - Output ONLY the scenario text. No preamble, no quotes, no label.${contextBlock}`;
 
   try {
+    const privacy = anonymizeText(prompt);
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -38,7 +41,7 @@ Rules:
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 200,
-        messages: [{ role: 'user', content: prompt }]
+        messages: [{ role: 'user', content: privacyHeader() + privacy.anonymizedText }]
       })
     });
 
@@ -47,7 +50,8 @@ Rules:
     }
 
     const data = await response.json();
-    const scenario = data.content && data.content[0] && data.content[0].text ? data.content[0].text.trim() : '';
+    const rawScenario = data.content && data.content[0] && data.content[0].text ? data.content[0].text.trim() : '';
+    const scenario = reidentifyText(rawScenario, privacy.mapping);
     return res.status(200).json({ scenario });
   } catch (err) {
     console.error('Scenario error:', err);

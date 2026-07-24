@@ -1,89 +1,58 @@
-# Bridge To AI - Client Intake App
+# Bridge To AI Intake App - v1.50 Secure Storage Build
 
-Current release: v1.46
+This build changes the intake app from browser/local/email-based recovery to a server-side encrypted storage model.
 
-This repo powers the Bridge To AI client intake interview. Clients complete a private discovery session, the app generates a confidential Venture DNA markdown file, and the result is sent to the Bridge team by email.
+## What Changed
 
-## Repo Structure
+- Browser stores only a random session ID.
+- Draft answers are saved through `/api/draft-save`.
+- Drafts are encrypted with `AES-256-GCM` before Supabase storage.
+- Resume loads encrypted drafts through `/api/draft-load`.
+- Completed Venture DNA output is encrypted and saved in Supabase.
+- Hermes re-identification maps are encrypted and saved in Supabase.
+- Hermes event logs are saved in Supabase instead of Google Drive.
+- Adaptive AI calls use the Hermes anonymization wrapper.
+- Email is notification-only by default.
+- Plaintext Google Drive saving is no longer part of the normal completion path.
 
-Keep the repo lean. The deployed app should contain:
+## Required Setup
+
+Run `SUPABASE_SETUP.sql` in Supabase, then set the Vercel environment variables listed in `SECURE_DEPLOY_CHECKLIST.md`.
+
+Required Vercel env vars:
 
 ```text
-index.html
-vercel.json
-api/
+SUPABASE_URL
+SUPABASE_SECRET_KEY
+BTAI_ENCRYPTION_KEY
+ANTHROPIC_API_KEY
+RESEND_API_KEY
 ```
 
-The `api/` folder should contain:
+Recommended:
 
 ```text
-generate-dna.js
-hermes-log.js
-mastery-followup.js
-oauth-authorize.js
-oauth-callback.js
-probe.js
-research-business.js
-save-to-drive.js
-scenario.js
-send-email.js
+INTAKE_EMAIL_ATTACHMENTS_ENABLED=false
+BTAI_STORE_RECORD_LABELS=false
+INTAKE_DIRECT_RECIPIENT=darren@ourcopacker.ca
+INTAKE_BCC_RECIPIENT=darren.randles@gmail.com
 ```
 
-Do not keep old release zip files, duplicate index files, backup folders, or archived versions in the repo root.
+## Privacy Model
+
+The secure path is:
+
+```text
+Client browser
+  -> Vercel API
+    -> Hermes privacy / validation layer
+      -> encrypted Supabase storage
+      -> anonymized model calls
+      -> validated outputs
+```
+
+The browser does not keep the full intake in local storage.
 
 ## Deployment
 
-This app is deployed with Vercel.
-
-After uploading changes to GitHub, Vercel should automatically create a new deployment. To confirm the correct build is live, open the deployed app and check the top-right header version.
-
-Expected version marker:
-
-```text
-v1.46
-```
-
-If the deployed page does not show `v1.46`, Vercel is still serving an older build or deploying from a different source.
-
-## Required Environment Variables
-
-The Vercel project needs these environment variables configured:
-
-```text
-ANTHROPIC_API_KEY
-RESEND_API_KEY
-GOOGLE_DRIVE_FOLDER_ID
-GOOGLE_OAUTH_CLIENT_ID
-GOOGLE_OAUTH_CLIENT_SECRET
-GOOGLE_OAUTH_REDIRECT_URI
-GOOGLE_OAUTH_REFRESH_TOKEN
-OAUTH_SETUP_SECRET
-```
-
-Optional/currently used for Google service account experiments:
-
-```text
-GOOGLE_SERVICE_ACCOUNT_EMAIL
-GOOGLE_PRIVATE_KEY
-```
-
-## Current Notes
-
-- Email delivery is handled through Resend.
-- Google Drive and Hermes logging depend on Google OAuth credentials.
-- If Vercel logs show `invalid_grant`, Google OAuth needs to be refreshed or replaced with service account auth.
-- Hermes logging should never block the client interview.
-- The visible question screen should never be blank. v1.46 includes static first-question fallback text and defensive render handling.
-
-## Quick Smoke Test
-
-After deployment:
-
-1. Open the Vercel deployment or production domain.
-2. Confirm the header shows `v1.46`.
-3. Start a test intake with dummy business details.
-4. Confirm the first question text appears.
-5. Answer the first prompt and click Continue.
-6. Watch Vercel logs for API errors.
-
-If the button still shows a fancy arrow like `Continue →`, the old build is still live. v1.46 uses `Continue ->`.
+Upload this folder to the GitHub repo connected to Vercel. Vercel will deploy the static `index.html` and the `/api` serverless functions.

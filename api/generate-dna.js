@@ -4,7 +4,9 @@
 // Hermes privacy layer: anonymizes obvious identifiers before sending the
 // prompt to Claude, then re-identifies the final output before returning it.
 
-const DEFAULT_DRIVE_FOLDER_ID = '1EQ7LkKGUJwXmHbw3SxquSnuoBHrzOka5';
+import { encryptJson } from './_crypto.js';
+import { insertClaimTrace, insertIntakeOutput, updateIntakeSession } from './_supabase-rest.js';
+import { validateDnaOutput } from './_validate-output.js';
 
 async function callClaude(messages) {
   const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -121,92 +123,74 @@ function reidentifyText(text, mapping) {
   return output;
 }
 
-function driveReady() {
-  return !!(
-    process.env.GOOGLE_OAUTH_REFRESH_TOKEN &&
-    process.env.GOOGLE_OAUTH_CLIENT_ID &&
-    process.env.GOOGLE_OAUTH_CLIENT_SECRET
-  );
-}
-
-async function getAccessToken() {
-  const resp = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      client_id: process.env.GOOGLE_OAUTH_CLIENT_ID,
-      client_secret: process.env.GOOGLE_OAUTH_CLIENT_SECRET,
-      refresh_token: process.env.GOOGLE_OAUTH_REFRESH_TOKEN,
-      grant_type: 'refresh_token'
-    })
-  });
-
-  if (!resp.ok) {
-    const e = await resp.text();
-    throw new Error('Token refresh failed: ' + e);
-  }
-  const data = await resp.json();
-  return data.access_token;
-}
-
-async function uploadMappingFile(filename, content) {
-  if (!driveReady()) return { saved: false, reason: 'Drive OAuth not configured' };
-
-  const accessToken = await getAccessToken();
-  const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID || DEFAULT_DRIVE_FOLDER_ID;
-  const boundary = 'hermes_privacy_boundary_' + Date.now();
-  const metadata = {
-    name: filename,
-    parents: [folderId],
-    mimeType: 'application/json'
-  };
-
-  const body =
-    `--${boundary}\r\n` +
-    'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
-    JSON.stringify(metadata) + '\r\n' +
-    `--${boundary}\r\n` +
-    'Content-Type: application/json\r\n\r\n' +
-    content + '\r\n' +
-    `--${boundary}--`;
-
-  const resp = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': `multipart/related; boundary=${boundary}`
-    },
-    body
-  });
-
-  if (!resp.ok) {
-    const e = await resp.text();
-    throw new Error('Mapping upload failed: ' + e);
-  }
-
-  const file = await resp.json();
-  return { saved: true, fileId: file.id, link: file.webViewLink };
-}
-
-async function saveAnonymizationMapping(mapping, stats) {
+async function saveAnonymizationMapping(clientDraftId, mapping, stats) {
   try {
     const hasMapping = mapping && Object.keys(mapping).length > 0;
     if (!hasMapping) return { saved: false, reason: 'No mapping entries' };
+    if (!clientDraftId) return { saved: false, reason: 'No clientDraftId for mapping storage' };
 
     const business = mapping['[BUSINESS_NAME]'] || 'Client_Business';
     const safeBusiness = business.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 80);
     const dateStr = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `${safeBusiness}_HERMES_PRIVATE_MAPPING_${dateStr}.json`;
-    const content = JSON.stringify({
+    const content = {
       createdAt: new Date().toISOString(),
       warning: 'PRIVATE RE-IDENTIFICATION MAP. Do not send this file to third-party AI models.',
+      label: `${safeBusiness}_HERMES_PRIVATE_MAPPING_${dateStr}.json`,
       stats,
       mapping
-    }, null, 2);
+    };
 
-    return await uploadMappingFile(filename, content);
+    const row = await insertIntakeOutput({
+      client_draft_id: clientDraftId,
+      output_type: 'hermes_reidentification_map',
+      encrypted_payload: encryptJson(content)
+    });
+    return { saved: true, fileId: row?.id || '', link: '' };
   } catch (err) {
     console.error('Hermes mapping save failed:', err);
+    return { saved: false, reason: err.message };
+  }
+}
+
+async function saveCompletedDna(clientDraftId, dnaContent, meta = {}) {
+  try {
+    if (!clientDraftId) return { saved: false, reason: 'No clientDraftId for output storage' };
+    const row = await insertIntakeOutput({
+      client_draft_id: clientDraftId,
+      output_type: 'venture_dna_markdown',
+      encrypted_payload: encryptJson({
+        createdAt: new Date().toISOString(),
+        dnaContent,
+        meta
+      })
+    });
+    await updateIntakeSession(clientDraftId, {
+      status: 'complete',
+      completed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+    return { saved: true, outputId: row?.id || '' };
+  } catch (err) {
+    console.error('Completed DNA secure save failed:', err);
+    return { saved: false, reason: err.message };
+  }
+}
+
+async function saveClaimTrace(clientDraftId, validation) {
+  try {
+    if (!clientDraftId || !validation?.claims?.length) return { saved: false, reason: 'No evidence-labelled claims found' };
+    await Promise.all(validation.claims.map(claim => insertClaimTrace({
+      client_draft_id: clientDraftId,
+      report_section: claim.reportSection,
+      claim_text: claim.claimText,
+      evidence_type: claim.evidenceType,
+      source_question_id: '',
+      source_excerpt: '',
+      confidence: null
+    })));
+    return { saved: true, count: validation.claims.length };
+  } catch (err) {
+    console.error('Claim trace save failed:', err);
     return { saved: false, reason: err.message };
   }
 }
@@ -216,14 +200,14 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { prompt } = req.body;
+  const { prompt, clientDraftId, sourceMeta } = req.body;
   if (!prompt) {
     return res.status(400).json({ error: 'Missing prompt' });
   }
 
   try {
     const hermesPrivacy = anonymizePrompt(prompt);
-    const mappingSave = await saveAnonymizationMapping(hermesPrivacy.mapping, hermesPrivacy.stats);
+    const mappingSave = await saveAnonymizationMapping(clientDraftId, hermesPrivacy.mapping, hermesPrivacy.stats);
     const messages = [{ role: 'user', content: hermesPrivacy.anonymizedPrompt }];
     let fullText = '';
     let stopReason = null;
@@ -251,10 +235,34 @@ export default async function handler(req, res) {
     }
 
     const reidentifiedText = reidentifyText(fullText, hermesPrivacy.mapping);
+    const validation = validateDnaOutput(reidentifiedText, sourceMeta || {});
+    const claimTraceSave = await saveClaimTrace(clientDraftId, validation);
+    const outputSave = await saveCompletedDna(clientDraftId, reidentifiedText, {
+      truncated,
+      sourceMeta: sourceMeta || {},
+      anonymizationStats: hermesPrivacy.stats,
+      validation: {
+        ...validation,
+        claimTraceSaved: !!claimTraceSave.saved,
+        claimTraceCount: claimTraceSave.count || 0,
+        claimTraceReason: claimTraceSave.reason || ''
+      }
+    });
 
     return res.status(200).json({
       dnaContent: reidentifiedText,
       truncated,
+      secureStorage: {
+        saved: !!outputSave.saved,
+        outputId: outputSave.outputId || '',
+        reason: outputSave.reason || '',
+        validation: {
+          ...validation,
+          claimTraceSaved: !!claimTraceSave.saved,
+          claimTraceCount: claimTraceSave.count || 0,
+          claimTraceReason: claimTraceSave.reason || ''
+        }
+      },
       hermesPrivacy: {
         anonymized: true,
         stats: hermesPrivacy.stats,

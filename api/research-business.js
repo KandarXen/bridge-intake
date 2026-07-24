@@ -3,6 +3,8 @@
 // and optional website URL. Client-facing follow-ups should use generic
 // industry-pattern language, not "we noticed on your website..." phrasing.
 
+import { anonymizeText, privacyHeader, reidentifyText } from './_privacy.js';
+
 function normalizeUrl(rawUrl) {
   if (!rawUrl || typeof rawUrl !== 'string') return '';
   const trimmed = rawUrl.trim();
@@ -127,6 +129,7 @@ Rules:
 - Interview questions must sound industry-informed, not researched. Prefer phrases like "businesses like yours often..." or "your business type can involve..."
 - Do NOT write "your website says", "I noticed", "we saw", or anything that reveals background research to the client.`;
 
+  const privacy = anonymizeText(prompt, { businessName, websiteUrl });
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -137,14 +140,14 @@ Rules:
     body: JSON.stringify({
       model: 'claude-sonnet-4-6',
       max_tokens: 1400,
-      messages: [{ role: 'user', content: prompt }]
+      messages: [{ role: 'user', content: privacyHeader() + privacy.anonymizedText }]
     })
   });
 
   if (!response.ok) throw new Error('Context generation failed: ' + await response.text());
   const data = await response.json();
   const text = data.content && data.content[0] && data.content[0].text ? data.content[0].text.trim() : '';
-  return parseClaudeJson(text);
+  return parseClaudeJson(reidentifyText(text, privacy.mapping));
 }
 
 export default async function handler(req, res) {

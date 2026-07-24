@@ -3,6 +3,8 @@
 // something specific the client said and asks what AI handling it would change.
 // Returns the follow-up text, or "NONE" to fall back to the generic line.
 
+import { anonymizeText, privacyHeader, reidentifyText } from './_privacy.js';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -44,6 +46,7 @@ If their answer is too vague or thin to reflect anything specific back, respond 
 Output ONLY the question, or "NONE". Nothing else.`;
 
   try {
+    const privacy = anonymizeText(prompt);
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -54,7 +57,7 @@ Output ONLY the question, or "NONE". Nothing else.`;
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 150,
-        messages: [{ role: 'user', content: prompt }]
+        messages: [{ role: 'user', content: privacyHeader() + privacy.anonymizedText }]
       })
     });
 
@@ -63,7 +66,8 @@ Output ONLY the question, or "NONE". Nothing else.`;
     }
 
     const data = await response.json();
-    const followup = data.content && data.content[0] && data.content[0].text ? data.content[0].text.trim() : 'NONE';
+    const rawFollowup = data.content && data.content[0] && data.content[0].text ? data.content[0].text.trim() : 'NONE';
+    const followup = reidentifyText(rawFollowup, privacy.mapping);
     return res.status(200).json({ followup });
   } catch (err) {
     console.error('Mastery follow-up error:', err);

@@ -1092,7 +1092,8 @@ const QUESTIONS = [
 
 // Fixed follow-up shown after every mastery question
 const MASTERY_FOLLOWUP = 'And if AI quietly handled this area for you, what would that free you up to do, or how would it change things?';
-const DRAFT_KEY = 'bridge-to-ai-intake-draft-v1';
+const SESSION_KEY = 'bridge-to-ai-intake-session-v1';
+const LEGACY_DRAFT_KEY = 'bridge-to-ai-intake-draft-v1';
 
 // State ------------------------------------------------------------------
 let currentQ = 0;
@@ -1127,11 +1128,20 @@ let lastLoggedQuestionKey = '';
 let loggedSectionStarts = {};
 let loggedSectionCompletes = {};
 let sectionStartTimes = {};
+let pendingDraftPayload = null;
+let draftSaveTimer = null;
+let lastLoadedDraft = null;
+let lastSecureStorage = null;
 
 // -- Screen management ------------------------------------------------------
 function ensureClientDraftId() {
-  if (clientDraftId) return clientDraftId;
-  clientDraftId = (crypto && crypto.randomUUID) ? crypto.randomUUID() : `draft_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  if (!clientDraftId) {
+    try { clientDraftId = localStorage.getItem(SESSION_KEY) || ''; } catch (e) { /* ignore */ }
+  }
+  if (!clientDraftId) {
+    clientDraftId = (crypto && crypto.randomUUID) ? crypto.randomUUID() : `draft_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  }
+  try { localStorage.setItem(SESSION_KEY, clientDraftId); } catch (e) { /* session resume unavailable */ }
   return clientDraftId;
 }
 
@@ -1264,54 +1274,107 @@ function applyWelcomeFields() {
   document.querySelectorAll('.dept-pill input').forEach(cb => { cb.checked = departments.includes(cb.value); });
 }
 
-function saveDraft(captureTranscript = true) {
+function buildDraftPayload(captureTranscript = true) {
+  if (!draftAutosaveEnabled) return;
+  readWelcomeFields();
+  if (captureTranscript) captureVisibleTranscript();
+  return {
+    version: 2,
+    storageMode: 'server_encrypted_supabase',
+    savedAt: new Date().toISOString(),
+    clientDraftId: ensureClientDraftId(),
+    clientName,
+    businessName,
+    businessCategory,
+    websiteUrl,
+    companySize,
+    ownerWorkStatus,
+    departments,
+    currentQ,
+    answers,
+    masteryFollowups,
+    masteryFollowupQ,
+    domainProbes,
+    scenarioText,
+    scenarioGood,
+    scenarioBad,
+    scenarioStage,
+    scenarioDone,
+    businessContext,
+    subStep,
+    activeProbe,
+    interviewStarted: scenarioDone || !!scenarioStage || answers.some(Boolean) || masteryFollowups.some(Boolean) || Object.keys(domainProbes).length > 0
+  };
+}
+
+function postDraftToServer(payload, useBeacon = false) {
+  if (!payload || !payload.clientDraftId) return Promise.resolve({ saved: false });
+  try { localStorage.setItem(SESSION_KEY, payload.clientDraftId); } catch (e) { /* ignore */ }
+
+  const body = JSON.stringify({ payload });
+  if (useBeacon && navigator.sendBeacon) {
+    try {
+      const blob = new Blob([body], { type: 'application/json' });
+      if (navigator.sendBeacon('/api/draft-save', blob)) return Promise.resolve({ saved: true, queued: true });
+    } catch (e) { /* fall through to fetch */ }
+  }
+
+  return fetch('/api/draft-save', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body,
+    keepalive: useBeacon
+  }).then(resp => resp.ok ? resp.json() : Promise.reject(new Error('Draft save failed')));
+}
+
+function flushDraftSave(useBeacon = false) {
+  if (draftSaveTimer) {
+    clearTimeout(draftSaveTimer);
+    draftSaveTimer = null;
+  }
+  const payload = pendingDraftPayload;
+  pendingDraftPayload = null;
+  if (!payload) return Promise.resolve({ saved: false });
+  return postDraftToServer(payload, useBeacon).catch(err => {
+    logHermesEvent('autosave_failed', 'failed', { autosaveTarget: 'server_encrypted_supabase', error: err.message || 'Server draft storage unavailable' });
+    return { saved: false, error: err.message };
+  });
+}
+
+function saveDraft(captureTranscript = true, immediate = false) {
   if (!draftAutosaveEnabled) return;
   try {
-    readWelcomeFields();
-    if (captureTranscript) captureVisibleTranscript();
-    const payload = {
-      version: 1,
-      savedAt: new Date().toISOString(),
-      clientDraftId: ensureClientDraftId(),
-      clientName,
-      businessName,
-      businessCategory,
-      websiteUrl,
-      companySize,
-      ownerWorkStatus,
-      departments,
-      currentQ,
-      answers,
-      masteryFollowups,
-      masteryFollowupQ,
-      domainProbes,
-      scenarioText,
-      scenarioGood,
-      scenarioBad,
-      scenarioStage,
-      scenarioDone,
-      businessContext,
-      subStep,
-      activeProbe,
-      interviewStarted: scenarioDone || !!scenarioStage || answers.some(Boolean) || masteryFollowups.some(Boolean) || Object.keys(domainProbes).length > 0
-    };
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
-  } catch (e) { logHermesEvent('autosave_failed', 'failed', { autosaveTarget: 'browser_local_storage', error: 'Local draft storage unavailable' }); }
+    const payload = buildDraftPayload(captureTranscript);
+    if (!payload) return;
+    pendingDraftPayload = payload;
+    if (draftSaveTimer) clearTimeout(draftSaveTimer);
+    if (immediate) flushDraftSave(false);
+    else draftSaveTimer = setTimeout(() => flushDraftSave(false), 900);
+  } catch (e) { logHermesEvent('autosave_failed', 'failed', { autosaveTarget: 'server_encrypted_supabase', error: e.message || 'Draft preparation failed' }); }
 }
 
-function loadDraft() {
+async function loadDraft() {
+  let sessionId = '';
+  try { sessionId = localStorage.getItem(SESSION_KEY) || ''; } catch (e) { sessionId = ''; }
+  if (!sessionId) return null;
+
   try {
-    const raw = localStorage.getItem(DRAFT_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch (e) {
-    return null;
-  }
+    const resp = await fetch('/api/draft-load', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientDraftId: sessionId })
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    return data.found ? data.payload : null;
+  } catch (e) { return null; }
 }
 
-function showResumeCardIfNeeded() {
-  const draft = loadDraft();
+async function showResumeCardIfNeeded() {
+  const draft = await loadDraft();
   const card = document.getElementById('resume-card');
   if (!card || !draft) return;
+  lastLoadedDraft = draft;
 
   clientDraftId = draft.clientDraftId || '';
   clientName = draft.clientName || '';
@@ -1324,16 +1387,16 @@ function showResumeCardIfNeeded() {
   applyWelcomeFields();
 
   if (draft.interviewStarted) {
-    logHermesEvent('resume_prompt_shown', 'success', { autosaveTarget: 'browser_local_storage', resumeUsed: false });
+    logHermesEvent('resume_prompt_shown', 'success', { autosaveTarget: 'server_encrypted_supabase', resumeUsed: false });
     const when = draft.savedAt ? new Date(draft.savedAt).toLocaleString() : 'recently';
     document.getElementById('resume-summary').textContent = `Saved progress for ${draft.businessName || draft.clientName || 'this interview'} from ${when}.`;
     card.style.display = 'block';
   }
 }
 
-function resumeSavedInterview() {
+async function resumeSavedInterview() {
   draftAutosaveEnabled = true;
-  const draft = loadDraft();
+  const draft = lastLoadedDraft || await loadDraft();
   if (!draft) return;
 
   clientDraftId = draft.clientDraftId || '';
@@ -1367,7 +1430,20 @@ function resumeSavedInterview() {
 
 function clearSavedInterview(resetFields = false) {
   if (resetFields) draftAutosaveEnabled = true;
-  try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* ignore */ }
+  const priorDraftId = clientDraftId;
+  try {
+    localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(LEGACY_DRAFT_KEY);
+  } catch (e) { /* ignore */ }
+  lastLoadedDraft = null;
+  if (priorDraftId) {
+    fetch('/api/draft-delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientDraftId: priorDraftId }),
+      keepalive: true
+    }).catch(() => {});
+  }
   const card = document.getElementById('resume-card');
   if (card) card.style.display = 'none';
   if (resetFields) {
@@ -1417,10 +1493,10 @@ async function startInterview(evt) {
   subStep = 'main';
 
   draftAutosaveEnabled = true;
+  clearSavedInterview(false);
   clientDraftId = '';
   ensureClientDraftId();
-  clearSavedInterview(false);
-  saveDraft(false);
+  saveDraft(false, true);
   logHermesEvent('interview_started', 'success');
 
   // Generate the tailored scenario, then run the two writing beats before Q1.
@@ -1429,7 +1505,7 @@ async function startInterview(evt) {
   await researchBusinessContext();
   await generateScenario();
   if (startBtn) { startBtn.disabled = false; startBtn.textContent = 'Begin my discovery session ->'; }
-  saveDraft(false);
+  saveDraft(false, true);
 
   showScreen('screen-interview');
   scenarioStage = 'good';
@@ -1934,7 +2010,10 @@ document.querySelectorAll('#screen-welcome input').forEach(input => {
   input.addEventListener('change', () => saveDraft(false));
 });
 document.querySelectorAll('.dept-pill input').forEach(input => input.addEventListener('change', () => saveDraft(false)));
-window.addEventListener('beforeunload', () => saveDraft());
+window.addEventListener('beforeunload', () => {
+  saveDraft();
+  flushDraftSave(true);
+});
 showResumeCardIfNeeded();
 
 function updateWordCount() {
@@ -2024,31 +2103,24 @@ async function submitInterview() {
   animateProcessingSteps();
 
   try {
+    saveDraft(true, true);
+    await flushDraftSave(false);
     const dnaContent = await generateDNAWithClaude();
+    if (!lastSecureStorage || !lastSecureStorage.saved) {
+      throw new Error(lastSecureStorage?.reason || 'Secure Supabase storage did not confirm');
+    }
 
-    // Save to Google Drive first (permanent record). Never let a Drive failure
-    // block the email - capture the link if we get one, continue regardless.
-    let driveLink = '';
-    try {
-      const safeName = (businessName || clientName || 'client').replace(/[^a-zA-Z0-9]/g, '_');
-      const dateStr = new Date().toISOString().slice(0, 10);
-      const driveResp = await fetch('/api/save-to-drive', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename: `${safeName}_VENTURE_DNA_${dateStr}.md`, dnaContent })
-      });
-      if (driveResp.ok) {
-        const d = await driveResp.json();
-        logHermesEvent('drive_save_result', d.saved ? 'success' : 'failed', { driveSaved: !!d.saved, driveReason: d.reason || '', error: d.missing ? `Missing: ${d.missing.join(', ')}` : '' });
-        if (d.saved && d.link) driveLink = d.link;
-      }
-    } catch (e) { logHermesEvent('drive_save_result', 'failed', { driveSaved: false, error: e.message || 'Drive save failed' }); }
-
-    await sendEmailWithDNA(dnaContent, driveLink);
-    logHermesEvent('email_delivery_result', 'success', { emailDelivered: true, driveSaved: !!driveLink });
+    logHermesEvent('drive_save_result', 'success', { driveSaved: false, driveReason: 'Secure Supabase storage is primary; plaintext Drive save skipped.' });
+    await sendEmailWithDNA();
+    logHermesEvent('email_delivery_result', 'success', { emailDelivered: true, driveSaved: false });
 
     draftAutosaveEnabled = false;
-    clearSavedInterview(false);
+    try {
+      localStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem(LEGACY_DRAFT_KEY);
+    } catch (e) { /* ignore */ }
+    const card = document.getElementById('resume-card');
+    if (card) card.style.display = 'none';
     showScreen('screen-complete');
     document.getElementById('complete-message').textContent =
       `Thank you, ${clientName}. Your business profile has been encrypted and securely saved. It will be used only to prepare your custom AI plan - never shared, never sold, never made public.`;
@@ -2253,6 +2325,15 @@ Capture 4-6 direct quotes from the client's answers (business, owner, or voice s
 ### SECTION 15: CONSULTANT NOTES FOR DARREN
 What stood out. What the client didn't say but implied. What to probe in the next conversation. Any risks or red flags. Note especially any mismatch between where the business needs AI and where the OWNER wants AI - that gap is where engagements succeed or fail. Pay special attention to their execution track record (Section 8, "Execution Reality" questions) and whether freed time will be redirected to revenue work or wasted.
 
+EVIDENCE DISCIPLINE:
+For every major finding, recommendation, readiness score, roadmap item, and AI opportunity, include one evidence label in plain text:
+- Client-stated: the client directly said it.
+- Derived: it follows clearly from multiple client answers.
+- Inferred: it is a reasonable hypothesis, but not directly proven.
+- Needs confirmation: the interview did not provide enough evidence.
+
+Do not present inferred ideas as facts. If a number, workflow, employee role, customer segment, constraint, or tool was not supplied, label it Inferred or Needs confirmation. If the client appears solo, semi-retired, or no-staff, do not imply employees or departments exist unless the client clearly said so.
+
 Be specific, direct, and honest. Do not soften constraints or inflate readiness scores. Use the client's actual language where it reveals something true about how they think.`;
 }
 
@@ -2261,7 +2342,17 @@ async function generateDNAWithClaude() {
   const response = await fetch('/api/generate-dna', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt: buildPrompt() })
+    body: JSON.stringify({
+      prompt: buildPrompt(),
+      clientDraftId: ensureClientDraftId(),
+      sourceMeta: {
+        businessCategory,
+        companySize,
+        ownerWorkStatus,
+        questionCount: QUESTIONS.length,
+        soloOrNoStaff: isSoloOrNoStaff()
+      }
+    })
   });
 
   if (!response.ok) throw new Error('DNA generation failed');
@@ -2274,11 +2365,18 @@ async function generateDNAWithClaude() {
       driveReason: data.hermesPrivacy.mappingSaveReason || ''
     });
   }
+  if (data.secureStorage) {
+    lastSecureStorage = data.secureStorage;
+    logHermesEvent('secure_storage_result', data.secureStorage.saved ? 'success' : 'failed', {
+      draftSaved: !!data.secureStorage.saved,
+      error: data.secureStorage.reason || ''
+    });
+  }
   return data.dnaContent;
 }
 
 // -- Send email via serverless function ------------------------------------
-async function sendEmailWithDNA(dnaContent, driveLink) {
+async function sendEmailWithDNA() {
   const payload = {
     to: CONFIG.DARREN_EMAIL,
     subject: `New DNA Interview Complete - ${businessName} (${businessCategory})`,
@@ -2287,9 +2385,9 @@ async function sendEmailWithDNA(dnaContent, driveLink) {
     companySize,
     ownerWorkStatus,
     departments: departments.join(', '),
-    driveLink: driveLink || '',
-    date: new Date().toLocaleDateString('en-CA'),
-    dnaContent
+    recordId: ensureClientDraftId(),
+    secureStorage: lastSecureStorage || { saved: false, reason: 'Secure storage result was not returned to browser' },
+    date: new Date().toLocaleDateString('en-CA')
   };
 
   const response = await fetch(CONFIG.EMAIL_ENDPOINT, {
