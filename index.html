@@ -724,7 +724,9 @@
     <p class="welcome-body">
       This session takes about 20-30 minutes. There are no right or wrong answers -
       the more honest you are, the more useful your custom AI system will be.
-      Your answers are kept private and secure, used only to prepare your custom AI plan.
+      The interview adapts as you go: short answers may get a quick clarifying follow-up,
+      while more detailed answers usually help us move faster. Your answers are kept private
+      and secure, used only to prepare your custom AI plan.
     </p>
 
     <div class="welcome-steps">
@@ -733,7 +735,7 @@
         <li><span class="step-num">1</span> You'll start with a quick scenario, then move through 8 areas of your business and a short reflection on you as the owner.</li>
         <li><span class="step-num">2</span> Speak your answer using the microphone, or type it directly.</li>
         <li><span class="step-num">3</span> Review what was captured, edit if needed, then hit Continue.</li>
-        <li><span class="step-num">4</span> A few questions may have a quick follow-up. Your progress is saved on this device as you go. When you're done, your answers are encrypted and used only to build your profile - never shared, never sold, never made public.</li>
+        <li><span class="step-num">4</span> A few answers may trigger a quick follow-up so we can understand the real issue instead of guessing. Your progress is saved securely as you go. When you're done, your answers are encrypted and used only to build your profile - never shared, never sold, never made public.</li>
       </ul>
     </div>
 
@@ -749,6 +751,11 @@
     <div class="name-field">
       <label for="client-name">Your name</label>
       <input type="text" id="client-name" placeholder="e.g. Jane Smith" autocomplete="off" />
+    </div>
+
+    <div class="name-field">
+      <label for="client-email">Email for your report link</label>
+      <input type="email" id="client-email" placeholder="e.g. jane@yourbusiness.ca" autocomplete="email" />
     </div>
 
     <div class="name-field">
@@ -792,7 +799,7 @@
       </div>
     </div>
 
-    <div id="welcome-error" class="error-banner">Please fill in your name, business name, and business type before continuing.</div>
+    <div id="welcome-error" class="error-banner">Please fill in your name, email, business name, and business type before continuing.</div>
 
     <button class="btn-primary" onclick="startInterview(event)" style="width:100%;">
       Begin my discovery session ->
@@ -1108,6 +1115,7 @@ let scenarioBad = '';          // their "bad/off-brand" reply
 let scenarioStage = null;      // null | 'good' | 'bad' - which beat is showing
 let scenarioDone = false;      // true once both beats are captured
 let clientName = '';
+let clientEmail = '';
 let businessName = '';
 let businessCategory = '';
 let websiteUrl = '';
@@ -1167,6 +1175,7 @@ function logHermesEvent(eventType, status = 'info', details = {}) {
     const payload = {
       clientDraftId: ensureClientDraftId(),
       clientName,
+      clientEmail,
       businessName,
       businessCategory,
       companySize,
@@ -1256,6 +1265,7 @@ function captureVisibleTranscript() {
 
 function readWelcomeFields() {
   clientName = document.getElementById('client-name').value.trim();
+  clientEmail = document.getElementById('client-email').value.trim();
   businessName = document.getElementById('business-name').value.trim();
   businessCategory = document.getElementById('business-category').value.trim();
   websiteUrl = document.getElementById('website-url').value.trim();
@@ -1266,6 +1276,7 @@ function readWelcomeFields() {
 
 function applyWelcomeFields() {
   document.getElementById('client-name').value = clientName || '';
+  document.getElementById('client-email').value = clientEmail || '';
   document.getElementById('business-name').value = businessName || '';
   document.getElementById('business-category').value = businessCategory || '';
   document.getElementById('website-url').value = websiteUrl || '';
@@ -1284,6 +1295,7 @@ function buildDraftPayload(captureTranscript = true) {
     savedAt: new Date().toISOString(),
     clientDraftId: ensureClientDraftId(),
     clientName,
+    clientEmail,
     businessName,
     businessCategory,
     websiteUrl,
@@ -1378,6 +1390,7 @@ async function showResumeCardIfNeeded() {
 
   clientDraftId = draft.clientDraftId || '';
   clientName = draft.clientName || '';
+  clientEmail = draft.clientEmail || '';
   businessName = draft.businessName || '';
   businessCategory = draft.businessCategory || '';
   websiteUrl = draft.websiteUrl || '';
@@ -1401,6 +1414,7 @@ async function resumeSavedInterview() {
 
   clientDraftId = draft.clientDraftId || '';
   clientName = draft.clientName || '';
+  clientEmail = draft.clientEmail || '';
   businessName = draft.businessName || '';
   businessCategory = draft.businessCategory || '';
   websiteUrl = draft.websiteUrl || '';
@@ -1448,6 +1462,7 @@ function clearSavedInterview(resetFields = false) {
   if (card) card.style.display = 'none';
   if (resetFields) {
     clientName = '';
+    clientEmail = '';
     businessName = '';
     businessCategory = '';
     websiteUrl = '';
@@ -1466,6 +1481,7 @@ function showScreen(id) {
 // -- Welcome -> Interview ----------------------------------------------------
 async function startInterview(evt) {
   clientName = document.getElementById('client-name').value.trim();
+  clientEmail = document.getElementById('client-email').value.trim();
   businessName = document.getElementById('business-name').value.trim();
   businessCategory = document.getElementById('business-category').value.trim();
   websiteUrl = document.getElementById('website-url').value.trim();
@@ -1474,7 +1490,7 @@ async function startInterview(evt) {
   departments = Array.from(document.querySelectorAll('.dept-pill input:checked')).map(cb => cb.value);
   const err = document.getElementById('welcome-error');
 
-  if (!clientName || !businessName || !businessCategory) {
+  if (!clientName || !clientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail) || !businessName || !businessCategory) {
     err.style.display = 'block';
     return;
   }
@@ -2239,6 +2255,7 @@ A new client has just completed their Business DNA Discovery Interview - a deep 
 
 CLIENT INFORMATION:
 Owner Name: ${clientName}
+Owner Email: ${clientEmail || '(not provided)'}
 Business Name: ${businessName}
 Business Category: ${businessCategory}
 Website URL: ${websiteUrl || '(not provided)'}
@@ -2381,6 +2398,7 @@ async function sendEmailWithDNA() {
     to: CONFIG.DARREN_EMAIL,
     subject: `New DNA Interview Complete - ${businessName} (${businessCategory})`,
     clientName: `${clientName} - ${businessName}`,
+    clientEmail,
     businessCategory,
     companySize,
     ownerWorkStatus,

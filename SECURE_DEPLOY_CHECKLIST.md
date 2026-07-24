@@ -1,4 +1,4 @@
-# Bridge To AI Intake v1.50 Secure Deploy Checklist
+# Bridge To AI Intake v1.52 Secure Deploy Checklist
 
 ## 1. Supabase
 
@@ -59,33 +59,62 @@ SECURE_DEPLOY_CHECKLIST.md
 README.md
 ```
 
-The `api/` folder should contain 6 serverless endpoint files. The helper files belong in `lib/`, not `api/`, so the Vercel Hobby plan stays well under the 12-function limit.
+The `api/` folder should contain 7 serverless endpoint files. The helper files belong in `lib/`, not `api/`, so the Vercel Hobby plan stays under the 12-function limit.
 
 `api/` should contain only:
 
 ```text
+admin-output.js
 draft.js
 generate-dna.js
 hermes-log.js
 interview-ai.js
+report-pack.js
 send-email.js
-admin-output.js
+```
+
+`lib/` should contain only:
+
+```text
+crypto.js
+docx.js
+privacy.js
+supabase-rest.js
+validate-output.js
 ```
 
 ## 5. Test
 
 1. Open the Vercel preview URL.
 2. Start an intake.
-3. Answer one or two questions.
-4. Refresh the browser.
-5. Confirm the resume card appears.
-6. Complete a test intake.
-7. Confirm the notification email arrives.
-8. Confirm Supabase has:
+3. Confirm the welcome screen requires name, valid email, business name, and business type.
+4. Confirm the adaptive interview explanation appears on the welcome screen.
+5. Answer one or two questions.
+6. Refresh the browser.
+7. Confirm the resume card appears.
+8. Complete a test intake.
+9. Confirm the notification email arrives and includes the client email.
+10. Confirm Supabase has:
    - one `intake_sessions` row
    - one `venture_dna_markdown` row in `intake_outputs`
    - Hermes events in `intake_events`
-9. Open `/admin.html` and retrieve the test DNA using the Record ID and `BTAI_ADMIN_SECRET`.
+11. Open `/admin.html` and retrieve the test DNA using the Record ID and `BTAI_ADMIN_SECRET`.
+12. On `/admin.html`, generate the reports one at a time:
+    - Free Snapshot
+    - Detailed Report
+    - Full Roadmap
+    - BTAI Advisor Brief
+13. Download the Report Pack ZIP.
+14. Confirm Supabase has encrypted rows in `intake_outputs` for:
+    - `report_free_snapshot_markdown`
+    - `report_free_snapshot_docx`
+    - `report_detailed_growth_markdown`
+    - `report_detailed_growth_docx`
+    - `report_full_roadmap_markdown`
+    - `report_full_roadmap_docx`
+    - `report_btai_advisor_brief_markdown`
+    - `report_btai_advisor_brief_docx`
+    - `three_report_pack_zip`
 
 ## 6. Security Notes
 
@@ -96,3 +125,5 @@ admin-output.js
 - External AI calls use the Hermes anonymization layer.
 - Email is notification-only by default.
 - Google Drive is no longer the primary storage path.
+- Report files are generated from the encrypted completed intake record and stored encrypted before admin download.
+- The report pack ZIP intentionally excludes the raw Venture DNA markdown. The raw markdown remains available only through the protected admin MD retrieval action.

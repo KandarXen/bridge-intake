@@ -1,10 +1,12 @@
-# Bridge To AI Intake App - v1.50 Secure Storage Build
+# Bridge To AI Intake App - v1.52 Secure Report Pack Build
 
-This build changes the intake app from browser/local/email-based recovery to a server-side encrypted storage model.
+This build keeps the v1.50/v1.51 secure intake storage model and adds admin-only report generation from a completed Venture DNA record.
 
 ## What Changed
 
 - Browser stores only a random session ID.
+- Welcome screen now requires the interviewee email address for future report-link delivery and recovery.
+- Welcome screen explains that the interview adapts: short answers may get clarifying follow-ups, while detailed answers can reduce unnecessary probing.
 - Shared server helper code lives in `lib/` so Vercel Hobby does not count helper modules as serverless functions.
 - Draft actions are consolidated into `/api/draft`.
 - Adaptive interview AI actions are consolidated into `/api/interview-ai`.
@@ -17,6 +19,9 @@ This build changes the intake app from browser/local/email-based recovery to a s
 - Adaptive AI calls use the Hermes anonymization wrapper.
 - Email is notification-only by default.
 - Private admin retrieval is available through `admin.html` and `/api/admin-output`.
+- Admin-only three-report generation is available through `admin.html` and `/api/report-pack`.
+- Report pack ZIP download includes three client-facing DOCX reports, one internal BTAI Advisor Brief DOCX, and a validation summary.
+- The raw Venture DNA markdown stays secure and is not included in the report pack ZIP.
 - Plaintext Google Drive saving is no longer part of the normal completion path.
 
 ## Required Setup
@@ -55,6 +60,21 @@ Paste the notification email's Record ID and the private `BTAI_ADMIN_SECRET` to 
 
 The DNA is decrypted server-side only after the admin secret is verified.
 
+## Admin Report Pack
+
+The admin page can also generate the report files:
+
+```text
+0-Free_AI_Opportunity_Snapshot.docx
+1-Detailed_AI_Growth_Report.docx
+2-Full_AI_Implementation_Roadmap.docx
+3-BTAI_Advisor_Brief_Internal.docx
+```
+
+Generate one report at a time, then download the ZIP. Each generated report is encrypted and stored in Supabase before retrieval.
+
+The internal BTAI Advisor Brief is for Bridge To AI only. It summarizes what to clarify, what to listen for, likely opportunity angles, risk notes, and proposal direction without requiring the raw Venture DNA file to leave secure storage.
+
 ## Privacy Model
 
 The secure path is:
@@ -74,4 +94,26 @@ The browser does not keep the full intake in local storage.
 
 Upload this folder to the GitHub repo connected to Vercel. Vercel will deploy the static `index.html` and the `/api` serverless functions.
 
-For Vercel Hobby compatibility, `/api` should contain only 5 endpoint files. The shared helper modules must remain in `lib/`.
+For Vercel Hobby compatibility, `/api` should contain only 7 endpoint files. The shared helper modules must remain in `lib/`.
+
+`api/` should contain only:
+
+```text
+admin-output.js
+draft.js
+generate-dna.js
+hermes-log.js
+interview-ai.js
+report-pack.js
+send-email.js
+```
+
+`lib/` should contain:
+
+```text
+crypto.js
+docx.js
+privacy.js
+supabase-rest.js
+validate-output.js
+```

@@ -20,6 +20,7 @@ export default async function handler(req, res) {
     to,
     subject,
     clientName,
+    clientEmail,
     businessCategory,
     companySize,
     ownerWorkStatus,
@@ -56,6 +57,7 @@ export default async function handler(req, res) {
       <div style="background: #fafaf8; border: 1px solid #e4e2dd; border-top: none; padding: 28px 32px; border-radius: 0 0 10px 10px;">
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
           <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280; width: 150px;">Client</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; font-weight: 600;">${clientName}</td></tr>
+          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Client email</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${clientEmail || 'Not provided'}</td></tr>
           <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Business type</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${businessCategory || 'Not provided'}</td></tr>
           <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Size</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${companySize || 'Not provided'}</td></tr>
           <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Owner status</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${ownerWorkStatus || 'Not provided'}</td></tr>
@@ -83,6 +85,7 @@ export default async function handler(req, res) {
 NEW INTAKE COMPLETE - Bridge To AI
 ==================================
 Client: ${clientName}
+Client email: ${clientEmail || 'Not provided'}
 Business type: ${businessCategory || 'Not provided'}
 Record ID: ${recordId || 'Not provided'}
 Date: ${date || new Date().toISOString()}
