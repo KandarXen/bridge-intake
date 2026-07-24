@@ -1,4 +1,4 @@
-# Bridge To AI Intake v1.52 Secure Deploy Checklist
+# Bridge To AI Intake v1.522 Secure Deploy Checklist
 
 ## 1. Supabase
 
@@ -50,6 +50,7 @@ Upload this full folder set to GitHub:
 
 ```text
 index.html
+privacy.html
 vercel.json
 api/
 lib/
@@ -86,26 +87,28 @@ validate-output.js
 ## 5. Test
 
 1. Open the Vercel preview URL.
-2. Start an intake.
-3. Confirm the welcome screen requires name, valid email, business name, and business type.
-4. Confirm the adaptive interview explanation appears on the welcome screen.
-5. Answer one or two questions.
-6. Refresh the browser.
-7. Confirm the resume card appears.
-8. Complete a test intake.
-9. Confirm the notification email arrives and includes the client email.
-10. Confirm Supabase has:
+2. Open `/privacy.html` and confirm the Privacy Policy loads.
+3. Confirm the welcome screen links to `/privacy.html` from both the consent checkbox and footer.
+4. Try to start an intake without checking the Privacy Policy consent box; confirm it blocks start.
+5. Start an intake after entering name, valid email, business name, business type, and checking consent.
+6. Confirm the adaptive interview explanation appears on the welcome screen.
+7. Answer one or two questions.
+8. Refresh the browser.
+9. Confirm the resume card appears.
+10. Complete a test intake.
+11. Confirm the notification email arrives and includes the client email, privacy consent status, consent timestamp, and policy version.
+12. Confirm Supabase has:
    - one `intake_sessions` row
    - one `venture_dna_markdown` row in `intake_outputs`
    - Hermes events in `intake_events`
-11. Open `/admin.html` and retrieve the test DNA using the Record ID and `BTAI_ADMIN_SECRET`.
-12. On `/admin.html`, generate the reports one at a time:
+13. Open `/admin.html` and retrieve the test DNA using the Record ID and `BTAI_ADMIN_SECRET`.
+14. On `/admin.html`, generate the reports one at a time:
     - Free Snapshot
     - Detailed Report
     - Full Roadmap
     - BTAI Advisor Brief
-13. Download the Report Pack ZIP.
-14. Confirm Supabase has encrypted rows in `intake_outputs` for:
+15. Download the Report Pack ZIP.
+16. Confirm Supabase has encrypted rows in `intake_outputs` for:
     - `report_free_snapshot_markdown`
     - `report_free_snapshot_docx`
     - `report_detailed_growth_markdown`
@@ -123,6 +126,7 @@ validate-output.js
 - Completed DNA output is encrypted before Supabase storage.
 - Hermes re-identification maps are encrypted before Supabase storage.
 - External AI calls use the Hermes anonymization layer.
+- Privacy consent is required before interview start and stored in the encrypted record with a policy version and timestamp.
 - Email is notification-only by default.
 - Google Drive is no longer the primary storage path.
 - Report files are generated from the encrypted completed intake record and stored encrypted before admin download.

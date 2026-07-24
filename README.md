@@ -1,4 +1,4 @@
-# Bridge To AI Intake App - v1.52 Secure Report Pack Build
+# Bridge To AI Intake App - v1.522 Privacy Consent Build
 
 This build keeps the v1.50/v1.51 secure intake storage model and adds admin-only report generation from a completed Venture DNA record.
 
@@ -7,12 +7,15 @@ This build keeps the v1.50/v1.51 secure intake storage model and adds admin-only
 - Browser stores only a random session ID.
 - Welcome screen now requires the interviewee email address for future report-link delivery and recovery.
 - Welcome screen explains that the interview adapts: short answers may get clarifying follow-ups, while detailed answers can reduce unnecessary probing.
+- Welcome screen requires Privacy Policy consent before the interview can start.
+- Privacy consent version and timestamp are stored inside the encrypted intake record.
+- `privacy.html` provides a standalone Privacy Policy page linked from the welcome screen and footer.
 - Shared server helper code lives in `lib/` so Vercel Hobby does not count helper modules as serverless functions.
 - Draft actions are consolidated into `/api/draft`.
 - Adaptive interview AI actions are consolidated into `/api/interview-ai`.
-- Draft answers are saved through `/api/draft-save`.
+- Draft answers are saved through `/api/draft`.
 - Drafts are encrypted with `AES-256-GCM` before Supabase storage.
-- Resume loads encrypted drafts through `/api/draft-load`.
+- Resume loads encrypted drafts through `/api/draft`.
 - Completed Venture DNA output is encrypted and saved in Supabase.
 - Hermes re-identification maps are encrypted and saved in Supabase.
 - Hermes event logs are saved in Supabase instead of Google Drive.
@@ -92,7 +95,7 @@ The browser does not keep the full intake in local storage.
 
 ## Deployment
 
-Upload this folder to the GitHub repo connected to Vercel. Vercel will deploy the static `index.html` and the `/api` serverless functions.
+Upload this folder to the GitHub repo connected to Vercel. Vercel will deploy the static `index.html`, `privacy.html`, and the `/api` serverless functions.
 
 For Vercel Hobby compatibility, `/api` should contain only 7 endpoint files. The shared helper modules must remain in `lib/`.
 

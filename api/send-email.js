@@ -21,6 +21,9 @@ export default async function handler(req, res) {
     subject,
     clientName,
     clientEmail,
+    privacyConsent,
+    privacyConsentAt,
+    privacyPolicyVersion,
     businessCategory,
     companySize,
     ownerWorkStatus,
@@ -62,6 +65,8 @@ export default async function handler(req, res) {
           <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Size</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${companySize || 'Not provided'}</td></tr>
           <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Owner status</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${ownerWorkStatus || 'Not provided'}</td></tr>
           <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Departments</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${departments || 'Not provided'}</td></tr>
+          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Privacy consent</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${privacyConsent ? 'Accepted' : 'Not confirmed'}${privacyConsentAt ? ` at ${privacyConsentAt}` : ''}</td></tr>
+          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Policy version</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${privacyPolicyVersion || 'Not provided'}</td></tr>
           <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Record ID</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;"><code>${recordId || 'Not provided'}</code></td></tr>
           <tr><td style="padding: 8px 0; color: #6b7280;">Date</td><td style="padding: 8px 0;">${date || new Date().toISOString()}</td></tr>
         </table>
@@ -90,6 +95,9 @@ Business type: ${businessCategory || 'Not provided'}
 Record ID: ${recordId || 'Not provided'}
 Date: ${date || new Date().toISOString()}
 Storage: ${storageStatus}
+Privacy consent: ${privacyConsent ? 'Accepted' : 'Not confirmed'}
+Privacy consent at: ${privacyConsentAt || 'Not provided'}
+Privacy policy version: ${privacyPolicyVersion || 'Not provided'}
 
 This is a notification-only email. The encrypted intake output is stored in the secure backend record.
 `;
