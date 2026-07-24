@@ -1,12 +1,12 @@
-// api/generate-dna.js
+﻿// api/generate-dna.js
 // Server-side function that calls Claude to compile the DNA file.
 // Keeps the Anthropic API key hidden from the browser.
 // Hermes privacy layer: anonymizes obvious identifiers before sending the
 // prompt to Claude, then re-identifies the final output before returning it.
 
-import { encryptJson } from './_crypto.js';
-import { insertClaimTrace, insertIntakeOutput, updateIntakeSession } from './_supabase-rest.js';
-import { validateDnaOutput } from './_validate-output.js';
+import { encryptJson } from '../lib/crypto.js';
+import { insertClaimTrace, insertIntakeOutput, updateIntakeSession } from '../lib/supabase-rest.js';
+import { validateDnaOutput } from '../lib/validate-output.js';
 
 async function callClaude(messages) {
   const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -277,3 +277,4 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Server error', message: err.message });
   }
 }
+

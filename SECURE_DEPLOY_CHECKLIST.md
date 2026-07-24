@@ -49,9 +49,22 @@ Upload this full folder set to GitHub:
 index.html
 vercel.json
 api/
+lib/
 SUPABASE_SETUP.sql
 SECURE_DEPLOY_CHECKLIST.md
 README.md
+```
+
+The `api/` folder should contain 5 serverless endpoint files. The helper files belong in `lib/`, not `api/`, so the Vercel Hobby plan stays well under the 12-function limit.
+
+`api/` should contain only:
+
+```text
+draft.js
+generate-dna.js
+hermes-log.js
+interview-ai.js
+send-email.js
 ```
 
 ## 5. Test

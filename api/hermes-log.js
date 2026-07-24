@@ -1,8 +1,8 @@
-// api/hermes-log.js
+﻿// api/hermes-log.js
 // Hermes intake monitor. Stores sanitized event metadata in Supabase.
 // No answer bodies are logged.
 
-import { insertIntakeEvent, supabaseConfigured } from './_supabase-rest.js';
+import { insertIntakeEvent, supabaseConfigured } from '../lib/supabase-rest.js';
 
 function sanitizeEvent(body) {
   const details = body.details && typeof body.details === 'object' ? body.details : {};
@@ -72,3 +72,4 @@ export default async function handler(req, res) {
     return res.status(200).json({ logged: false, reason: err.message });
   }
 }
+

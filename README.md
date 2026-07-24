@@ -5,6 +5,9 @@ This build changes the intake app from browser/local/email-based recovery to a s
 ## What Changed
 
 - Browser stores only a random session ID.
+- Shared server helper code lives in `lib/` so Vercel Hobby does not count helper modules as serverless functions.
+- Draft actions are consolidated into `/api/draft`.
+- Adaptive interview AI actions are consolidated into `/api/interview-ai`.
 - Draft answers are saved through `/api/draft-save`.
 - Drafts are encrypted with `AES-256-GCM` before Supabase storage.
 - Resume loads encrypted drafts through `/api/draft-load`.
@@ -56,3 +59,5 @@ The browser does not keep the full intake in local storage.
 ## Deployment
 
 Upload this folder to the GitHub repo connected to Vercel. Vercel will deploy the static `index.html` and the `/api` serverless functions.
+
+For Vercel Hobby compatibility, `/api` should contain only 5 endpoint files. The shared helper modules must remain in `lib/`.

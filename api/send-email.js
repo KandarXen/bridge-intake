@@ -1,4 +1,4 @@
-// api/send-email.js
+﻿// api/send-email.js
 // Sends completion notifications through Resend. By default this endpoint does
 // not email raw DNA content or attachments; the encrypted Supabase record is the
 // system of record.
@@ -133,3 +133,4 @@ This is a notification-only email. The encrypted intake output is stored in the 
     return res.status(500).json({ error: 'Server error', message: err.message });
   }
 }
+

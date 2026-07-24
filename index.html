@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1311,15 +1311,15 @@ function postDraftToServer(payload, useBeacon = false) {
   if (!payload || !payload.clientDraftId) return Promise.resolve({ saved: false });
   try { localStorage.setItem(SESSION_KEY, payload.clientDraftId); } catch (e) { /* ignore */ }
 
-  const body = JSON.stringify({ payload });
+  const body = JSON.stringify({ action: 'save', payload });
   if (useBeacon && navigator.sendBeacon) {
     try {
       const blob = new Blob([body], { type: 'application/json' });
-      if (navigator.sendBeacon('/api/draft-save', blob)) return Promise.resolve({ saved: true, queued: true });
+      if (navigator.sendBeacon('/api/draft', blob)) return Promise.resolve({ saved: true, queued: true });
     } catch (e) { /* fall through to fetch */ }
   }
 
-  return fetch('/api/draft-save', {
+  return fetch('/api/draft', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body,
@@ -1359,10 +1359,10 @@ async function loadDraft() {
   if (!sessionId) return null;
 
   try {
-    const resp = await fetch('/api/draft-load', {
+    const resp = await fetch('/api/draft', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clientDraftId: sessionId })
+      body: JSON.stringify({ action: 'load', clientDraftId: sessionId })
     });
     if (!resp.ok) return null;
     const data = await resp.json();
@@ -1437,10 +1437,10 @@ function clearSavedInterview(resetFields = false) {
   } catch (e) { /* ignore */ }
   lastLoadedDraft = null;
   if (priorDraftId) {
-    fetch('/api/draft-delete', {
+    fetch('/api/draft', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clientDraftId: priorDraftId }),
+      body: JSON.stringify({ action: 'delete', clientDraftId: priorDraftId }),
       keepalive: true
     }).catch(() => {});
   }
@@ -1517,10 +1517,10 @@ async function researchBusinessContext() {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 6500);
   try {
-    const resp = await fetch('/api/research-business', {
+    const resp = await fetch('/api/interview-ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ businessName, businessCategory, websiteUrl, companySize, ownerWorkStatus, departments }),
+      body: JSON.stringify({ task: 'research-business', businessName, businessCategory, websiteUrl, companySize, ownerWorkStatus, departments }),
       signal: controller.signal
     });
     if (resp.ok) {
@@ -1536,10 +1536,10 @@ async function researchBusinessContext() {
 // -- Generate a business-tailored scenario -----------------------------------
 async function generateScenario() {
   try {
-    const resp = await fetch('/api/scenario', {
+    const resp = await fetch('/api/interview-ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ businessCategory, businessContext })
+      body: JSON.stringify({ task: 'scenario', businessCategory, businessContext })
     });
     if (resp.ok) {
       const data = await resp.json();
@@ -1895,10 +1895,10 @@ async function runDomainProbe(domainName) {
 
   let probeQuestion = null;
   try {
-    const resp = await fetch('/api/probe', {
+    const resp = await fetch('/api/interview-ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ domain: domainName, qa: domainQA, businessCategory, companySize, ownerWorkStatus, departments, businessContext })
+      body: JSON.stringify({ task: 'probe', domain: domainName, qa: domainQA, businessCategory, companySize, ownerWorkStatus, departments, businessContext })
     });
     if (resp.ok) {
       const data = await resp.json();
@@ -1965,10 +1965,10 @@ async function runMasteryFollowup(qIndex) {
 
   let followup = null;
   try {
-    const resp = await fetch('/api/mastery-followup', {
+    const resp = await fetch('/api/interview-ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ area: q.domain, answer, businessCategory, companySize, ownerWorkStatus, departments, businessContext })
+      body: JSON.stringify({ task: 'mastery-followup', area: q.domain, answer, businessCategory, companySize, ownerWorkStatus, departments, businessContext })
     });
     if (resp.ok) {
       const data = await resp.json();
@@ -2408,6 +2408,7 @@ async function sendEmailWithDNA() {
 </script>
 </body>
 </html>
+
 
 
 
