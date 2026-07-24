@@ -993,6 +993,8 @@
 const CONFIG = {
   EMAIL_ENDPOINT: '/api/send-email',              // Vercel serverless function endpoint
   DARREN_EMAIL: 'team@bridgetoai.ca',               // Intake delivery address; forwards to Darren via Resend/email routing
+  DEFAULT_PARTNER: 'BTAI',
+  DEFAULT_CAMPAIGN: 'general_intake'
 };
 const PRIVACY_POLICY_VERSION = '2026-07-24-v1.522';
 
@@ -1173,6 +1175,8 @@ let companySize = '';
 let ownerWorkStatus = '';
 let departments = [];
 let businessContext = null;
+let campaignPartner = CONFIG.DEFAULT_PARTNER;
+let campaignId = CONFIG.DEFAULT_CAMPAIGN;
 let recognition = null;
 let isRecording = false;
 let recognitionSessionId = 0;
@@ -1186,6 +1190,7 @@ let lastLoggedQuestionKey = '';
 let loggedSectionStarts = {};
 let loggedSectionCompletes = {};
 let sectionStartTimes = {};
+let interviewStartedAtMs = null;
 let pendingDraftPayload = null;
 let draftSaveTimer = null;
 let lastLoadedDraft = null;
@@ -1208,6 +1213,74 @@ function countWords(text) {
   return cleaned ? cleaned.split(/\s+/).filter(Boolean).length : 0;
 }
 
+function safeMetricLabel(value, fallback = '') {
+  return String(value || fallback)
+    .replace(/[^a-zA-Z0-9_-]+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 80);
+}
+
+function initCampaignContext() {
+  const params = new URLSearchParams(window.location.search);
+  campaignPartner = safeMetricLabel(params.get('partner'), CONFIG.DEFAULT_PARTNER) || CONFIG.DEFAULT_PARTNER;
+  campaignId = safeMetricLabel(params.get('campaign'), CONFIG.DEFAULT_CAMPAIGN) || CONFIG.DEFAULT_CAMPAIGN;
+}
+
+function answerQuality(text) {
+  const wordCount = countWords(text);
+  let bucket = 'empty';
+  if (wordCount >= 60) bucket = 'rich';
+  else if (wordCount >= 25) bucket = 'useful';
+  else if (wordCount >= 12) bucket = 'light';
+  else if (wordCount >= 6) bucket = 'short';
+  else if (wordCount > 0) bucket = 'minimal';
+
+  return {
+    wordCount,
+    bucket,
+    isShortAnswer: wordCount > 0 && wordCount < 12,
+    hasNumber: /\d/.test(String(text || '')),
+    hasExampleLanguage: /\b(example|for instance|usually|often|when|because|customer|client|order|job|week|month|hours?)\b/i.test(String(text || ''))
+  };
+}
+
+function allAnswerTexts() {
+  const probeAnswers = Object.values(domainProbes || {}).map(probe => probe?.answer || '');
+  return [
+    scenarioGood,
+    scenarioBad,
+    ...answers,
+    ...masteryFollowups,
+    ...probeAnswers
+  ].filter(text => String(text || '').trim());
+}
+
+function interviewKpiSummary() {
+  const texts = allAnswerTexts();
+  const wordCounts = texts.map(text => countWords(text));
+  const totalWordCount = wordCounts.reduce((sum, n) => sum + n, 0);
+  const shortAnswerCount = wordCounts.filter(n => n > 0 && n < 12).length;
+  const richAnswerCount = wordCounts.filter(n => n >= 60).length;
+  const probeEntries = Object.values(domainProbes || {});
+  const generatedProbeCount = probeEntries.filter(probe => probe?.asked && probe?.question).length;
+  const answeredProbeCount = probeEntries.filter(probe => probe?.answer && countWords(probe.answer) > 0).length;
+  const elapsedSeconds = interviewStartedAtMs ? Math.round((Date.now() - interviewStartedAtMs) / 1000) : null;
+
+  return {
+    baseQuestionCount: QUESTIONS.length,
+    answeredPromptCount: texts.length,
+    totalWordCount,
+    averageWordsPerAnswer: texts.length ? Math.round(totalWordCount / texts.length) : 0,
+    shortAnswerCount,
+    shortAnswerRate: texts.length ? Number((shortAnswerCount / texts.length).toFixed(3)) : 0,
+    richAnswerCount,
+    generatedProbeCount,
+    answeredProbeCount,
+    elapsedSeconds
+  };
+}
+
 function currentQuestionMeta() {
   const q = QUESTIONS[currentQ] || {};
   return {
@@ -1222,27 +1295,39 @@ function logHermesEvent(eventType, status = 'info', details = {}) {
   try {
     readWelcomeFields();
     const meta = currentQuestionMeta();
+    const transcriptText = document.getElementById('transcript')?.innerText || '';
+    const quality = answerQuality(details.answerTextForMetrics || transcriptText);
     const payload = {
       clientDraftId: ensureClientDraftId(),
       clientName,
-      clientEmail,
       businessName,
       businessCategory,
       companySize,
       ownerWorkStatus,
+      partner: campaignPartner,
+      campaign: campaignId,
       eventType,
       status,
       stage: meta.stage,
       questionIndex: meta.questionIndex,
       questionType: meta.questionType,
       domain: meta.domain,
-      answerWordCount: countWords(document.getElementById('transcript')?.innerText || ''),
+      answerWordCount: quality.wordCount,
       details: {
+        partner: campaignPartner,
+        campaign: campaignId,
         hasWebsite: !!websiteUrl,
         departments,
+        privacyConsent,
+        privacyPolicyVersion: PRIVACY_POLICY_VERSION,
+        answerQualityBucket: quality.bucket,
+        isShortAnswer: quality.isShortAnswer,
+        hasNumber: quality.hasNumber,
+        hasExampleLanguage: quality.hasExampleLanguage,
         ...details
       }
     };
+    delete payload.details.answerTextForMetrics;
 
     const body = JSON.stringify(payload);
     if (navigator.sendBeacon) {
@@ -1351,6 +1436,8 @@ function buildDraftPayload(captureTranscript = true) {
     privacyConsent,
     privacyConsentAt,
     privacyPolicyVersion: PRIVACY_POLICY_VERSION,
+    campaignPartner,
+    campaignId,
     businessName,
     businessCategory,
     websiteUrl,
@@ -1448,6 +1535,8 @@ async function showResumeCardIfNeeded() {
   clientEmail = draft.clientEmail || '';
   privacyConsent = !!draft.privacyConsent;
   privacyConsentAt = draft.privacyConsentAt || '';
+  campaignPartner = draft.campaignPartner || campaignPartner || CONFIG.DEFAULT_PARTNER;
+  campaignId = draft.campaignId || campaignId || CONFIG.DEFAULT_CAMPAIGN;
   businessName = draft.businessName || '';
   businessCategory = draft.businessCategory || '';
   websiteUrl = draft.websiteUrl || '';
@@ -1474,6 +1563,8 @@ async function resumeSavedInterview() {
   clientEmail = draft.clientEmail || '';
   privacyConsent = !!draft.privacyConsent;
   privacyConsentAt = draft.privacyConsentAt || '';
+  campaignPartner = draft.campaignPartner || campaignPartner || CONFIG.DEFAULT_PARTNER;
+  campaignId = draft.campaignId || campaignId || CONFIG.DEFAULT_CAMPAIGN;
   businessName = draft.businessName || '';
   businessCategory = draft.businessCategory || '';
   websiteUrl = draft.websiteUrl || '';
@@ -1493,9 +1584,10 @@ async function resumeSavedInterview() {
   currentQ = Number.isInteger(draft.currentQ) ? draft.currentQ : 0;
   subStep = draft.subStep || 'main';
   activeProbe = draft.activeProbe || null;
+  interviewStartedAtMs = interviewStartedAtMs || Date.now();
 
   applyWelcomeFields();
-  logHermesEvent('interview_resumed', 'success', { resumeUsed: true });
+  logHermesEvent('interview_resumed', 'success', { resumeUsed: true, ...interviewKpiSummary() });
   showScreen('screen-interview');
   if (scenarioStage) renderScenario();
   else renderQuestion();
@@ -1524,6 +1616,9 @@ function clearSavedInterview(resetFields = false) {
     clientEmail = '';
     privacyConsent = false;
     privacyConsentAt = '';
+    campaignPartner = CONFIG.DEFAULT_PARTNER;
+    campaignId = CONFIG.DEFAULT_CAMPAIGN;
+    initCampaignContext();
     businessName = '';
     businessCategory = '';
     websiteUrl = '';
@@ -1541,6 +1636,7 @@ function showScreen(id) {
 
 // -- Welcome -> Interview ----------------------------------------------------
 async function startInterview(evt) {
+  initCampaignContext();
   clientName = document.getElementById('client-name').value.trim();
   clientEmail = document.getElementById('client-email').value.trim();
   privacyConsent = document.getElementById('privacy-consent').checked;
@@ -1553,10 +1649,18 @@ async function startInterview(evt) {
   const err = document.getElementById('welcome-error');
 
   if (!clientName || !clientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail) || !businessName || !businessCategory || !privacyConsent) {
+    logHermesEvent('interview_start_blocked', 'failed', {
+      missingName: !clientName,
+      missingValidEmail: !clientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail),
+      missingBusinessName: !businessName,
+      missingBusinessCategory: !businessCategory,
+      missingPrivacyConsent: !privacyConsent
+    });
     err.style.display = 'block';
     return;
   }
   privacyConsentAt = privacyConsentAt || new Date().toISOString();
+  interviewStartedAtMs = interviewStartedAtMs || Date.now();
   err.style.display = 'none';
   answers = new Array(QUESTIONS.length).fill('');
   masteryFollowups = new Array(QUESTIONS.length).fill('');
@@ -1576,7 +1680,11 @@ async function startInterview(evt) {
   clientDraftId = '';
   ensureClientDraftId();
   saveDraft(false, true);
-  logHermesEvent('interview_started', 'success');
+  logHermesEvent('interview_started', 'success', {
+    privacyConsentAt,
+    privacyPolicyVersion: PRIVACY_POLICY_VERSION,
+    questionCount: QUESTIONS.length
+  });
 
   // Generate the tailored scenario, then run the two writing beats before Q1.
   const startBtn = evt && evt.target ? evt.target : null;
@@ -1886,7 +1994,7 @@ async function nextQuestion() {
 
     if (isRecording) stopRecording();
     saveCurrentAnswer(val);
-    logHermesEvent('answer_saved', 'success');
+    logHermesEvent('answer_saved', 'success', { answerTextForMetrics: val });
     document.getElementById('answer-error').style.display = 'none';
 
     const total = Array.isArray(QUESTIONS) ? QUESTIONS.length : 0;
@@ -2089,6 +2197,25 @@ document.querySelectorAll('#screen-welcome input').forEach(input => {
   input.addEventListener('change', () => saveDraft(false));
 });
 document.querySelectorAll('.dept-pill input').forEach(input => input.addEventListener('change', () => saveDraft(false)));
+document.getElementById('privacy-consent').addEventListener('change', event => {
+  privacyConsent = event.target.checked;
+  if (privacyConsent && !privacyConsentAt) privacyConsentAt = new Date().toISOString();
+  logHermesEvent(privacyConsent ? 'privacy_consent_checked' : 'privacy_consent_unchecked', privacyConsent ? 'success' : 'info', {
+    privacyConsentAt: privacyConsent ? privacyConsentAt : '',
+    privacyPolicyVersion: PRIVACY_POLICY_VERSION
+  });
+  saveDraft(false);
+});
+document.querySelectorAll('a[href="/privacy.html"]').forEach(link => {
+  link.addEventListener('click', () => logHermesEvent('privacy_policy_link_clicked', 'success', {
+    privacyPolicyVersion: PRIVACY_POLICY_VERSION
+  }));
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden' && draftAutosaveEnabled && clientDraftId) {
+    logHermesEvent('page_hidden_with_active_or_draft_session', 'info', interviewKpiSummary());
+  }
+});
 window.addEventListener('beforeunload', () => {
   saveDraft();
   flushDraftSave(true);
@@ -2184,6 +2311,7 @@ async function submitInterview() {
   try {
     saveDraft(true, true);
     await flushDraftSave(false);
+    logHermesEvent('interview_completed_answers', 'success', interviewKpiSummary());
     const dnaContent = await generateDNAWithClaude();
     if (!lastSecureStorage || !lastSecureStorage.saved) {
       throw new Error(lastSecureStorage?.reason || 'Secure Supabase storage did not confirm');
@@ -2192,6 +2320,7 @@ async function submitInterview() {
     logHermesEvent('drive_save_result', 'success', { driveSaved: false, driveReason: 'Secure Supabase storage is primary; plaintext Drive save skipped.' });
     await sendEmailWithDNA();
     logHermesEvent('email_delivery_result', 'success', { emailDelivered: true, driveSaved: false });
+    logHermesEvent('interview_submission_complete', 'success', interviewKpiSummary());
 
     draftAutosaveEnabled = false;
     try {
@@ -2205,7 +2334,7 @@ async function submitInterview() {
       `Thank you, ${clientName}. Your business profile has been encrypted and securely saved. It will be used only to prepare your custom AI plan - never shared, never sold, never made public.`;
   } catch (err) {
     console.error('Submission error:', err);
-    logHermesEvent('submission_failed', 'failed', { emailDelivered: false, error: err.message || 'Submission failed' });
+    logHermesEvent('submission_failed', 'failed', { emailDelivered: false, error: err.message || 'Submission failed', ...interviewKpiSummary() });
     showScreen('screen-complete');
     document.getElementById('complete-message').textContent =
       `Thank you, ${clientName}. Your interview was completed, but automatic delivery did not confirm. Please contact team@bridgetoai.ca so we can recover or re-run the submission.`;
@@ -2429,6 +2558,8 @@ async function generateDNAWithClaude() {
       prompt: buildPrompt(),
       clientDraftId: ensureClientDraftId(),
       sourceMeta: {
+        partner: campaignPartner,
+        campaign: campaignId,
         businessCategory,
         companySize,
         ownerWorkStatus,
@@ -2468,6 +2599,8 @@ async function sendEmailWithDNA() {
     privacyConsent,
     privacyConsentAt,
     privacyPolicyVersion: PRIVACY_POLICY_VERSION,
+    partner: campaignPartner,
+    campaign: campaignId,
     businessCategory,
     companySize,
     ownerWorkStatus,
@@ -2492,6 +2625,7 @@ async function sendEmailWithDNA() {
     throw new Error('Email send failed' + detail);
   }
 }
+initCampaignContext();
 </script>
 </body>
 </html>

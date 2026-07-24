@@ -10,6 +10,8 @@ This build keeps the v1.50/v1.51 secure intake storage model and adds admin-only
 - Welcome screen requires Privacy Policy consent before the interview can start.
 - Privacy consent version and timestamp are stored inside the encrypted intake record.
 - `privacy.html` provides a standalone Privacy Policy page linked from the welcome screen and footer.
+- Hermes KPI logging now captures partner/campaign tags, consent status, answer-depth buckets, short-answer rates, adaptive follow-up counts, completion summaries, and report-pack generation events.
+- Supabase setup now includes the `intake_kpi_events` reporting view for aggregate AFPA/member intelligence reporting without decrypting raw interviews.
 - Shared server helper code lives in `lib/` so Vercel Hobby does not count helper modules as serverless functions.
 - Draft actions are consolidated into `/api/draft`.
 - Adaptive interview AI actions are consolidated into `/api/interview-ai`.
@@ -92,6 +94,36 @@ Client browser
 ```
 
 The browser does not keep the full intake in local storage.
+
+## AFPA KPI Logging
+
+AFPA campaign links can include:
+
+```text
+/?partner=AFPA&campaign=AFPA_December_AI_Course_2026
+```
+
+Hermes logs anonymized KPI events only. It does not log raw answer text or client email. Useful events include:
+
+```text
+interview_started
+interview_start_blocked
+privacy_consent_checked
+privacy_policy_link_clicked
+answer_saved
+business_domain_completed
+adaptive_probe_requested
+domain_probe_generated
+domain_probe_skipped
+interview_completed_answers
+interview_submission_complete
+submission_failed
+report_generated
+report_pack_zip_built
+report_pack_zip_downloaded
+```
+
+Use the Supabase `intake_kpi_events` view for aggregate dashboards and AFPA reports.
 
 ## Deployment
 

@@ -101,6 +101,7 @@ validate-output.js
    - one `intake_sessions` row
    - one `venture_dna_markdown` row in `intake_outputs`
    - Hermes events in `intake_events`
+   - KPI rows visible through the `intake_kpi_events` view
 13. Open `/admin.html` and retrieve the test DNA using the Record ID and `BTAI_ADMIN_SECRET`.
 14. On `/admin.html`, generate the reports one at a time:
     - Free Snapshot
@@ -127,6 +128,8 @@ validate-output.js
 - Hermes re-identification maps are encrypted before Supabase storage.
 - External AI calls use the Hermes anonymization layer.
 - Privacy consent is required before interview start and stored in the encrypted record with a policy version and timestamp.
+- Hermes KPI logs intentionally exclude raw answer text and client email.
+- Partner/campaign tracking is URL-driven. Use `?partner=AFPA&campaign=AFPA_December_AI_Course_2026` for AFPA member links.
 - Email is notification-only by default.
 - Google Drive is no longer the primary storage path.
 - Report files are generated from the encrypted completed intake record and stored encrypted before admin download.

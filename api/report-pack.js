@@ -1,6 +1,6 @@
 import { decryptJson, encryptJson } from '../lib/crypto.js';
 import { createDocxBuffer, createZipBuffer } from '../lib/docx.js';
-import { getLatestIntakeOutput, insertIntakeOutput } from '../lib/supabase-rest.js';
+import { getLatestIntakeOutput, insertIntakeEvent, insertIntakeOutput } from '../lib/supabase-rest.js';
 import { validateDnaOutput } from '../lib/validate-output.js';
 
 const REPORTS = {
@@ -86,9 +86,34 @@ async function getDna(clientDraftId) {
   if (!decrypted.dnaContent) throw new Error('Venture DNA output is empty');
   return {
     dnaContent: decrypted.dnaContent,
+    meta: decrypted.meta || {},
     outputId: output.id,
     createdAt: output.created_at
   };
+}
+
+async function logReportEvent(clientDraftId, eventType, status, details = {}) {
+  try {
+    await insertIntakeEvent({
+      client_draft_id: clientDraftId,
+      event_type: eventType,
+      status,
+      stage: 'admin_report_pack',
+      question_index: null,
+      domain: String(details.campaign || details.reportTier || 'report_pack').slice(0, 160),
+      answer_word_count: null,
+      metadata: {
+        ts: new Date().toISOString(),
+        app: 'intake.bridgetoai.ca',
+        eventType,
+        status,
+        stage: 'admin_report_pack',
+        details
+      }
+    });
+  } catch (err) {
+    console.error('report-pack KPI log failed:', err);
+  }
 }
 
 function sharedRules() {
@@ -240,7 +265,7 @@ async function generateOne(clientDraftId, tier) {
   const spec = REPORTS[tier];
   if (!spec) throw new Error('Unknown report tier');
 
-  const { dnaContent } = await getDna(clientDraftId);
+  const { dnaContent, meta } = await getDna(clientDraftId);
   const businessName = businessNameFromDna(dnaContent);
   const markdown = await callClaude(promptForTier(tier, dnaContent), spec.maxTokens);
   const validation = validateDnaOutput(markdown, { requireEvidenceLabels: false });
@@ -271,6 +296,14 @@ async function generateOne(clientDraftId, tier) {
     })
   });
 
+  await logReportEvent(clientDraftId, 'report_generated', 'success', {
+    partner: meta?.sourceMeta?.partner || 'BTAI',
+    campaign: meta?.sourceMeta?.campaign || 'general_intake',
+    reportTier: tier,
+    reportOutputType: spec.docxOutputType,
+    warningCount: validation.warnings?.length || 0
+  });
+
   return {
     generated: true,
     tier,
@@ -289,7 +322,7 @@ async function loadGenerated(clientDraftId, tier) {
 }
 
 async function buildZip(clientDraftId) {
-  const { dnaContent } = await getDna(clientDraftId);
+  const { dnaContent, meta } = await getDna(clientDraftId);
   const businessName = businessNameFromDna(dnaContent);
   const files = [];
 
@@ -324,6 +357,13 @@ async function buildZip(clientDraftId) {
     })
   });
 
+  await logReportEvent(clientDraftId, 'report_pack_zip_built', 'success', {
+    partner: meta?.sourceMeta?.partner || 'BTAI',
+    campaign: meta?.sourceMeta?.campaign || 'general_intake',
+    zipReady: true,
+    includedFileCount: files.length
+  });
+
   return {
     ready: true,
     outputId: row?.id || '',
@@ -345,6 +385,9 @@ async function downloadZip(clientDraftId) {
   const row = await getLatestIntakeOutput(clientDraftId, 'three_report_pack_zip');
   if (!row) return buildZip(clientDraftId);
   const payload = decryptJson(row.encrypted_payload);
+  await logReportEvent(clientDraftId, 'report_pack_zip_downloaded', 'success', {
+    zipReady: true
+  });
   return {
     ready: true,
     outputId: row.id,
