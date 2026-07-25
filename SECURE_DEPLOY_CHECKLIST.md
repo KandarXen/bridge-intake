@@ -1,4 +1,4 @@
-# Bridge To AI Intake v1.522 Secure Deploy Checklist
+# Bridge To AI Intake v1.55 Secure Deploy Checklist
 
 ## 1. Supabase
 
@@ -88,28 +88,32 @@ validate-output.js
 
 1. Open the Vercel preview URL.
 2. Open `/privacy.html` and confirm the Privacy Policy loads.
-3. Confirm the welcome screen links to `/privacy.html` from both the consent checkbox and footer.
-4. Try to start an intake without checking the Privacy Policy consent box; confirm it blocks start.
-5. Start an intake after entering name, valid email, business name, business type, and checking consent.
-6. Confirm the adaptive interview explanation appears on the welcome screen.
-7. Answer one or two questions.
-8. Refresh the browser.
-9. Confirm the resume card appears.
-10. Complete a test intake.
-11. Confirm the notification email arrives and includes the client email, privacy consent status, consent timestamp, and policy version.
-12. Confirm Supabase has:
+3. Open `/?partner=AFPA&campaign=AFPA_December_AI_Course_2026`.
+4. Confirm the welcome screen is co-branded for AFPA and says AFPA receives anonymized aggregate insights only.
+5. Confirm the welcome screen links to `/privacy.html` from both the consent checkbox and footer.
+6. Try to start an intake without checking the Privacy Policy consent box; confirm it blocks start.
+7. Start an intake after entering name, valid email, business name, business type, and checking consent.
+8. Confirm the adaptive interview explanation appears on the welcome screen.
+9. Answer one or two questions.
+10. Refresh the browser.
+11. Confirm the resume card appears.
+12. Complete a test intake.
+13. Confirm the completion screen shows the BTAI follow-up interest question.
+14. Select Yes, Maybe, or No and confirm a `btai_followup_interest_selected` event appears in Hermes logs.
+15. Confirm the notification email arrives and includes the client email, privacy consent status, consent timestamp, and policy version.
+16. Confirm Supabase has:
    - one `intake_sessions` row
    - one `venture_dna_markdown` row in `intake_outputs`
    - Hermes events in `intake_events`
    - KPI rows visible through the `intake_kpi_events` view
-13. Open `/admin.html` and retrieve the test DNA using the Record ID and `BTAI_ADMIN_SECRET`.
-14. On `/admin.html`, generate the reports one at a time:
+17. Open `/admin.html` and retrieve the test DNA using the Record ID and `BTAI_ADMIN_SECRET`.
+18. On `/admin.html`, generate the reports one at a time:
     - Free Snapshot
     - Detailed Report
     - Full Roadmap
     - BTAI Advisor Brief
-15. Download the Report Pack ZIP.
-16. Confirm Supabase has encrypted rows in `intake_outputs` for:
+19. Download the Report Pack ZIP.
+20. Confirm Supabase has encrypted rows in `intake_outputs` for:
     - `report_free_snapshot_markdown`
     - `report_free_snapshot_docx`
     - `report_detailed_growth_markdown`

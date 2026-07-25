@@ -1,4 +1,4 @@
-# Bridge To AI Intake App - v1.522 Privacy Consent Build
+# Bridge To AI Intake App - v1.55 Partner Intake Experience Build
 
 This build keeps the v1.50/v1.51 secure intake storage model and adds admin-only report generation from a completed Venture DNA record.
 
@@ -12,6 +12,10 @@ This build keeps the v1.50/v1.51 secure intake storage model and adds admin-only
 - `privacy.html` provides a standalone Privacy Policy page linked from the welcome screen and footer.
 - Hermes KPI logging now captures partner/campaign tags, consent status, answer-depth buckets, short-answer rates, adaptive follow-up counts, completion summaries, and report-pack generation events.
 - Supabase setup now includes the `intake_kpi_events` reporting view for aggregate AFPA/member intelligence reporting without decrypting raw interviews.
+- URL-based partner co-branding is supported. `partner=AFPA` changes the welcome page, completion copy, and consent language for the AFPA member program.
+- Partner consent explains that AFPA receives anonymized aggregate insights only, not raw member interviews or individual answers.
+- BTAI follow-up interest is asked on the completion screen, after the member finishes the interview.
+- BTAI follow-up selections are logged as privacy-safe KPI/lead events without exposing raw answers or client email.
 - Shared server helper code lives in `lib/` so Vercel Hobby does not count helper modules as serverless functions.
 - Draft actions are consolidated into `/api/draft`.
 - Adaptive interview AI actions are consolidated into `/api/interview-ai`.
@@ -110,6 +114,7 @@ interview_started
 interview_start_blocked
 privacy_consent_checked
 privacy_policy_link_clicked
+btai_followup_interest_selected
 answer_saved
 business_domain_completed
 adaptive_probe_requested

@@ -98,6 +98,7 @@ select
   (metadata #>> '{details,hasExampleLanguage}')::boolean as has_example_language,
   (metadata #>> '{details,privacyConsent}')::boolean as privacy_consent,
   metadata #>> '{details,privacyPolicyVersion}' as privacy_policy_version,
+  metadata #>> '{details,btaiFollowupInterest}' as btai_followup_interest,
   nullif(metadata #>> '{details,durationSeconds}', '')::integer as duration_seconds,
   nullif(metadata #>> '{details,totalWordCount}', '')::integer as total_word_count,
   nullif(metadata #>> '{details,answeredPromptCount}', '')::integer as answered_prompt_count,

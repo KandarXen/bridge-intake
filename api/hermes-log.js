@@ -32,6 +32,7 @@ function sanitizeEvent(body) {
       campaign: String(body.campaign || details.campaign || 'general_intake').slice(0, 120),
       privacyConsent: typeof details.privacyConsent === 'boolean' ? details.privacyConsent : undefined,
       privacyPolicyVersion: details.privacyPolicyVersion ? String(details.privacyPolicyVersion).slice(0, 80) : undefined,
+      btaiFollowupInterest: details.btaiFollowupInterest ? String(details.btaiFollowupInterest).slice(0, 40) : undefined,
       answerQualityBucket: details.answerQualityBucket ? String(details.answerQualityBucket).slice(0, 40) : undefined,
       isShortAnswer: typeof details.isShortAnswer === 'boolean' ? details.isShortAnswer : undefined,
       hasNumber: typeof details.hasNumber === 'boolean' ? details.hasNumber : undefined,

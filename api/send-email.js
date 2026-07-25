@@ -26,6 +26,7 @@ export default async function handler(req, res) {
     privacyPolicyVersion,
     partner,
     campaign,
+    partnerDisplayName,
     businessCategory,
     companySize,
     ownerWorkStatus,
@@ -69,7 +70,7 @@ export default async function handler(req, res) {
           <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Departments</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${departments || 'Not provided'}</td></tr>
           <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Privacy consent</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${privacyConsent ? 'Accepted' : 'Not confirmed'}${privacyConsentAt ? ` at ${privacyConsentAt}` : ''}</td></tr>
           <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Policy version</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${privacyPolicyVersion || 'Not provided'}</td></tr>
-          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Partner / campaign</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${partner || 'BTAI'} / ${campaign || 'general_intake'}</td></tr>
+          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Partner / campaign</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${partnerDisplayName || partner || 'BTAI'} / ${campaign || 'general_intake'}</td></tr>
           <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Record ID</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;"><code>${recordId || 'Not provided'}</code></td></tr>
           <tr><td style="padding: 8px 0; color: #6b7280;">Date</td><td style="padding: 8px 0;">${date || new Date().toISOString()}</td></tr>
         </table>
@@ -101,7 +102,7 @@ Storage: ${storageStatus}
 Privacy consent: ${privacyConsent ? 'Accepted' : 'Not confirmed'}
 Privacy consent at: ${privacyConsentAt || 'Not provided'}
 Privacy policy version: ${privacyPolicyVersion || 'Not provided'}
-Partner: ${partner || 'BTAI'}
+Partner: ${partnerDisplayName || partner || 'BTAI'}
 Campaign: ${campaign || 'general_intake'}
 
 This is a notification-only email. The encrypted intake output is stored in the secure backend record.
