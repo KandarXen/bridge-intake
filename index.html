@@ -814,7 +814,7 @@
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag" id="header-tag">Business Discovery Session</span>
-      <span class="header-version">v1.56</span>
+      <span class="header-version">v1.56.1</span>
   </div>
 </header>
 
@@ -1112,7 +1112,7 @@ const CONFIG = {
   DEFAULT_PARTNER: 'BTAI',
   DEFAULT_CAMPAIGN: 'general_intake'
 };
-const PRIVACY_POLICY_VERSION = '2026-07-25-v1.56';
+const PRIVACY_POLICY_VERSION = '2026-07-25-v1.56.1';
 
 const PARTNER_PROFILES = {
   AFPA: {
@@ -2997,7 +2997,7 @@ async function generateDNAWithClaude() {
   if (!response.ok) throw new Error('DNA generation failed');
   const data = await response.json();
   if (data.hermesPrivacy) {
-    logHermesEvent('anonymization_result', data.hermesPrivacy.anonymized ? 'success' : 'failed', {
+    logHermesEvent('tokenization_result', data.hermesPrivacy.anonymized ? 'success' : 'failed', {
       privacyAnonymized: !!data.hermesPrivacy.anonymized,
       anonymizationReplacements: data.hermesPrivacy.stats?.replacements || 0,
       driveSaved: !!data.hermesPrivacy.mappingSaved,

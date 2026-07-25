@@ -1,9 +1,12 @@
-# Bridge To AI Intake App - v1.56 Trust-First Industry-Adaptive Build
+# Bridge To AI Intake App - v1.56.1 PIPEDA Privacy Policy Fix
 
-This build keeps the v1.50/v1.51 secure intake storage model and updates the interview layer so the AFPA/member intake is trust-first, controlled industry-adaptive, and less likely to ask for sensitive business details during the first intake.
+This build keeps the v1.56 trust-first, controlled industry-adaptive intake and updates the public Privacy Policy to better align with PIPEDA and the BTAI Secure Intelligence Layer design.
 
 ## What Changed
 
+- Privacy Policy version is now `2026-07-25-v1.56.1`.
+- Privacy Policy now distinguishes reversible pseudonymization/tokenization from anonymized aggregate partner reporting.
+- Privacy Policy now includes named privacy accountability, cross-border processing, concrete retention/deletion targets, OPC complaint escalation, AI provider data-use language, breach response, access/correction/deletion process, minimum aggregate-reporting threshold, age restriction, cookies/analytics language, and the first-intake vs paid-implementation boundary.
 - Browser stores only a random session ID.
 - Welcome screen now requires the interviewee email address for future report-link delivery and recovery.
 - Welcome screen now explains that exact financials, recipes, customer lists, supplier contracts, payroll details, invoices, and confidential operating data are not needed for the first intake.
