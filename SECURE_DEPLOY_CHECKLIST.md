@@ -1,4 +1,4 @@
-# Bridge To AI Intake v1.55 Secure Deploy Checklist
+# Bridge To AI Intake v1.56 Secure Deploy Checklist
 
 ## 1. Supabase
 
@@ -90,6 +90,7 @@ validate-output.js
 2. Open `/privacy.html` and confirm the Privacy Policy loads.
 3. Open `/?partner=AFPA&campaign=AFPA_December_AI_Course_2026`.
 4. Confirm the welcome screen is co-branded for AFPA and says AFPA receives anonymized aggregate insights only.
+5. Confirm the welcome screen says exact financials, recipes, customer lists, supplier contracts, payroll details, invoices, and confidential operating data are not needed for the first intake.
 5. Confirm the welcome screen links to `/privacy.html` from both the consent checkbox and footer.
 6. Try to start an intake without checking the Privacy Policy consent box; confirm it blocks start.
 7. Start an intake after entering name, valid email, business name, business type, and checking consent.
@@ -99,18 +100,18 @@ validate-output.js
 11. Confirm the resume card appears.
 12. Complete a test intake.
 13. Confirm the completion screen shows the BTAI follow-up interest question.
-14. Select Yes, Maybe, or No and confirm a `btai_followup_interest_selected` event appears in Hermes logs.
+14. Select Yes, Maybe, or No and confirm a `btai_followup_interest_selected` event appears in secure processing logs.
 15. Confirm the notification email arrives and includes the client email, privacy consent status, consent timestamp, and policy version.
 16. Confirm Supabase has:
    - one `intake_sessions` row
    - one `venture_dna_markdown` row in `intake_outputs`
-   - Hermes events in `intake_events`
+   - Secure processing events in `intake_events`
    - KPI rows visible through the `intake_kpi_events` view
 17. Open `/admin.html` and retrieve the test DNA using the Record ID and `BTAI_ADMIN_SECRET`.
 18. On `/admin.html`, generate the reports one at a time:
     - Free Snapshot
-    - Detailed Report
-    - Full Roadmap
+    - Detailed Opportunity Report
+    - Preliminary Action Plan
     - BTAI Advisor Brief
 19. Download the Report Pack ZIP.
 20. Confirm Supabase has encrypted rows in `intake_outputs` for:
@@ -118,8 +119,8 @@ validate-output.js
     - `report_free_snapshot_docx`
     - `report_detailed_growth_markdown`
     - `report_detailed_growth_docx`
-    - `report_full_roadmap_markdown`
-    - `report_full_roadmap_docx`
+    - `report_full_roadmap_markdown` (legacy output type for Preliminary Action Plan)
+    - `report_full_roadmap_docx` (legacy output type for Preliminary Action Plan)
     - `report_btai_advisor_brief_markdown`
     - `report_btai_advisor_brief_docx`
     - `three_report_pack_zip`
@@ -129,10 +130,10 @@ validate-output.js
 - Browser local storage keeps only the session ID.
 - Draft answers are encrypted server-side before Supabase storage.
 - Completed DNA output is encrypted before Supabase storage.
-- Hermes re-identification maps are encrypted before Supabase storage.
-- External AI calls use the Hermes anonymization layer.
+- Re-identification maps are encrypted before Supabase storage where required.
+- External AI calls use the BTAI secure processing layer.
 - Privacy consent is required before interview start and stored in the encrypted record with a policy version and timestamp.
-- Hermes KPI logs intentionally exclude raw answer text and client email.
+- KPI logs intentionally exclude raw answer text and client email.
 - Partner/campaign tracking is URL-driven. Use `?partner=AFPA&campaign=AFPA_December_AI_Course_2026` for AFPA member links.
 - Email is notification-only by default.
 - Google Drive is no longer the primary storage path.

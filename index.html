@@ -253,7 +253,8 @@
     margin-bottom: 0.5rem;
   }
 
-  .name-field input {
+  .name-field input,
+  .name-field select {
     width: 100%;
     padding: 0.75rem 1rem;
     border: 1.5px solid var(--border);
@@ -266,7 +267,8 @@
     outline: none;
   }
 
-  .name-field input:focus { border-color: var(--bridge-teal); }
+  .name-field input:focus,
+  .name-field select:focus { border-color: var(--bridge-teal); }
 
   .consent-box {
     margin: 1.25rem 0 1.5rem;
@@ -812,7 +814,7 @@
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag" id="header-tag">Business Discovery Session</span>
-      <span class="header-version">v1.55</span>
+      <span class="header-version">v1.56</span>
   </div>
 </header>
 
@@ -828,12 +830,13 @@
     <div class="welcome-eyebrow" id="welcome-eyebrow">Confidential - for your eyes only</div>
     <h1 class="welcome-headline" id="welcome-headline">Let's understand your business <em>before</em> we talk about AI.</h1>
     <p class="welcome-body" id="welcome-body">
-      This session takes about 20-30 minutes. There are no right or wrong answers -
-      the more honest you are, the more useful your custom AI system will be.
-      The interview adapts as you go: short answers may get a quick clarifying follow-up,
-      while more detailed answers usually help us move faster. Your answers are encrypted,
-      stored securely, and used only to prepare your private AI plan. When your answers are
-      processed by AI, identifying details are anonymized where practical before analysis.
+      This session takes about 20-30 minutes. There are no right or wrong answers.
+      General ranges and directional examples are enough for this first report; please do not
+      enter private financials, recipes, customer lists, supplier contracts, payroll details,
+      invoices, or confidential operating data. The interview adapts as you go: short answers
+      may get a quick clarifying follow-up, while more detailed answers usually help us move
+      faster. Your answers are encrypted, stored securely, and used only to prepare your
+      private AI opportunity report.
     </p>
 
     <div class="welcome-steps">
@@ -842,7 +845,7 @@
         <li><span class="step-num">1</span> <span id="step-one-text">You'll start with a quick scenario, then move through 8 areas of your business and a short reflection on you as the owner.</span></li>
         <li><span class="step-num">2</span> Speak your answer using the microphone, or type it directly.</li>
         <li><span class="step-num">3</span> Review what was captured, edit if needed, then hit Continue.</li>
-        <li><span class="step-num">4</span> <span id="step-four-text">A few answers may trigger a quick follow-up so we can understand the real issue instead of guessing. Your progress is saved securely as you go. When you're done, your answers are encrypted and used only to build your profile - never shared, never sold, never made public.</span></li>
+        <li><span class="step-num">4</span> <span id="step-four-text">A few answers may trigger a quick follow-up so we can understand the real issue instead of guessing. Your progress is saved securely as you go, and your first report is based on directional business signals rather than confidential operating details.</span></li>
       </ul>
     </div>
 
@@ -872,7 +875,35 @@
 
     <div class="name-field">
       <label for="business-category">What type of business are you in?</label>
-      <input type="text" id="business-category" placeholder="e.g. food broker, trades contractor, law firm..." autocomplete="off" />
+      <select id="business-category">
+        <option value="">Choose the closest category...</option>
+        <option value="Bakery / Grains">Bakery / Grains</option>
+        <option value="Beverages">Beverages</option>
+        <option value="Meat / Protein">Meat / Protein</option>
+        <option value="Produce / Fresh Pack">Produce / Fresh Pack</option>
+        <option value="Prepared Foods">Prepared Foods</option>
+        <option value="Distribution / Wholesale">Distribution / Wholesale</option>
+        <option value="Retail / Food Service">Retail / Food Service</option>
+        <option value="Professional Services">Professional Services</option>
+        <option value="Trades / Field Services">Trades / Field Services</option>
+        <option value="Manufacturing">Manufacturing</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+
+    <div class="name-field">
+      <label for="business-niche">Is there a more specific niche we should understand? <span style="font-weight:400;color:var(--ink-soft);">(optional)</span></label>
+      <input type="text" id="business-niche" placeholder="e.g. wholesale bakery, kombucha producer, grant consultant..." autocomplete="off" />
+    </div>
+
+    <div class="name-field">
+      <label for="share-comfort">For this first intake, how much detail are you comfortable sharing?</label>
+      <select id="share-comfort">
+        <option value="Directional only">Directional only</option>
+        <option value="General ranges are okay">General ranges are okay</option>
+        <option value="I may share more in a private scoping session">I may share more in a private scoping session</option>
+        <option value="Not sure yet">Not sure yet</option>
+      </select>
     </div>
 
     <div class="name-field">
@@ -1081,7 +1112,7 @@ const CONFIG = {
   DEFAULT_PARTNER: 'BTAI',
   DEFAULT_CAMPAIGN: 'general_intake'
 };
-const PRIVACY_POLICY_VERSION = '2026-07-25-v1.55';
+const PRIVACY_POLICY_VERSION = '2026-07-25-v1.56';
 
 const PARTNER_PROFILES = {
   AFPA: {
@@ -1091,10 +1122,10 @@ const PARTNER_PROFILES = {
     pill: 'AFPA Member Program',
     eyebrow: 'Confidential AFPA member intake',
     headline: 'Help shape practical AI training for Alberta food processors.',
-    body: 'This session usually takes 20-30 minutes. Your answers help prepare your private AI opportunity report and help AFPA understand, in anonymized aggregate form, what members need most from upcoming AI education. The interview adapts as you go: short answers may get a quick clarifying follow-up, while more detailed answers usually help us move faster. Your answers are encrypted, stored securely, and anonymized where practical before AI analysis.',
+    body: 'This session usually takes 20-30 minutes. Your answers help prepare your private AI opportunity report and help AFPA understand, in anonymized aggregate form, what members need most from upcoming AI education. General ranges and directional examples are enough; please avoid private financials, recipes, customer lists, supplier contracts, payroll details, invoices, or confidential operating data. The interview adapts as you go, and your answers are encrypted and stored securely.',
     banner: 'This co-branded intake is provided for AFPA members and powered by Bridge To AI. AFPA receives anonymized aggregate insights for education and program planning, not raw member interview files.',
     stepOne: 'You will move through practical business areas that help identify where AI education, workflow support, and safer implementation guidance may help AFPA members.',
-    stepFour: 'A few answers may trigger a quick follow-up so we can understand the real issue instead of guessing. Your progress is saved securely as you go. AFPA receives only anonymized aggregate themes; your raw interview record and individual answers are not shared with AFPA.',
+    stepFour: 'A few answers may trigger a quick follow-up so we can understand the real issue instead of guessing. Your progress is saved securely as you go, and you can resume if you need to come back later.',
     completion: 'Your AFPA member AI readiness intake has been encrypted and securely saved. Bridge To AI will use it to prepare your private AI opportunity report. AFPA may receive anonymized aggregate insights to help shape member education, but your raw interview record is not shared with AFPA.',
     nextSteps: [
       ['Bridge To AI prepares your free snapshot', 'Your answers will be used to prepare a private AI Opportunity Snapshot focused on practical next steps for your business.'],
@@ -1103,6 +1134,80 @@ const PARTNER_PROFILES = {
     ]
   }
 };
+
+const INDUSTRY_GUIDANCE = {
+  'Bakery / Grains': {
+    label: 'bakery or grain processor',
+    opportunities: ['production planning', 'batch sequencing', 'shelf life', 'SKU complexity', 'costing confidence', 'wholesale follow-up', 'food safety and SOPs', 'seasonal demand', 'buyer readiness', 'product storytelling'],
+    customerTypes: ['walk-in retail customers', 'repeat local customers', 'wholesale cafes', 'grocery or specialty buyers', 'catering or seasonal orders', 'larger commercial accounts']
+  },
+  'Beverages': {
+    label: 'beverage producer',
+    opportunities: ['batch planning', 'seasonal demand', 'distribution follow-up', 'retail buyer readiness', 'label and product storytelling', 'quality documentation', 'inventory visibility', 'promo planning'],
+    customerTypes: ['direct customers', 'retail buyers', 'restaurants or cafes', 'distributors', 'event or seasonal accounts', 'repeat online customers']
+  },
+  'Meat / Protein': {
+    label: 'meat or protein processor',
+    opportunities: ['production scheduling', 'yield tracking confidence', 'compliance documentation', 'order planning', 'buyer readiness', 'cold chain communication', 'SOP capture', 'inventory visibility'],
+    customerTypes: ['retail customers', 'wholesale buyers', 'food service accounts', 'distributors', 'specialty retailers', 'institutional buyers']
+  },
+  'Produce / Fresh Pack': {
+    label: 'produce or fresh-pack business',
+    opportunities: ['harvest or receiving coordination', 'freshness windows', 'order prioritization', 'waste reduction', 'buyer communication', 'seasonal demand', 'inventory visibility', 'quality checks'],
+    customerTypes: ['retail buyers', 'food service accounts', 'direct customers', 'distributors', 'seasonal accounts', 'institutional buyers']
+  },
+  'Prepared Foods': {
+    label: 'prepared foods business',
+    opportunities: ['production planning', 'SKU prioritization', 'label and allergen documentation', 'food safety SOPs', 'buyer readiness', 'repeat order follow-up', 'demand planning', 'product storytelling'],
+    customerTypes: ['retail customers', 'retail buyers', 'food service accounts', 'online customers', 'catering or event accounts', 'distribution partners']
+  },
+  'Distribution / Wholesale': {
+    label: 'distribution or wholesale business',
+    opportunities: ['order intake', 'routing or fulfillment coordination', 'inventory visibility', 'buyer follow-up', 'supplier updates', 'quote support', 'customer service summaries', 'exception tracking'],
+    customerTypes: ['repeat wholesale customers', 'larger accounts', 'retail partners', 'food service accounts', 'regional buyers', 'new territories']
+  },
+  'Retail / Food Service': {
+    label: 'retail or food service business',
+    opportunities: ['daily specials', 'staff checklists', 'customer reviews', 'local marketing', 'inventory notes', 'event planning', 'training material', 'repeat customer communication'],
+    customerTypes: ['walk-in customers', 'repeat local customers', 'event customers', 'online followers', 'catering customers', 'community partners']
+  },
+  'Professional Services': {
+    label: 'professional services firm',
+    opportunities: ['proposal drafting', 'discovery notes', 'client onboarding', 'scope control', 'reporting', 'knowledge reuse', 'client follow-up', 'thought leadership'],
+    customerTypes: ['higher-fit clients', 'larger retainers', 'referral partners', 'repeat clients', 'strategic accounts', 'new niches']
+  },
+  'Trades / Field Services': {
+    label: 'trades or field services business',
+    opportunities: ['quoting', 'job notes', 'scheduling', 'dispatch handoffs', 'customer updates', 'photo summaries', 'warranty follow-up', 'service history'],
+    customerTypes: ['repeat service customers', 'larger jobs', 'property managers', 'commercial accounts', 'referral partners', 'maintenance contracts']
+  },
+  'Manufacturing': {
+    label: 'manufacturing business',
+    opportunities: ['production planning', 'quality checks', 'SOP capture', 'quote support', 'inventory visibility', 'handoff notes', 'maintenance logs', 'customer updates'],
+    customerTypes: ['repeat customers', 'larger accounts', 'distributors', 'OEM or private-label buyers', 'regional buyers', 'strategic partnerships']
+  },
+  'Other': {
+    label: 'business',
+    opportunities: ['customer follow-up', 'admin work', 'reporting', 'sales support', 'operations checklists', 'training material', 'marketing content', 'decision support'],
+    customerTypes: ['repeat customers', 'larger accounts', 'online/direct customers', 'referral partners', 'strategic partnerships', 'new markets']
+  }
+};
+
+const SENSITIVE_DETAIL_WARNING = 'For this first intake, general ranges and directional examples are enough. Please avoid private financials, recipes, customer names, supplier contracts, payroll details, invoices, or confidential formulas.';
+const MAX_ADAPTIVE_PROBES = 5;
+const APPROVED_PROBE_TYPES = ['clarify', 'prioritize', 'range', 'severity', 'frequency', 'blocker', 'owner/readiness', 'risk', 'low-risk pilot', 'voice/tone'];
+const FORBIDDEN_PROBE_PATTERNS = [
+  /\bexact\b/i,
+  /\brevenue\b.*\bamount\b/i,
+  /\bprofit\b|\bmargin\b|\bpayroll\b|\bbank\b|\btax\b|\blegal record\b/i,
+  /\bcustomer names?\b|\bname your customers?\b|\bnamed customers?\b/i,
+  /\bsupplier names?\b|\bname your suppliers?\b|\bnamed suppliers?\b/i,
+  /\bemployee personal\b|\bstaff personal\b/i,
+  /\brecipe\b|\bformula\b|\bconfidential formula\b/i,
+  /\bcontract\b|\binvoice\b|\bpurchase order\b|\bPOs?\b/i,
+  /\bpassword\b|\bapi key\b|\bsecret key\b/i,
+  /\bhealth\b|\bmedical\b/i
+];
 
 // -- Questions --------------------------------------------------------------
 // section: 'business' = 8-domain questions (eligible for AI probing at domain end)
@@ -1140,9 +1245,9 @@ const QUESTIONS = [
   { section: 'business', domain: 'Revenue Engine', type: 'Current Reality',
     text: 'Walk through what happens from first contact to signed deal.',
     hint: 'How leads arrive, the first conversation, the proposal, how pricing is set and communicated.' },
-  { section: 'business', domain: 'Revenue Engine', type: 'Value Anchor',
-    text: 'Roughly what is an average new client, new deal, or completed job worth to your business?',
-    hint: 'A best estimate is fine. If deal size varies, share a typical range, average monthly value, or what one extra good client would be worth.' },
+  { section: 'business', domain: 'Revenue Engine', type: 'Revenue Opportunity',
+    text: 'When you think about new revenue, which type of opportunity would matter most right now, and how would you describe its value without sharing exact numbers?',
+    hint: 'Examples: more small repeat customers, larger accounts, online or direct orders, catering or special orders, repeat purchases, higher-value contracts, partnerships, or a new market. For value, use language like small but steady, meaningful weekly revenue, meaningful monthly revenue, capacity-changing, hiring/system-justifying, not sure, or better discussed privately later.' },
   { section: 'business', domain: 'Revenue Engine', type: 'Pain & Cost',
     text: 'Where do deals stall, leak, or fall through the cracks?',
     hint: 'What follow-up gets dropped? Where does the sales process lose people?' },
@@ -1187,7 +1292,7 @@ const QUESTIONS = [
     hint: 'Client details, job history, finances, communications - across which tools, files, and people.' },
   { section: 'business', domain: 'Information & Systems', type: 'Pain & Cost',
     text: 'Where is data incomplete, duplicated, or hard to find when you need it?',
-    hint: 'What decisions get made on gut feel because the real numbers aren\'t at hand?' },
+    hint: 'Where are you confident, where are you working from rough ranges, and where are you mostly guessing?' },
   { section: 'business', domain: 'Information & Systems', type: 'Desired Future',
     text: 'What would "one source of truth" look like for your business?',
     hint: 'If you opened one dashboard tomorrow, what would you want to see on it?' },
@@ -1207,10 +1312,10 @@ const QUESTIONS = [
     hint: 'The higher-value work you never get to because the busywork crowds it out.' },
   { section: 'business', domain: 'AI Opportunity', type: 'Commercial Objective',
     text: 'Is the primary goal of this AI project to reduce operational workload, expand capacity for new revenue, or both?',
-    hint: 'This helps separate personal time savings, payroll or admin efficiency, and growth capacity so the ROI model fits your real objective.' },
+    hint: 'This helps separate personal time savings, admin efficiency, and growth capacity without asking for confidential financial detail.' },
   { section: 'business', domain: 'AI Opportunity', type: 'Execution Reality',
     text: 'Let\'s get specific: if we freed up 10-15 hours per week, walk me through exactly what you\'d do with that time. What specific revenue-generating or high-value activities?',
-    hint: 'Don\'t say "grow" or "improve" - be concrete. Which channel would you focus on? How many hours per week? Who would own it if it weren\'t you? This matters.' },
+    hint: 'Be concrete without sharing private figures: which channel, customer type, workflow, or growth activity would get your attention first?' },
   { section: 'business', domain: 'AI Opportunity', type: 'Execution Reality',
     text: 'When you commit to new work or goals for your business, what typically happens? Do they get done, get delayed, or get dropped?',
     hint: 'Look back at the last 3-4 goals you set. Did you complete them, or did other things take priority?' },
@@ -1278,6 +1383,8 @@ let btaiFollowupInterest = 'maybe';
 let btaiFollowupInterestAt = '';
 let businessName = '';
 let businessCategory = '';
+let businessNiche = '';
+let shareComfort = 'Directional only';
 let websiteUrl = '';
 let companySize = '';
 let ownerWorkStatus = '';
@@ -1431,7 +1538,9 @@ function interviewKpiSummary() {
     richAnswerCount,
     generatedProbeCount,
     answeredProbeCount,
-    elapsedSeconds
+    elapsedSeconds,
+    businessNiche,
+    shareComfort
   };
 }
 
@@ -1456,6 +1565,8 @@ function logHermesEvent(eventType, status = 'info', details = {}) {
       clientName,
       businessName,
       businessCategory,
+      businessNiche,
+      shareComfort,
       companySize,
       ownerWorkStatus,
       partner: campaignPartner,
@@ -1471,6 +1582,8 @@ function logHermesEvent(eventType, status = 'info', details = {}) {
         partner: campaignPartner,
         campaign: campaignId,
         hasWebsite: !!websiteUrl,
+        businessNiche,
+        shareComfort,
         departments,
         privacyConsent,
         privacyPolicyVersion: PRIVACY_POLICY_VERSION,
@@ -1560,6 +1673,8 @@ function readWelcomeFields() {
   btaiFollowupInterest = document.querySelector('input[name="btai-followup"]:checked')?.value || btaiFollowupInterest || 'maybe';
   businessName = document.getElementById('business-name').value.trim();
   businessCategory = document.getElementById('business-category').value.trim();
+  businessNiche = document.getElementById('business-niche').value.trim();
+  shareComfort = document.getElementById('share-comfort').value.trim() || 'Directional only';
   websiteUrl = document.getElementById('website-url').value.trim();
   companySize = document.getElementById('company-size').value.trim();
   ownerWorkStatus = document.getElementById('owner-work-status').value.trim();
@@ -1574,6 +1689,8 @@ function applyWelcomeFields() {
   if (followupInput) followupInput.checked = true;
   document.getElementById('business-name').value = businessName || '';
   document.getElementById('business-category').value = businessCategory || '';
+  document.getElementById('business-niche').value = businessNiche || '';
+  document.getElementById('share-comfort').value = shareComfort || 'Directional only';
   document.getElementById('website-url').value = websiteUrl || '';
   document.getElementById('company-size').value = companySize || '';
   document.getElementById('owner-work-status').value = ownerWorkStatus || '';
@@ -1601,6 +1718,8 @@ function buildDraftPayload(captureTranscript = true) {
     partnerDisplayName,
     businessName,
     businessCategory,
+    businessNiche,
+    shareComfort,
     websiteUrl,
     companySize,
     ownerWorkStatus,
@@ -1703,6 +1822,8 @@ async function showResumeCardIfNeeded() {
   partnerDisplayName = draft.partnerDisplayName || partnerDisplayName || '';
   businessName = draft.businessName || '';
   businessCategory = draft.businessCategory || '';
+  businessNiche = draft.businessNiche || '';
+  shareComfort = draft.shareComfort || 'Directional only';
   websiteUrl = draft.websiteUrl || '';
   companySize = draft.companySize || '';
   ownerWorkStatus = draft.ownerWorkStatus || '';
@@ -1735,6 +1856,8 @@ async function resumeSavedInterview() {
   partnerDisplayName = draft.partnerDisplayName || partnerDisplayName || '';
   businessName = draft.businessName || '';
   businessCategory = draft.businessCategory || '';
+  businessNiche = draft.businessNiche || '';
+  shareComfort = draft.shareComfort || 'Directional only';
   websiteUrl = draft.websiteUrl || '';
   companySize = draft.companySize || '';
   ownerWorkStatus = draft.ownerWorkStatus || '';
@@ -1792,6 +1915,8 @@ function clearSavedInterview(resetFields = false) {
     initCampaignContext();
     businessName = '';
     businessCategory = '';
+    businessNiche = '';
+    shareComfort = 'Directional only';
     websiteUrl = '';
     companySize = '';
     ownerWorkStatus = '';
@@ -1813,6 +1938,8 @@ async function startInterview(evt) {
   privacyConsent = document.getElementById('privacy-consent').checked;
   businessName = document.getElementById('business-name').value.trim();
   businessCategory = document.getElementById('business-category').value.trim();
+  businessNiche = document.getElementById('business-niche').value.trim();
+  shareComfort = document.getElementById('share-comfort').value.trim() || 'Directional only';
   websiteUrl = document.getElementById('website-url').value.trim();
   companySize = document.getElementById('company-size').value.trim();
   ownerWorkStatus = document.getElementById('owner-work-status').value.trim();
@@ -1854,7 +1981,9 @@ async function startInterview(evt) {
   logHermesEvent('interview_started', 'success', {
     privacyConsentAt,
     privacyPolicyVersion: PRIVACY_POLICY_VERSION,
-    questionCount: QUESTIONS.length
+    questionCount: QUESTIONS.length,
+    businessNiche,
+    shareComfort
   });
 
   // Generate the tailored scenario, then run the two writing beats before Q1.
@@ -1878,7 +2007,7 @@ async function researchBusinessContext() {
     const resp = await fetch('/api/interview-ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ task: 'research-business', businessName, businessCategory, websiteUrl, companySize, ownerWorkStatus, departments }),
+      body: JSON.stringify({ task: 'research-business', businessName, businessCategory, businessNiche, shareComfort, websiteUrl, companySize, ownerWorkStatus, departments }),
       signal: controller.signal
     });
     if (resp.ok) {
@@ -1897,7 +2026,7 @@ async function generateScenario() {
     const resp = await fetch('/api/interview-ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ task: 'scenario', businessCategory, businessContext })
+      body: JSON.stringify({ task: 'scenario', businessCategory, businessNiche, shareComfort, businessContext })
     });
     if (resp.ok) {
       const data = await resp.json();
@@ -1961,8 +2090,50 @@ function isSoloOrNoStaff() {
   return size === 0 || size === 1 || status.includes('semi-retired') || status.includes('semi retired') || status.includes('mostly just me') || status.includes('solo') || status.includes('self-employed') || status.includes('self employed') || status.includes('no employees');
 }
 
+function currentIndustryGuidance() {
+  return INDUSTRY_GUIDANCE[businessCategory] || INDUSTRY_GUIDANCE.Other;
+}
+
+function industryList(items) {
+  return (items || []).slice(0, 8).join(', ');
+}
+
 function adaptQuestionForContext(q) {
-  if (!isSoloOrNoStaff()) return { text: q.text, hint: q.hint };
+  const guidance = currentIndustryGuidance();
+  const industryOverrides = {
+    'Business Model & Direction|AI Fit': {
+      text: 'Which parts of your business run on manual knowledge work that eats your time?',
+      hint: `For a ${guidance.label}, this may include ${industryList(guidance.opportunities)}. Keep examples directional; no confidential details are needed.`
+    },
+    'Customer Reality|Current Reality': {
+      text: 'Describe your best customers or accounts - who are they and why do they choose you?',
+      hint: `Use customer types, not names. Examples may include ${industryList(guidance.customerTypes)}.`
+    },
+    'Customer Reality|AI Fit': {
+      text: 'Which customer touchpoints are slow, repetitive, or inconsistent?',
+      hint: `Think about follow-up, updates, order questions, buyer readiness, repeat-purchase prompts, onboarding, reviews, or service replies.`
+    },
+    'Revenue Engine|Revenue Opportunity': {
+      text: 'When you think about new revenue, which type of opportunity would matter most right now, and how would you describe its value without sharing exact numbers?',
+      hint: `For a ${guidance.label}, this could mean ${industryList(guidance.customerTypes)}. Describe the scale as small but steady, meaningful weekly revenue, meaningful monthly revenue, capacity-changing, hiring/system-justifying, not sure, or better discussed privately later.`
+    },
+    'Operations & Delivery|AI Fit': {
+      text: 'Which delivery or production tasks involve gathering information, writing, checking, planning, or repeating the same decision?',
+      hint: `For a ${guidance.label}, possible areas include ${industryList(guidance.opportunities)}. Do not include recipes, exact costs, customer names, or supplier contracts.`
+    },
+    'Information & Systems|Current Reality': {
+      text: 'Where does the important information in your business actually live?',
+      hint: 'Think about tools and places, not private records: accounting software, POS, spreadsheets, email, shared drives, notebooks, scheduling tools, production records, CRM, or people\'s heads.'
+    },
+    'Risk & Adoption|AI Fit': {
+      text: 'Which low-risk, reversible AI uses could you try first to build confidence?',
+      hint: `Good first tests avoid sensitive data. For a ${guidance.label}, examples might include drafts, checklists, summaries, training notes, follow-up reminders, product or service descriptions, and planning templates.`
+    }
+  };
+
+  let adapted = industryOverrides[`${q.domain}|${q.type}`] || { text: q.text, hint: q.hint };
+
+  if (!isSoloOrNoStaff()) return adapted;
 
   const overrides = {
     'People & Decision-Making|Current Reality': {
@@ -1991,7 +2162,7 @@ function adaptQuestionForContext(q) {
     }
   };
 
-  return overrides[`${q.domain}|${q.type}`] || { text: q.text, hint: q.hint };
+  return overrides[`${q.domain}|${q.type}`] || adapted;
 }
 function nextScenario() {
   const val = document.getElementById('transcript').innerText.trim();
@@ -2098,6 +2269,10 @@ function renderQuestion() {
       countText = 'About you';
     } else {
       countText = q.type || 'Question';
+    }
+
+    if (q.section === 'business' && subStep !== 'followup') {
+      qHint = `${qHint}\n\n${SENSITIVE_DETAIL_WARNING}`;
     }
 
     document.getElementById('q-domain').textContent = domainLabel;
@@ -2235,7 +2410,59 @@ function isRepetitiveProbeQuestion(question) {
   ];
   return broadProcessPhrases.some(phrase => q.includes(phrase));
 }
+
+function generatedProbeCount() {
+  return Object.values(domainProbes || {}).filter(probe => probe?.asked && probe?.question).length;
+}
+
+function normalizeProbePayload(data) {
+  if (!data) return null;
+  if (typeof data.followup === 'object' && data.followup) return data.followup;
+  const question = String(data.followup || '').trim();
+  if (!question || question.toUpperCase() === 'NONE') return null;
+  return {
+    ask_followup: true,
+    question_type: data.question_type || 'clarify',
+    question,
+    sensitivity_level: data.sensitivity_level || 'low',
+    why_needed: data.why_needed || ''
+  };
+}
+
+function validateProbeCandidate(candidate, domainName) {
+  const result = { ok: false, question: '', reason: 'empty' };
+  if (!candidate || candidate.ask_followup === false) return { ...result, reason: 'model_skipped' };
+  const question = String(candidate.question || '').trim();
+  const questionType = String(candidate.question_type || 'clarify').toLowerCase();
+  const sensitivity = String(candidate.sensitivity_level || 'low').toLowerCase();
+
+  if (!question) return { ...result, reason: 'empty_question' };
+  if (question.length > 260) return { ...result, reason: 'too_long' };
+  if (!APPROVED_PROBE_TYPES.includes(questionType)) return { ...result, reason: 'unapproved_question_type' };
+  if (!['low', 'medium-low', 'medium_low'].includes(sensitivity)) return { ...result, reason: 'sensitivity_too_high' };
+  if (FORBIDDEN_PROBE_PATTERNS.some(pattern => pattern.test(question))) return { ...result, reason: 'forbidden_sensitive_request' };
+  if (isRepetitiveProbeQuestion(question)) return { ...result, reason: 'repetitive_probe' };
+
+  const priorText = [
+    ...QUESTIONS.map(q => q.text || ''),
+    ...Object.values(domainProbes || {}).map(probe => probe?.question || '')
+  ].join('\n').toLowerCase();
+  const meaningfulWords = question.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 4);
+  const overlap = meaningfulWords.filter(w => priorText.includes(w)).length;
+  if (meaningfulWords.length >= 8 && overlap / meaningfulWords.length > 0.85) return { ...result, reason: 'too_similar_to_prior_questions' };
+
+  return { ok: true, question, reason: 'accepted', questionType, sensitivity };
+}
 async function runDomainProbe(domainName) {
+  if (generatedProbeCount() >= MAX_ADAPTIVE_PROBES) {
+    logHermesEvent('adaptive_probe_rejected_limit_reached', 'success', { domain: domainName, maxAdaptiveProbes: MAX_ADAPTIVE_PROBES });
+    domainProbes[domainName] = { question: null, answer: '', asked: true, rejectedReason: 'limit_reached' };
+    logHermesSectionCompleted('business_domain', domainName, domainAnswerStats(domainName));
+    if (currentQ < QUESTIONS.length - 1) transitionToQuestion(currentQ + 1, 'main', null);
+    else { submitInterview(); }
+    return;
+  }
+
   // Gather this domain's Q&A
   const domainQA = QUESTIONS
     .map((q, i) => ({ q, i }))
@@ -2252,21 +2479,25 @@ async function runDomainProbe(domainName) {
   logHermesSectionStarted('adaptive_probe', domainName, { questionCount: 1 });
 
   let probeQuestion = null;
+  let probeMeta = null;
+  let rejectedReason = '';
   try {
     const resp = await fetch('/api/interview-ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ task: 'probe', domain: domainName, qa: domainQA, businessCategory, companySize, ownerWorkStatus, departments, businessContext })
+      body: JSON.stringify({ task: 'probe', domain: domainName, qa: domainQA, businessCategory, businessNiche, shareComfort, companySize, ownerWorkStatus, departments, businessContext })
     });
     if (resp.ok) {
       const data = await resp.json();
-      if (data.followup && data.followup.trim() && data.followup.trim().toUpperCase() !== 'NONE') {
-        const candidate = data.followup.trim();
-        if (isRepetitiveProbeQuestion(candidate)) {
-          logHermesEvent('adaptive_probe_rejected_as_repetitive', 'success', { domain: domainName, repetitiveProbe: true });
-          probeQuestion = null;
+      const candidate = normalizeProbePayload(data);
+      if (candidate) {
+        const validation = validateProbeCandidate(candidate, domainName);
+        if (validation.ok) {
+          probeQuestion = validation.question;
+          probeMeta = validation;
         } else {
-          probeQuestion = candidate;
+          rejectedReason = validation.reason;
+          logHermesEvent('adaptive_probe_rejected_by_guardrail', 'success', { domain: domainName, rejectedReason, proposedQuestionType: candidate.question_type || '', sensitivityLevel: candidate.sensitivity_level || '' });
         }
       }
     }
@@ -2280,15 +2511,15 @@ async function runDomainProbe(domainName) {
   const total = QUESTIONS.length;
 
   if (probeQuestion) {
-    logHermesEvent('domain_probe_generated', 'success', { domain: domainName });
+    logHermesEvent('domain_probe_generated', 'success', { domain: domainName, questionType: probeMeta?.questionType || '', sensitivityLevel: probeMeta?.sensitivity || '', generatedProbeCount: generatedProbeCount() + 1 });
     activeProbe = { domain: domainName, question: probeQuestion };
-    domainProbes[domainName] = { question: probeQuestion, answer: '', asked: true };
+    domainProbes[domainName] = { question: probeQuestion, answer: '', asked: true, questionType: probeMeta?.questionType || '', sensitivityLevel: probeMeta?.sensitivity || 'low' };
     saveDraft(false);
     transitionToQuestion(currentQ, 'probe', activeProbe);
   } else {
     // no probe needed - mark asked so we don't retry on backtrack, then advance
-    logHermesEvent('domain_probe_skipped', 'success', { domain: domainName });
-    domainProbes[domainName] = { question: null, answer: '', asked: true };
+    logHermesEvent('domain_probe_skipped', 'success', { domain: domainName, rejectedReason });
+    domainProbes[domainName] = { question: null, answer: '', asked: true, rejectedReason };
     logHermesSectionCompleted('adaptive_probe', domainName, { questionCount: 0, totalWordCount: 0 });
     logHermesSectionCompleted('business_domain', domainName, domainAnswerStats(domainName));
     if (currentQ < total - 1) transitionToQuestion(currentQ + 1, 'main', null);
@@ -2326,7 +2557,7 @@ async function runMasteryFollowup(qIndex) {
     const resp = await fetch('/api/interview-ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ task: 'mastery-followup', area: q.domain, answer, businessCategory, companySize, ownerWorkStatus, departments, businessContext })
+      body: JSON.stringify({ task: 'mastery-followup', area: q.domain, answer, businessCategory, businessNiche, shareComfort, companySize, ownerWorkStatus, departments, businessContext })
     });
     if (resp.ok) {
       const data = await resp.json();
@@ -2363,7 +2594,7 @@ function prevQuestion() {
 // -- Word count -------------------------------------------------------------
 document.getElementById('transcript').addEventListener('input', () => { updateWordCount(); saveDraft(); });
 
-document.querySelectorAll('#screen-welcome input').forEach(input => {
+document.querySelectorAll('#screen-welcome input, #screen-welcome select').forEach(input => {
   input.addEventListener('input', () => saveDraft(false));
   input.addEventListener('change', () => saveDraft(false));
 });
@@ -2632,6 +2863,8 @@ Owner Name: ${clientName}
 Owner Email: ${clientEmail || '(not provided)'}
 Business Name: ${businessName}
 Business Category: ${businessCategory}
+Specific Niche: ${businessNiche || '(not specified)'}
+Detail-Sharing Comfort: ${shareComfort || '(not specified)'}
 Website URL: ${websiteUrl || '(not provided)'}
 Company Size: ${companySize ? companySize + ' people' : '(not specified)'}
 Owner Work Status / Capacity: ${ownerWorkStatus || '(not specified)'}
@@ -2665,7 +2898,14 @@ The CONTRAST reveals their brand voice, tone, and the standards they hold.
 =======================================
 ${voiceBlock}
 
-Produce a complete Business DNA file in markdown format with these sections:
+Produce a complete Business DNA file in markdown format with these sections.
+
+IMPORTANT CERTAINTY RULES:
+- This first intake is a trust-first directional diagnostic, not a confidential financial audit.
+- Do not invent exact ROI, savings, margin, payroll, customer value, or implementation cost.
+- Use these labels whenever making conclusions: "Stated by the business", "Directional signal", "Inferred by BTAI", or "Requires private scoping to validate".
+- If a recommendation depends on exact financials, recipes, invoices, supplier contracts, customer lists, or proprietary data, state that it belongs in a private implementation scoping session.
+- Treat volunteered sensitive details carefully and generalize them where possible.
 
 # [BUSINESS NAME] - VENTURE DNA
 ## Business DNA Interview | ${new Date().toLocaleDateString('en-CA')}
@@ -2698,7 +2938,7 @@ Synthesize Part B. For each of the 6 areas (Personal Productivity, Strategy & De
 Synthesize Part C. From the contrast between their "best" and "bad" replies, capture: their brand voice and tone (the words, warmth, and style of the good reply), the specific standards they hold (what made the bad version bad in their eyes), and the dos/don'ts an AI clone must follow to sound like them. This is the raw material for matching their voice in any AI build. Quote directly where it reveals their voice.
 
 ### SECTION 10: AI OPPORTUNITY PORTFOLIO
-List 6-10 specific AI opportunities ranked by Impact x Feasibility (both scored 1-5, multiply). Format as a table. Draw from the business diagnostic, the owner's stated AI wishes in Part B, the Revenue Engine value anchor, the AI Opportunity commercial objective, and the voice/standards in Part C. Where the client provided numbers, include a practical ROI note using average deal value, saved hours, revenue capacity, cost reduction, or margin protection. If numbers are missing, state the assumption needed rather than inventing one.
+List 6-10 specific AI opportunities ranked by Impact x Feasibility (both scored 1-5, multiply). Format as a table. Draw from the business diagnostic, the owner's stated AI wishes in Part B, the Revenue Engine opportunity type/scale, the AI Opportunity commercial objective, and the voice/standards in Part C. Include a "Certainty" column using the certainty labels above. Use directional ROI language such as time relief, consistency gain, capacity unlocked, confidence improved, risk reduced, or revenue opportunity supported. If exact numbers are missing, state the assumption needed rather than inventing one.
 
 ### SECTION 11: READINESS SCORECARD
 Score these 5 dimensions 1-5 with one-line finding each:

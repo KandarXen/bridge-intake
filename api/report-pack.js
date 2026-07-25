@@ -12,17 +12,17 @@ const REPORTS = {
     maxTokens: 3200
   },
   detailed: {
-    title: 'Detailed AI Growth Report',
+    title: 'Detailed AI Readiness & Opportunity Report',
     outputType: 'report_detailed_growth_markdown',
     docxOutputType: 'report_detailed_growth_docx',
-    filename: '1-Detailed_AI_Growth_Report',
+    filename: '1-Detailed_AI_Readiness_Opportunity_Report',
     maxTokens: 6200
   },
   roadmap: {
-    title: 'Full AI Implementation Roadmap',
+    title: 'Preliminary AI Action Plan',
     outputType: 'report_full_roadmap_markdown',
     docxOutputType: 'report_full_roadmap_docx',
-    filename: '2-Full_AI_Implementation_Roadmap',
+    filename: '2-Preliminary_AI_Action_Plan',
     maxTokens: 7600
   },
   btai: {
@@ -122,6 +122,9 @@ function sharedRules() {
 - Do not invent facts, numbers, tools, revenue, team size, customer segments, timelines, pricing, workflow details, risks, client capabilities, or business claims.
 - If information is missing, mark it as Needs Confirmation.
 - Every inferred statement must be labeled exactly: [INFERRED].
+- Use "Stated by the business", "Directional signal", "Inferred by BTAI", and "Requires private scoping to validate" where certainty matters.
+- Treat the intake as a trust-first directional diagnostic. Do not create exact ROI, margin, payroll, costing, or revenue claims unless the Venture DNA explicitly includes them.
+- If a recommendation depends on exact financials, recipes, invoices, supplier contracts, customer lists, or proprietary operating data, state that it requires private implementation scoping.
 - Do not present inferred information as confirmed fact.
 - Every meaningful paragraph must include at least one concrete detail from the Venture DNA file.
 - The client is the hero. Bridge To AI is the guide.
@@ -158,13 +161,13 @@ ${dna}`;
   if (tier === 'detailed') {
     return `${sharedRules()}
 
-Generate REPORT 2: Detailed AI Growth Report.
+Generate REPORT 2: Detailed AI Readiness & Opportunity Report.
 
 Target: 6-10 pages in markdown.
 Purpose: paid mid-tier report around $97. It must add deeper diagnosis, clearer prioritization, and more actionable next steps than the free snapshot.
 
 Required structure:
-# [Business Name] - Detailed AI Growth Report
+# [Business Name] - Detailed AI Readiness & Opportunity Report
 ## 1. Executive Summary
 ## 2. Business Positioning
 ## 3. Current Revenue And Growth Model
@@ -179,7 +182,7 @@ Use a table: Priority | Project | Business Problem Solved | Client Benefit | Com
 Score Data & Information Quality, Workflow Documentation, Tools & Tech Stack, People & Change Readiness, Risk & Compliance Posture from 1-5.
 ## 8. 30-Day Action Plan
 Use a table: Week | Action | Owner | Output | Success Measure
-## 9. Success Metrics
+## 9. Directional Success Metrics
 ## 10. Recommended Bridge To AI Next Step
 ## 11. Final Advisor Note
 
@@ -225,13 +228,13 @@ ${dna}`;
 
   return `${sharedRules()}
 
-Generate REPORT 3: Full AI Implementation Roadmap.
+Generate REPORT 3: Preliminary AI Action Plan.
 
 Target: 10-18 pages in markdown.
-Purpose: premium implementation roadmap around $297. It must give a practical implementation sequence a non-technical business owner could act on.
+Purpose: premium preliminary action plan around $297. It must give a practical implementation sequence a non-technical business owner could act on, while clearly marking what still requires private scoping before BTAI can validate exact ROI, cost, data access, or build scope.
 
 Required structure:
-# [Business Name] - Full AI Implementation Roadmap
+# [Business Name] - Preliminary AI Action Plan
 ## 1. Implementation Thesis
 ## 2. Context Snapshot
 Use a table: Category | Detail
@@ -252,8 +255,9 @@ Use a table: Current Tool / Data Source | What It Contains | Current Issue | AI 
 Use a table: Risk | Why It Matters | Severity | Mitigation | Owner
 ## 14. Do Now / Build Next / Avoid For Now
 ## 15. 30 / 60 / 90 Day Implementation Plan
-## 16. Success Metrics And ROI Tracking
-## 17. Questions To Confirm Before Build
+## 16. Directional Success Metrics And ROI Assumptions
+Clearly separate Stated by the business, Directional signal, [INFERRED], and Requires private scoping to validate.
+## 17. Questions To Confirm In Private Scoping Before Build
 ## 18. Consulting Handoff Recommendation
 ## 19. Final Implementation Recommendation
 

@@ -168,15 +168,15 @@
       <p>Generate these one at a time. Each file is created from the encrypted Venture DNA record and stored back into the secure session before download. The raw Venture DNA markdown is not included in the ZIP.</p>
       <div class="button-row">
         <button data-tier="free" type="button">Generate Free Snapshot</button>
-        <button data-tier="detailed" type="button">Generate Detailed Report</button>
-        <button data-tier="roadmap" type="button">Generate Full Roadmap</button>
+        <button data-tier="detailed" type="button">Generate Detailed Opportunity Report</button>
+        <button data-tier="roadmap" type="button">Generate Preliminary Action Plan</button>
         <button data-tier="btai" type="button">Generate BTAI Advisor Brief</button>
         <button id="download-zip-btn" class="secondary" type="button">Download Report Pack ZIP</button>
       </div>
       <div id="report-status" class="checklist">
         <div>Free Snapshot: unknown</div>
-        <div>Detailed Report: unknown</div>
-        <div>Full Roadmap: unknown</div>
+        <div>Detailed Opportunity Report: unknown</div>
+        <div>Preliminary Action Plan: unknown</div>
         <div>BTAI Advisor Brief: unknown</div>
         <div>ZIP: unknown</div>
       </div>
@@ -262,8 +262,8 @@
         const s = data.status || {};
         reportStatusEl.innerHTML = `
           <div class="${s.free ? 'ready' : ''}">Free Snapshot: ${s.free ? 'ready' : 'not generated'}</div>
-          <div class="${s.detailed ? 'ready' : ''}">Detailed Report: ${s.detailed ? 'ready' : 'not generated'}</div>
-          <div class="${s.roadmap ? 'ready' : ''}">Full Roadmap: ${s.roadmap ? 'ready' : 'not generated'}</div>
+          <div class="${s.detailed ? 'ready' : ''}">Detailed Opportunity Report: ${s.detailed ? 'ready' : 'not generated'}</div>
+          <div class="${s.roadmap ? 'ready' : ''}">Preliminary Action Plan: ${s.roadmap ? 'ready' : 'not generated'}</div>
           <div class="${s.btai ? 'ready' : ''}">BTAI Advisor Brief: ${s.btai ? 'ready' : 'not generated'}</div>
           <div class="${s.zip ? 'ready' : ''}">ZIP: ${s.zip ? 'ready' : 'not built yet'}</div>
         `;

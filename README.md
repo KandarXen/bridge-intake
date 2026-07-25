@@ -1,16 +1,19 @@
-# Bridge To AI Intake App - v1.55 Partner Intake Experience Build
+# Bridge To AI Intake App - v1.56 Trust-First Industry-Adaptive Build
 
-This build keeps the v1.50/v1.51 secure intake storage model and adds admin-only report generation from a completed Venture DNA record.
+This build keeps the v1.50/v1.51 secure intake storage model and updates the interview layer so the AFPA/member intake is trust-first, controlled industry-adaptive, and less likely to ask for sensitive business details during the first intake.
 
 ## What Changed
 
 - Browser stores only a random session ID.
 - Welcome screen now requires the interviewee email address for future report-link delivery and recovery.
+- Welcome screen now explains that exact financials, recipes, customer lists, supplier contracts, payroll details, invoices, and confidential operating data are not needed for the first intake.
+- Business category is now selected from a controlled list so questions can adapt examples without creating a free-roaming AI interview.
+- Optional niche and detail-sharing comfort fields are captured for safer tailoring and later aggregate reporting.
 - Welcome screen explains that the interview adapts: short answers may get clarifying follow-ups, while detailed answers can reduce unnecessary probing.
 - Welcome screen requires Privacy Policy consent before the interview can start.
 - Privacy consent version and timestamp are stored inside the encrypted intake record.
 - `privacy.html` provides a standalone Privacy Policy page linked from the welcome screen and footer.
-- Hermes KPI logging now captures partner/campaign tags, consent status, answer-depth buckets, short-answer rates, adaptive follow-up counts, completion summaries, and report-pack generation events.
+- The secure processing/KPI layer now captures partner/campaign tags, consent status, answer-depth buckets, short-answer rates, adaptive follow-up counts, completion summaries, business niche, share-comfort level, guardrail rejections, and report-pack generation events.
 - Supabase setup now includes the `intake_kpi_events` reporting view for aggregate AFPA/member intelligence reporting without decrypting raw interviews.
 - URL-based partner co-branding is supported. `partner=AFPA` changes the welcome page, completion copy, and consent language for the AFPA member program.
 - Partner consent explains that AFPA receives anonymized aggregate insights only, not raw member interviews or individual answers.
@@ -23,13 +26,13 @@ This build keeps the v1.50/v1.51 secure intake storage model and adds admin-only
 - Drafts are encrypted with `AES-256-GCM` before Supabase storage.
 - Resume loads encrypted drafts through `/api/draft`.
 - Completed Venture DNA output is encrypted and saved in Supabase.
-- Hermes re-identification maps are encrypted and saved in Supabase.
-- Hermes event logs are saved in Supabase instead of Google Drive.
-- Adaptive AI calls use the Hermes anonymization wrapper.
+- Re-identification maps are encrypted and saved in Supabase where required.
+- Secure processing events are saved in Supabase instead of Google Drive.
+- Adaptive AI probes are constrained by approved question types, forbidden sensitive-topic checks, repetition checks, and a maximum probe count.
 - Email is notification-only by default.
 - Private admin retrieval is available through `admin.html` and `/api/admin-output`.
 - Admin-only three-report generation is available through `admin.html` and `/api/report-pack`.
-- Report pack ZIP download includes three client-facing DOCX reports, one internal BTAI Advisor Brief DOCX, and a validation summary.
+- Report pack ZIP download includes three client-facing DOCX reports, one internal BTAI Advisor Brief DOCX, and a validation summary. The higher-tier reports are positioned as opportunity/action planning from first-intake data, not as validated ROI or final implementation scope.
 - The raw Venture DNA markdown stays secure and is not included in the report pack ZIP.
 - Plaintext Google Drive saving is no longer part of the normal completion path.
 
@@ -75,8 +78,8 @@ The admin page can also generate the report files:
 
 ```text
 0-Free_AI_Opportunity_Snapshot.docx
-1-Detailed_AI_Growth_Report.docx
-2-Full_AI_Implementation_Roadmap.docx
+1-Detailed_AI_Readiness_Opportunity_Report.docx
+2-Preliminary_AI_Action_Plan.docx
 3-BTAI_Advisor_Brief_Internal.docx
 ```
 
@@ -91,7 +94,7 @@ The secure path is:
 ```text
 Client browser
   -> Vercel API
-    -> Hermes privacy / validation layer
+    -> BTAI secure processing layer
       -> encrypted Supabase storage
       -> anonymized model calls
       -> validated outputs
@@ -107,7 +110,7 @@ AFPA campaign links can include:
 /?partner=AFPA&campaign=AFPA_December_AI_Course_2026
 ```
 
-Hermes logs anonymized KPI events only. It does not log raw answer text or client email. Useful events include:
+The secure processing layer logs anonymized KPI events only. It does not log raw answer text or client email. Useful events include:
 
 ```text
 interview_started

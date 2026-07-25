@@ -110,7 +110,7 @@ async function callClaude(prompt, { maxTokens = 600, explicitIdentifiers = {} } 
 }
 
 async function researchBusiness(body) {
-  const { businessName, businessCategory, websiteUrl, companySize, departments } = body || {};
+  const { businessName, businessCategory, businessNiche, shareComfort, websiteUrl, companySize, departments } = body || {};
   if (!businessCategory && !websiteUrl) return { context: fallbackContext({ businessCategory, websiteUrl }) };
 
   try {
@@ -121,6 +121,8 @@ async function researchBusiness(body) {
 Client-provided information:
 - Business name: ${businessName || '(not provided)'}
 - Business type/category: ${businessCategory || '(not provided)'}
+- Specific niche: ${businessNiche || '(not provided)'}
+- Detail-sharing comfort: ${shareComfort || '(not provided)'}
 - Website URL: ${normalizedWebsiteUrl || '(not provided)'}
 - Company size: ${companySize || '(not provided)'}
 - Departments/functions: ${departments && departments.length ? departments.join(', ') : '(not provided)'}
@@ -189,10 +191,10 @@ function soloOrNoStaff(companySize, ownerWorkStatus, departments) {
 }
 
 async function probe(body) {
-  const { domain, qa, businessCategory, companySize, ownerWorkStatus, departments = [], businessContext } = body || {};
+  const { domain, qa, businessCategory, businessNiche, shareComfort, companySize, ownerWorkStatus, departments = [], businessContext } = body || {};
   if (!qa) return { status: 400, body: { error: 'Missing qa' } };
   const contextBlock = businessContext ? `\n\nInternal context for sharper judgment only:\n${JSON.stringify(businessContext).slice(0, 3000)}\n\nUse this to understand likely workflows and industry patterns. Do not reveal background research.` : '';
-  const orgContext = `Company size: ${companySize || 'not specified'} people. Owner status/capacity: ${ownerWorkStatus || 'not specified'}. Departments/functions selected: ${Array.isArray(departments) && departments.length ? departments.join(', ') : 'not specified'}.`;
+  const orgContext = `Specific niche: ${businessNiche || 'not specified'}. Detail-sharing comfort: ${shareComfort || 'directional only'}. Company size: ${companySize || 'not specified'} people. Owner status/capacity: ${ownerWorkStatus || 'not specified'}. Departments/functions selected: ${Array.isArray(departments) && departments.length ? departments.join(', ') : 'not specified'}.`;
   const prompt = `You are conducting a business discovery interview for a ${businessCategory || 'small business'}.
 
 Organization context:
@@ -204,15 +206,43 @@ The client just answered the questions in the "${domain}" section below.
 ${qa}
 ${contextBlock}
 
-Your job: decide if ONE short follow-up question would meaningfully improve the quality of this section. Default to NONE.
+Your job: decide if ONE short follow-up question would meaningfully improve the quality of this section. Default to no follow-up.
 
 Rules:
-- If the answers are clear enough to analyze, respond with exactly: NONE.
+- If the answers are clear enough to analyze, return ask_followup false.
 - Do not ask broad recap questions such as "walk me through your process" or "what does your current process look like".
 - Only ask for one missing high-value fact.
-- Output either "NONE" or the single question.`;
+- Keep the question under 220 characters.
+- Ask for directional ranges, severity, priority, frequency, blocker, owner/readiness, risk, low-risk pilot, clarify, or voice/tone only.
+- Never ask for exact revenue, exact profit, exact margin, payroll, bank/tax/legal records, customer names, supplier names, employee personal details, recipes, formulas, contracts, invoices, purchase orders, passwords, API keys, health information, or legal personal information.
+- Do not recommend tools, vendors, or Bridge To AI services during the interview.
+
+Return ONLY raw valid JSON. Do not wrap it in markdown:
+{
+  "ask_followup": true,
+  "question_type": "clarify",
+  "domain": "${domain}",
+  "question": "One safe, short follow-up question or empty string",
+  "why_needed": "Short internal reason",
+  "sensitivity_level": "low",
+  "uses_approved_category": true
+}
+
+If no follow-up is needed, return:
+{
+  "ask_followup": false,
+  "question_type": "clarify",
+  "domain": "${domain}",
+  "question": "",
+  "why_needed": "Answers are sufficient",
+  "sensitivity_level": "low",
+  "uses_approved_category": true
+}`;
   try {
-    return { followup: await callClaude(prompt, { maxTokens: 150 }) || 'NONE' };
+    const raw = await callClaude(prompt, { maxTokens: 260 }) || '';
+    const parsed = parseJsonLenient(raw);
+    if (parsed && typeof parsed === 'object') return { followup: parsed };
+    return { followup: 'NONE' };
   } catch (err) {
     console.error('Probe error:', err);
     return { followup: 'NONE' };
