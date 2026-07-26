@@ -13,6 +13,7 @@ This build keeps the v1.56 trust-first, controlled industry-adaptive intake and 
 - The DOCX builder has been upgraded with stronger Word styles, better spacing, heading hierarchy, bullet handling, and markdown table rendering.
 - Completion-page next-step copy now matches the free-intake model instead of implying every user automatically receives a full roadmap and workbench build.
 - Completion-page BTAI follow-up preference now has an explicit **Save preference** action.
+- Completion-page test mode is available with `?testComplete=1` so the final screen can be reviewed without taking a full interview. This does not submit an interview or send a report email.
 - Privacy Policy now distinguishes reversible pseudonymization/tokenization from anonymized aggregate partner reporting.
 - Privacy Policy now includes named privacy accountability, cross-border processing, concrete retention/deletion targets, OPC complaint escalation, AI provider data-use language, breach response, access/correction/deletion process, minimum aggregate-reporting threshold, age restriction, cookies/analytics language, and the first-intake vs paid-implementation boundary.
 - Browser stores only a random session ID.
@@ -72,6 +73,28 @@ INTAKE_BCC_RECIPIENT=darren.randles@gmail.com
 ```
 
 ## Admin Retrieval
+
+## Completion Page Test Mode
+
+To test the final page without taking the full interview, open:
+
+```text
+/?testComplete=1
+```
+
+AFPA/co-branded final page:
+
+```text
+/?partner=AFPA&campaign=demo&testComplete=1
+```
+
+Optional test labels:
+
+```text
+/?testComplete=1&name=Morgan%20Ellis&business=Prairie%20Hearth%20Bakery&email=demo@bridgetoai.test
+```
+
+This mode is for UX review only. It does not create a Supabase Venture DNA record and does not email the free report.
 
 After a completed intake, use:
 

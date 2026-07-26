@@ -3099,7 +3099,38 @@ function triggerFreeReportDelivery() {
       });
     });
 }
+
+function maybeLaunchCompletionTestMode() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('testComplete') !== '1') return;
+
+  clientName = params.get('name') || 'Test Client';
+  businessName = params.get('business') || 'Prairie Hearth Bakery';
+  clientEmail = params.get('email') || 'demo@bridgetoai.test';
+  businessCategory = params.get('category') || 'Food / Beverage / Manufacturing';
+  companySize = params.get('size') || '1-5';
+  ownerWorkStatus = params.get('ownerStatus') || 'Full-time owner/operator';
+  departments = ['Operations', 'Sales', 'Admin'];
+  privacyConsent = true;
+  privacyConsentAt = new Date().toISOString();
+  btaiFollowupInterest = 'maybe';
+  btaiFollowupInterestAt = new Date().toISOString();
+  clientDraftId = params.get('recordId') || `completion_test_${Date.now()}`;
+  lastSecureStorage = { saved: true, outputId: 'completion-test-only', reason: 'Completion page test mode only' };
+
+  initCampaignContext();
+  showScreen('screen-complete');
+  document.getElementById('complete-message').textContent =
+    activePartnerProfile()?.completion || `Thank you, ${clientName}. This is completion-page test mode. No interview was submitted and no report email was sent.`;
+  const status = document.getElementById('followup-save-status');
+  if (status) status.textContent = 'Test mode: no report email sent.';
+  logHermesEvent('completion_page_test_mode_loaded', 'info', {
+    partner: campaignPartner,
+    campaign: campaignId
+  });
+}
 initCampaignContext();
+maybeLaunchCompletionTestMode();
 </script>
 </body>
 </html>
