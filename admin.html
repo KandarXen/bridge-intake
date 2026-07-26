@@ -165,8 +165,9 @@
 
     <div class="panel">
       <h2>Report Pack</h2>
-      <p>Generate these one at a time. Each file is created from the encrypted Venture DNA record and stored back into the secure session before download. The raw Venture DNA markdown is not included in the ZIP.</p>
+      <p>Generate the full report pack in one orchestration run. The individual buttons remain available only as recovery tools. Each file is created from the encrypted Venture DNA record and stored back into the secure session before download. The raw Venture DNA markdown is not included in the ZIP.</p>
       <div class="button-row">
+        <button id="generate-all-btn" type="button">Generate Full Report Pack</button>
         <button data-tier="free" type="button">Generate Free Snapshot</button>
         <button data-tier="detailed" type="button">Generate Detailed Opportunity Report</button>
         <button data-tier="roadmap" type="button">Generate Preliminary Action Plan</button>
@@ -294,6 +295,24 @@
     });
 
     document.getElementById('refresh-status-btn').addEventListener('click', () => refreshReportStatus(false));
+
+    document.getElementById('generate-all-btn').addEventListener('click', async () => {
+      const values = requireBasics();
+      if (!values) return;
+      setBusy(true, 'Generating the full report pack...\nThis runs the four report jobs together, then builds the ZIP. Keep this page open until the status updates.');
+      try {
+        const data = await postJson('/api/report-pack', {
+          action: 'generate-all',
+          clientDraftId: values.clientDraftId
+        }, values.adminSecret);
+        statusEl.textContent = `Full report pack ready.\nZIP output: ${data.zip?.outputId || 'created'}\nReports: ${(data.results || []).map(r => `${r.tier}${r.generated ? ' generated' : ' already ready'}`).join(', ')}`;
+        await refreshReportStatus(true);
+      } catch (err) {
+        statusEl.textContent = `Error: ${err.message}`;
+      } finally {
+        setBusy(false);
+      }
+    });
 
     document.querySelectorAll('[data-tier]').forEach(button => {
       button.addEventListener('click', async () => {

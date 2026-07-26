@@ -1,4 +1,4 @@
-# Bridge To AI Intake v1.56.1 Secure Deploy Checklist
+# Bridge To AI Intake v1.57 Secure Deploy Checklist
 
 ## 1. Supabase
 
@@ -88,6 +88,7 @@ validate-output.js
 
 1. Open the Vercel preview URL.
 2. Open `/privacy.html` and confirm the Privacy Policy loads and shows version `2026-07-25-v1.56.1`.
+3. Open `/admin.html` and confirm the Report Pack panel includes **Generate Full Report Pack**.
 3. Open `/?partner=AFPA&campaign=AFPA_December_AI_Course_2026`.
 4. Confirm the welcome screen is co-branded for AFPA and says AFPA receives anonymized aggregate insights only.
 5. Confirm the welcome screen says exact financials, recipes, customer lists, supplier contracts, payroll details, invoices, and confidential operating data are not needed for the first intake.

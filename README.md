@@ -1,10 +1,18 @@
-# Bridge To AI Intake App - v1.56.1 PIPEDA Privacy Policy Fix
+# Bridge To AI Intake App - v1.57 Report Orchestrator
 
-This build keeps the v1.56 trust-first, controlled industry-adaptive intake and updates the public Privacy Policy to better align with PIPEDA and the BTAI Secure Intelligence Layer design.
+This build keeps the v1.56 trust-first, controlled industry-adaptive intake and adds the first report orchestration layer for a better client and admin experience.
 
 ## What Changed
 
 - Privacy Policy version is now `2026-07-25-v1.56.1`.
+- Header version is now `v1.57`.
+- Completed intakes can automatically trigger free report generation and delivery to the interviewee's email address.
+- `/api/report-pack` now supports `generate-free-email` for the finished intake flow.
+- `/api/report-pack` now supports `generate-all` so the admin page can generate the full report pack in one orchestration run.
+- The admin page now has a **Generate Full Report Pack** button. The individual report buttons remain as recovery tools only.
+- The DOCX builder has been upgraded with stronger Word styles, better spacing, heading hierarchy, bullet handling, and markdown table rendering.
+- Completion-page next-step copy now matches the free-intake model instead of implying every user automatically receives a full roadmap and workbench build.
+- Completion-page BTAI follow-up preference now has an explicit **Save preference** action.
 - Privacy Policy now distinguishes reversible pseudonymization/tokenization from anonymized aggregate partner reporting.
 - Privacy Policy now includes named privacy accountability, cross-border processing, concrete retention/deletion targets, OPC complaint escalation, AI provider data-use language, breach response, access/correction/deletion process, minimum aggregate-reporting threshold, age restriction, cookies/analytics language, and the first-intake vs paid-implementation boundary.
 - Browser stores only a random session ID.

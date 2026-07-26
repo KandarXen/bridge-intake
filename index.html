@@ -814,7 +814,7 @@
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag" id="header-tag">Business Discovery Session</span>
-      <span class="header-version">v1.56.1</span>
+      <span class="header-version">v1.57</span>
   </div>
 </header>
 
@@ -1049,24 +1049,24 @@
         <div class="next-step-card">
           <div class="next-step-num">1</div>
           <div class="next-step-content">
-            <div class="next-step-title" id="next-title-1">The Bridge Team reviews your profile</div>
-            <div class="next-step-desc" id="next-desc-1">Within 24 hours, the Bridge Team will review your answers and identify the highest-value AI opportunities for your business.</div>
+            <div class="next-step-title" id="next-title-1">Your free snapshot is prepared</div>
+            <div class="next-step-desc" id="next-desc-1">Bridge To AI creates a private AI Opportunity Snapshot from your completed intake and sends it to the email address you provided.</div>
           </div>
         </div>
 
         <div class="next-step-card">
           <div class="next-step-num">2</div>
           <div class="next-step-content">
-            <div class="next-step-title" id="next-title-2">You'll receive a custom AI roadmap</div>
-            <div class="next-step-desc" id="next-desc-2">The Bridge Team will share a prioritized plan showing exactly where AI can save you the most time - specific to your business, not generic advice.</div>
+            <div class="next-step-title" id="next-title-2">You choose whether to go deeper</div>
+            <div class="next-step-desc" id="next-desc-2">The free snapshot is directional. If you want more detail, Bridge To AI can prepare a deeper opportunity report or implementation roadmap.</div>
           </div>
         </div>
 
         <div class="next-step-card">
           <div class="next-step-num">3</div>
           <div class="next-step-content">
-            <div class="next-step-title" id="next-title-3">Your workbench gets built</div>
-            <div class="next-step-desc" id="next-desc-3">Once the roadmap is agreed, the Bridge Team builds your custom AI workbench - a private dashboard that starts saving you hours every week.</div>
+            <div class="next-step-title" id="next-title-3">Your raw intake stays secure</div>
+            <div class="next-step-desc" id="next-desc-3">Your raw interview is stored securely. Partners receive only anonymized aggregate insights where applicable, not your individual answers.</div>
           </div>
         </div>
       </div>
@@ -1080,6 +1080,10 @@
         </div>
         <div class="partner-consent-note active" id="followup-privacy-note" style="display:block;">
           Your choice only controls whether Bridge To AI follows up directly. A partner organization will not receive your individual answer unless you separately agree.
+        </div>
+        <div style="margin-top:0.85rem;">
+          <button type="button" class="btn-primary" onclick="saveFollowupPreference()">Save preference</button>
+          <span id="followup-save-status" style="display:inline-block;margin-left:0.75rem;color:var(--muted);font-size:0.9rem;"></span>
         </div>
       </div>
 
@@ -1108,6 +1112,7 @@
 // IMPORTANT: Replace these with your actual values before deploying
 const CONFIG = {
   EMAIL_ENDPOINT: '/api/send-email',              // Vercel serverless function endpoint
+  REPORT_PACK_ENDPOINT: '/api/report-pack',
   DARREN_EMAIL: 'team@bridgetoai.ca',               // Intake delivery address; forwards to Darren via Resend/email routing
   DEFAULT_PARTNER: 'BTAI',
   DEFAULT_CAMPAIGN: 'general_intake'
@@ -2617,6 +2622,8 @@ document.querySelectorAll('input[name="btai-followup"]').forEach(input => {
   input.addEventListener('change', event => {
     btaiFollowupInterest = event.target.value || 'maybe';
     btaiFollowupInterestAt = new Date().toISOString();
+    const status = document.getElementById('followup-save-status');
+    if (status) status.textContent = 'Preference changed. Click Save preference to confirm.';
     logHermesEvent('btai_followup_interest_selected', 'success', {
       btaiFollowupInterest,
       btaiFollowupInterestAt
@@ -2624,6 +2631,18 @@ document.querySelectorAll('input[name="btai-followup"]').forEach(input => {
     saveDraft(false);
   });
 });
+
+function saveFollowupPreference() {
+  const selected = document.querySelector('input[name="btai-followup"]:checked');
+  btaiFollowupInterest = selected ? selected.value : 'maybe';
+  btaiFollowupInterestAt = new Date().toISOString();
+  logHermesEvent('btai_followup_interest_saved', 'success', {
+    btaiFollowupInterest,
+    btaiFollowupInterestAt
+  });
+  const status = document.getElementById('followup-save-status');
+  if (status) status.textContent = 'Saved.';
+}
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden' && draftAutosaveEnabled && clientDraftId) {
     logHermesEvent('page_hidden_with_active_or_draft_session', 'info', interviewKpiSummary());
@@ -2745,6 +2764,7 @@ async function submitInterview() {
     showScreen('screen-complete');
     document.getElementById('complete-message').textContent =
       activePartnerProfile()?.completion || `Thank you, ${clientName}. Your business profile has been encrypted and securely saved. It will be used only to prepare your custom AI plan - never shared, never sold, never made public.`;
+    triggerFreeReportDelivery();
   } catch (err) {
     console.error('Submission error:', err);
     logHermesEvent('submission_failed', 'failed', { emailDelivered: false, error: err.message || 'Submission failed', ...interviewKpiSummary() });
@@ -3050,6 +3070,34 @@ async function sendEmailWithDNA() {
     } catch (e) { /* ignore parse errors */ }
     throw new Error('Email send failed' + detail);
   }
+}
+
+function triggerFreeReportDelivery() {
+  const payload = {
+    action: 'generate-free-email',
+    clientDraftId: ensureClientDraftId(),
+    clientEmail
+  };
+
+  fetch(CONFIG.REPORT_PACK_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+    .then(async response => {
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.error) throw new Error(data.error || data.message || 'Free report delivery failed');
+      logHermesEvent('free_report_delivery_result', 'success', {
+        emailed: !!data.emailed,
+        recipientConfirmed: !!data.recipient
+      });
+    })
+    .catch(err => {
+      console.error('Free report delivery failed:', err);
+      logHermesEvent('free_report_delivery_result', 'failed', {
+        error: err.message || 'Free report delivery failed'
+      });
+    });
 }
 initCampaignContext();
 </script>

@@ -1,6 +1,6 @@
 import { decryptJson, encryptJson } from '../lib/crypto.js';
 import { createDocxBuffer, createZipBuffer } from '../lib/docx.js';
-import { getLatestIntakeOutput, insertIntakeEvent, insertIntakeOutput } from '../lib/supabase-rest.js';
+import { getIntakeSession, getLatestIntakeOutput, insertIntakeEvent, insertIntakeOutput } from '../lib/supabase-rest.js';
 import { validateDnaOutput } from '../lib/validate-output.js';
 
 const REPORTS = {
@@ -39,6 +39,15 @@ function authorized(req) {
   if (!expected) return false;
   const provided = req.headers['x-btai-admin-secret'] || req.body?.adminSecret;
   return provided && String(provided) === String(expected);
+}
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function safeName(value) {
@@ -90,6 +99,12 @@ async function getDna(clientDraftId) {
     outputId: output.id,
     createdAt: output.created_at
   };
+}
+
+async function getSessionPayload(clientDraftId) {
+  const session = await getIntakeSession(clientDraftId);
+  if (!session?.encrypted_payload) throw new Error('No intake session found for that Record ID');
+  return decryptJson(session.encrypted_payload);
 }
 
 async function logReportEvent(clientDraftId, eventType, status, details = {}) {
@@ -318,6 +333,14 @@ async function generateOne(clientDraftId, tier) {
   };
 }
 
+async function getOrGenerateOne(clientDraftId, tier) {
+  const existing = await loadGenerated(clientDraftId, tier);
+  if (existing?.contentBase64) {
+    return { generated: false, tier, businessName: existing.businessName || '', warnings: existing.validation?.warnings || [] };
+  }
+  return generateOne(clientDraftId, tier);
+}
+
 async function loadGenerated(clientDraftId, tier) {
   const spec = REPORTS[tier];
   const row = await getLatestIntakeOutput(clientDraftId, spec.docxOutputType);
@@ -376,6 +399,89 @@ async function buildZip(clientDraftId) {
   };
 }
 
+async function generateAll(clientDraftId) {
+  const tiers = ['free', 'detailed', 'roadmap', 'btai'];
+  await logReportEvent(clientDraftId, 'report_pack_batch_started', 'success', { tiers });
+  const results = await Promise.all(tiers.map(tier => getOrGenerateOne(clientDraftId, tier)));
+  const zip = await buildZip(clientDraftId);
+  await logReportEvent(clientDraftId, 'report_pack_batch_complete', 'success', {
+    tiers,
+    zipOutputId: zip.outputId || '',
+    generatedCount: results.filter(r => r.generated).length
+  });
+  return { ready: true, results, zip };
+}
+
+async function sendFreeReportEmail({ clientDraftId, clientEmail, clientName, businessName, doc }) {
+  if (!process.env.RESEND_API_KEY) throw new Error('Missing RESEND_API_KEY');
+  const bccRecipient = process.env.INTAKE_BCC_RECIPIENT || 'darren.randles@gmail.com';
+  const html = `
+    <div style="font-family:Inter,Arial,sans-serif;max-width:640px;margin:0 auto;color:#111827;">
+      <div style="background:#0d6e5e;padding:24px 30px;border-radius:12px 12px 0 0;">
+        <h1 style="color:#fff;font-size:20px;line-height:1.3;margin:0;">Your Bridge To AI opportunity snapshot is ready</h1>
+      </div>
+      <div style="border:1px solid #d9e7e3;border-top:0;padding:26px 30px;border-radius:0 0 12px 12px;background:#fafaf8;">
+        <p style="font-size:15px;line-height:1.6;margin-top:0;">Hi ${escapeHtml(clientName || 'there')},</p>
+        <p style="font-size:15px;line-height:1.6;">Thank you for completing the intake. Your free AI Opportunity Snapshot is attached.</p>
+        <p style="font-size:15px;line-height:1.6;">This first report is intentionally practical and directional. It avoids private financials, recipes, customer lists, supplier contracts, payroll details, invoices, and confidential formulas.</p>
+        <div style="background:#e8f4f1;border:1px solid #b8ddd7;border-radius:10px;padding:14px 16px;color:#0d6e5e;font-size:14px;line-height:1.5;">
+          <strong>Next step:</strong> Review the snapshot. If you want deeper implementation planning, Bridge To AI can prepare a more detailed report or discuss a custom AI workbench.
+        </div>
+        <p style="font-size:13px;color:#6b7280;line-height:1.5;margin-bottom:0;margin-top:18px;">Record ID: <code>${escapeHtml(clientDraftId)}</code></p>
+      </div>
+    </div>`;
+  const text = `Your Bridge To AI opportunity snapshot is ready.\n\nThe free report is attached.\n\nRecord ID: ${clientDraftId}`;
+  const payload = {
+    from: 'The Bridge Team <team@bridgetoai.ca>',
+    to: [clientEmail],
+    bcc: bccRecipient ? [bccRecipient] : [],
+    subject: `Your Bridge To AI Opportunity Snapshot${businessName ? ` - ${businessName}` : ''}`,
+    html,
+    text,
+    attachments: [{
+      filename: doc.filename || 'Bridge_To_AI_Free_AI_Opportunity_Snapshot.docx',
+      content: doc.contentBase64,
+      content_type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    }]
+  };
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+  if (!response.ok) throw new Error('Free report email failed: ' + await response.text());
+  return response.json();
+}
+
+async function generateFreeAndEmail(clientDraftId, providedEmail = '') {
+  const sessionPayload = await getSessionPayload(clientDraftId);
+  const sessionEmail = String(sessionPayload.clientEmail || '').trim().toLowerCase();
+  const requestEmail = String(providedEmail || '').trim().toLowerCase();
+  if (!sessionEmail) throw new Error('No client email found on the intake session');
+  if (requestEmail && requestEmail !== sessionEmail) throw new Error('Client email does not match the secure intake session');
+
+  await getOrGenerateOne(clientDraftId, 'free');
+  const doc = await loadGenerated(clientDraftId, 'free');
+  if (!doc?.contentBase64) throw new Error('Free report was not generated');
+  const result = await sendFreeReportEmail({
+    clientDraftId,
+    clientEmail: sessionEmail,
+    clientName: sessionPayload.clientName || '',
+    businessName: sessionPayload.businessName || doc.businessName || '',
+    doc
+  });
+  await logReportEvent(clientDraftId, 'free_report_emailed', 'success', {
+    reportTier: 'free',
+    recipient: sessionEmail,
+    resendId: result.id || ''
+  });
+  return { emailed: true, id: result.id || '', recipient: sessionEmail };
+}
+
 async function status(clientDraftId) {
   const result = {};
   for (const tier of Object.keys(REPORTS)) {
@@ -402,14 +508,17 @@ async function downloadZip(clientDraftId) {
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  if (!authorized(req)) return res.status(401).json({ error: 'Unauthorized' });
-
   const action = String(req.body?.action || '').trim();
   const clientDraftId = String(req.body?.clientDraftId || '').trim();
   if (!clientDraftId) return res.status(400).json({ error: 'Missing clientDraftId' });
 
   try {
+    if (action === 'generate-free-email') {
+      return res.status(200).json(await generateFreeAndEmail(clientDraftId, req.body?.clientEmail || ''));
+    }
+    if (!authorized(req)) return res.status(401).json({ error: 'Unauthorized' });
     if (action === 'generate-one') return res.status(200).json(await generateOne(clientDraftId, String(req.body?.tier || '').trim()));
+    if (action === 'generate-all') return res.status(200).json(await generateAll(clientDraftId));
     if (action === 'build-zip') return res.status(200).json(await buildZip(clientDraftId));
     if (action === 'download-zip') return res.status(200).json(await downloadZip(clientDraftId));
     if (action === 'status') return res.status(200).json({ status: await status(clientDraftId) });
