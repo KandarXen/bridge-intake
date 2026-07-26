@@ -1,18 +1,24 @@
-# Bridge To AI Intake App - v1.57 Report Orchestrator
+# Bridge To AI Intake App - v1.57.2 Delivery Test And Paid Offer
 
 This build keeps the v1.56 trust-first, controlled industry-adaptive intake and adds the first report orchestration layer for a better client and admin experience.
 
 ## What Changed
 
 - Privacy Policy version is now `2026-07-25-v1.56.1`.
-- Header version is now `v1.57`.
+- Header version is now `v1.57.2`.
+- Admin page now includes **Send/Resend Free Report Email** so real report delivery can be tested from an existing Record ID without retaking the interview.
+- Completion page now includes a visible deeper-support offer for the Detailed AI Opportunity Report, Preliminary AI Action Plan, and implementation support.
+- The free-report email now includes the same optional deeper-support offer.
 - Completed intakes can automatically trigger free report generation and delivery to the interviewee's email address.
+- Completion page now uses **Email my free report** as the primary client-facing action instead of **Save preference**.
+- BTAI follow-up preference is saved silently as part of the report-delivery request.
+- Report delivery status now tells the interviewee when the report is being prepared, sent, already sent, or could not be confirmed.
 - `/api/report-pack` now supports `generate-free-email` for the finished intake flow.
 - `/api/report-pack` now supports `generate-all` so the admin page can generate the full report pack in one orchestration run.
 - The admin page now has a **Generate Full Report Pack** button. The individual report buttons remain as recovery tools only.
 - The DOCX builder has been upgraded with stronger Word styles, better spacing, heading hierarchy, bullet handling, and markdown table rendering.
 - Completion-page next-step copy now matches the free-intake model instead of implying every user automatically receives a full roadmap and workbench build.
-- Completion-page BTAI follow-up preference now has an explicit **Save preference** action.
+- Completion-page BTAI follow-up preference now supports the report-delivery CTA instead of a separate preference-saving action.
 - Completion-page test mode is available with `?testComplete=1` so the final screen can be reviewed without taking a full interview. This does not submit an interview or send a report email.
 - Privacy Policy now distinguishes reversible pseudonymization/tokenization from anonymized aggregate partner reporting.
 - Privacy Policy now includes named privacy accountability, cross-border processing, concrete retention/deletion targets, OPC complaint escalation, AI provider data-use language, breach response, access/correction/deletion process, minimum aggregate-reporting threshold, age restriction, cookies/analytics language, and the first-intake vs paid-implementation boundary.
@@ -95,6 +101,14 @@ Optional test labels:
 ```
 
 This mode is for UX review only. It does not create a Supabase Venture DNA record and does not email the free report.
+
+To test real report delivery from the completion page without retaking the interview, use an existing completed Record ID:
+
+```text
+/?testComplete=1&allowRealDelivery=1&recordId=PASTE_REAL_RECORD_ID&email=CLIENT_EMAIL_ON_THAT_RECORD
+```
+
+The email must match the email stored on that secure intake session. This mode does not submit a new interview; it only lets you test the final-page **Email my free report** action against an existing encrypted Supabase record.
 
 After a completed intake, use:
 

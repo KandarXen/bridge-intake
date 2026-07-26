@@ -1,4 +1,4 @@
-# Bridge To AI Intake v1.57 Secure Deploy Checklist
+# Bridge To AI Intake v1.57.2 Secure Deploy Checklist
 
 ## 1. Supabase
 
@@ -91,6 +91,14 @@ validate-output.js
 3. Open `/admin.html` and confirm the Report Pack panel includes **Generate Full Report Pack**.
 4. Open `/?testComplete=1` and confirm the completion page appears without taking an interview.
 5. Open `/?partner=AFPA&campaign=demo&testComplete=1` and confirm the AFPA completion copy appears.
+6. Confirm the completion page primary button says **Email my free report**, not **Save preference**.
+7. Open `/admin.html`, paste a real completed Record ID and `BTAI_ADMIN_SECRET`, then click **Send/Resend Free Report Email**.
+8. Confirm:
+   - the interviewee receives the free report email with DOCX attached;
+   - `INTAKE_BCC_RECIPIENT` receives a copy with the report attached;
+   - the original intake notification email includes the Record ID for admin retrieval;
+   - Supabase has `report_free_snapshot_markdown`, `report_free_snapshot_docx`, and `free_report_emailed` event records.
+9. To test the actual final-page button without another interview, open `/?testComplete=1&allowRealDelivery=1&recordId=PASTE_REAL_RECORD_ID&email=CLIENT_EMAIL_ON_THAT_RECORD`, then click **Email my free report**.
 3. Open `/?partner=AFPA&campaign=AFPA_December_AI_Course_2026`.
 4. Confirm the welcome screen is co-branded for AFPA and says AFPA receives anonymized aggregate insights only.
 5. Confirm the welcome screen says exact financials, recipes, customer lists, supplier contracts, payroll details, invoices, and confidential operating data are not needed for the first intake.

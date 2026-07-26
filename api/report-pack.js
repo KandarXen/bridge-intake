@@ -424,13 +424,19 @@ async function sendFreeReportEmail({ clientDraftId, clientEmail, clientName, bus
         <p style="font-size:15px;line-height:1.6;margin-top:0;">Hi ${escapeHtml(clientName || 'there')},</p>
         <p style="font-size:15px;line-height:1.6;">Thank you for completing the intake. Your free AI Opportunity Snapshot is attached.</p>
         <p style="font-size:15px;line-height:1.6;">This first report is intentionally practical and directional. It avoids private financials, recipes, customer lists, supplier contracts, payroll details, invoices, and confidential formulas.</p>
-        <div style="background:#e8f4f1;border:1px solid #b8ddd7;border-radius:10px;padding:14px 16px;color:#0d6e5e;font-size:14px;line-height:1.5;">
-          <strong>Next step:</strong> Review the snapshot. If you want deeper implementation planning, Bridge To AI can prepare a more detailed report or discuss a custom AI workbench.
+        <div style="background:#e8f4f1;border:1px solid #b8ddd7;border-radius:10px;padding:14px 16px;color:#0d6e5e;font-size:14px;line-height:1.5;margin-bottom:16px;">
+          <strong>Next step:</strong> Review the snapshot first. If you want to go deeper, Bridge To AI can prepare a more detailed report or discuss a custom AI workbench.
+        </div>
+        <div style="border:1px solid #e4e2dd;border-radius:10px;padding:16px 18px;background:#ffffff;font-size:14px;line-height:1.55;">
+          <strong style="display:block;margin-bottom:8px;color:#111827;">Optional deeper support</strong>
+          <div style="margin-bottom:8px;"><strong>Detailed AI Opportunity Report:</strong> deeper diagnosis, readiness gaps, and prioritized first projects.</div>
+          <div style="margin-bottom:8px;"><strong>Preliminary AI Action Plan:</strong> implementation phases, workflow priorities, risk controls, and scoping questions.</div>
+          <div><strong>Implementation support:</strong> help turning the plan into a working AI system or workbench after private scoping.</div>
         </div>
         <p style="font-size:13px;color:#6b7280;line-height:1.5;margin-bottom:0;margin-top:18px;">Record ID: <code>${escapeHtml(clientDraftId)}</code></p>
       </div>
     </div>`;
-  const text = `Your Bridge To AI opportunity snapshot is ready.\n\nThe free report is attached.\n\nRecord ID: ${clientDraftId}`;
+  const text = `Your Bridge To AI opportunity snapshot is ready.\n\nThe free report is attached.\n\nOptional deeper support:\n- Detailed AI Opportunity Report: deeper diagnosis, readiness gaps, and prioritized first projects.\n- Preliminary AI Action Plan: implementation phases, workflow priorities, risk controls, and scoping questions.\n- Implementation support: help turning the plan into a working AI system or workbench after private scoping.\n\nRecord ID: ${clientDraftId}`;
   const payload = {
     from: 'The Bridge Team <team@bridgetoai.ca>',
     to: [clientEmail],

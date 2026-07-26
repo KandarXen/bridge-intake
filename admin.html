@@ -161,6 +161,7 @@
     <div class="button-row">
       <button id="download-md-btn" type="button">Download Venture DNA .md</button>
       <button id="refresh-status-btn" class="secondary" type="button">Check Report Status</button>
+      <button id="send-free-report-btn" class="secondary" type="button">Send/Resend Free Report Email</button>
     </div>
 
     <div class="panel">
@@ -295,6 +296,24 @@
     });
 
     document.getElementById('refresh-status-btn').addEventListener('click', () => refreshReportStatus(false));
+
+    document.getElementById('send-free-report-btn').addEventListener('click', async () => {
+      const values = requireBasics();
+      if (!values) return;
+      setBusy(true, 'Generating and sending the free report email from the secure record...');
+      try {
+        const data = await postJson('/api/report-pack', {
+          action: 'generate-free-email',
+          clientDraftId: values.clientDraftId
+        }, values.adminSecret);
+        statusEl.textContent = `Free report email sent.\nRecipient: ${data.recipient || 'session email'}\nResend ID: ${data.id || 'not returned'}`;
+        await refreshReportStatus(true);
+      } catch (err) {
+        statusEl.textContent = `Error: ${err.message}`;
+      } finally {
+        setBusy(false);
+      }
+    });
 
     document.getElementById('generate-all-btn').addEventListener('click', async () => {
       const values = requireBasics();

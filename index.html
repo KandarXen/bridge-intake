@@ -814,7 +814,7 @@
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag" id="header-tag">Business Discovery Session</span>
-      <span class="header-version">v1.57</span>
+      <span class="header-version">v1.57.2</span>
   </div>
 </header>
 
@@ -1072,18 +1072,46 @@
       </div>
 
       <div class="name-field" style="width:100%;margin-top:1.5rem;text-align:left;">
-        <label>Would you like Bridge To AI to include a recommended next-step option with your report?</label>
+        <label>Where should we take things after sending your free report?</label>
         <div class="followup-options">
-          <label class="followup-option"><input type="radio" name="btai-followup" value="yes"><span>Yes, I would like to talk about next steps.</span></label>
-          <label class="followup-option"><input type="radio" name="btai-followup" value="maybe" checked><span>Maybe later. Send the free report first.</span></label>
-          <label class="followup-option"><input type="radio" name="btai-followup" value="no"><span>No, just send the free report.</span></label>
+          <label class="followup-option"><input type="radio" name="btai-followup" value="yes"><span>Send my free report and include a next-step conversation option.</span></label>
+          <label class="followup-option"><input type="radio" name="btai-followup" value="maybe" checked><span>Send my free report first. I may look at next steps later.</span></label>
+          <label class="followup-option"><input type="radio" name="btai-followup" value="no"><span>Just send my free report.</span></label>
         </div>
         <div class="partner-consent-note active" id="followup-privacy-note" style="display:block;">
           Your choice only controls whether Bridge To AI follows up directly. A partner organization will not receive your individual answer unless you separately agree.
         </div>
         <div style="margin-top:0.85rem;">
-          <button type="button" class="btn-primary" onclick="saveFollowupPreference()">Save preference</button>
+          <button type="button" class="btn-primary" id="report-delivery-btn" onclick="handleReportDeliveryButton()">Email my free report</button>
           <span id="followup-save-status" style="display:inline-block;margin-left:0.75rem;color:var(--muted);font-size:0.9rem;"></span>
+        </div>
+      </div>
+
+      <div class="next-steps" style="margin-top:1.5rem;">
+        <div class="next-steps-title">Want more than the free snapshot?</div>
+
+        <div class="next-step-card">
+          <div class="next-step-num">A</div>
+          <div class="next-step-content">
+            <div class="next-step-title">Detailed AI Opportunity Report</div>
+            <div class="next-step-desc">A deeper diagnosis of your highest-value AI opportunities, readiness gaps, and first practical projects. Best when you want clarity before deciding whether to implement.</div>
+          </div>
+        </div>
+
+        <div class="next-step-card">
+          <div class="next-step-num">B</div>
+          <div class="next-step-content">
+            <div class="next-step-title">Preliminary AI Action Plan</div>
+            <div class="next-step-desc">A more complete planning document with prioritized workflows, implementation phases, risk controls, and questions to confirm before a build.</div>
+          </div>
+        </div>
+
+        <div class="next-step-card">
+          <div class="next-step-num">C</div>
+          <div class="next-step-content">
+            <div class="next-step-title">Implementation support</div>
+            <div class="next-step-desc">If you want help turning the plan into a working AI system or workbench, Bridge To AI can scope that separately after reviewing your free report.</div>
+          </div>
         </div>
       </div>
 
@@ -1386,6 +1414,9 @@ let privacyConsent = false;
 let privacyConsentAt = '';
 let btaiFollowupInterest = 'maybe';
 let btaiFollowupInterestAt = '';
+let freeReportDeliveryStarted = false;
+let freeReportDeliverySucceeded = false;
+let completionTestMode = false;
 let businessName = '';
 let businessCategory = '';
 let businessNiche = '';
@@ -2623,7 +2654,7 @@ document.querySelectorAll('input[name="btai-followup"]').forEach(input => {
     btaiFollowupInterest = event.target.value || 'maybe';
     btaiFollowupInterestAt = new Date().toISOString();
     const status = document.getElementById('followup-save-status');
-    if (status) status.textContent = 'Preference changed. Click Save preference to confirm.';
+    if (status && !freeReportDeliveryStarted) status.textContent = 'This preference will be included with your free report.';
     logHermesEvent('btai_followup_interest_selected', 'success', {
       btaiFollowupInterest,
       btaiFollowupInterestAt
@@ -2632,7 +2663,7 @@ document.querySelectorAll('input[name="btai-followup"]').forEach(input => {
   });
 });
 
-function saveFollowupPreference() {
+function saveFollowupPreference(silent = false) {
   const selected = document.querySelector('input[name="btai-followup"]:checked');
   btaiFollowupInterest = selected ? selected.value : 'maybe';
   btaiFollowupInterestAt = new Date().toISOString();
@@ -2641,7 +2672,17 @@ function saveFollowupPreference() {
     btaiFollowupInterestAt
   });
   const status = document.getElementById('followup-save-status');
-  if (status) status.textContent = 'Saved.';
+  if (status && !silent) status.textContent = 'Preference saved with your report request.';
+}
+
+function handleReportDeliveryButton() {
+  saveFollowupPreference(true);
+  if (completionTestMode) {
+    const status = document.getElementById('followup-save-status');
+    if (status) status.textContent = 'Test mode: no report email sent.';
+    return;
+  }
+  triggerFreeReportDelivery({ manual: true });
 }
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden' && draftAutosaveEnabled && clientDraftId) {
@@ -2764,7 +2805,8 @@ async function submitInterview() {
     showScreen('screen-complete');
     document.getElementById('complete-message').textContent =
       activePartnerProfile()?.completion || `Thank you, ${clientName}. Your business profile has been encrypted and securely saved. It will be used only to prepare your custom AI plan - never shared, never sold, never made public.`;
-    triggerFreeReportDelivery();
+    saveFollowupPreference(true);
+    triggerFreeReportDelivery({ automatic: true });
   } catch (err) {
     console.error('Submission error:', err);
     logHermesEvent('submission_failed', 'failed', { emailDelivered: false, error: err.message || 'Submission failed', ...interviewKpiSummary() });
@@ -3072,7 +3114,29 @@ async function sendEmailWithDNA() {
   }
 }
 
-function triggerFreeReportDelivery() {
+function triggerFreeReportDelivery(options = {}) {
+  const button = document.getElementById('report-delivery-btn');
+  const status = document.getElementById('followup-save-status');
+  if (completionTestMode) {
+    if (status) status.textContent = 'Test mode: no report email sent.';
+    return;
+  }
+  if (freeReportDeliverySucceeded) {
+    if (status) status.textContent = `Your free report has already been sent to ${clientEmail}.`;
+    return;
+  }
+  if (freeReportDeliveryStarted) {
+    if (status) status.textContent = `Your free report is being prepared and sent to ${clientEmail}.`;
+    return;
+  }
+
+  freeReportDeliveryStarted = true;
+  if (button) {
+    button.textContent = 'Sending your free report...';
+    button.disabled = true;
+  }
+  if (status) status.textContent = `Preparing and sending your free report to ${clientEmail}.`;
+
   const payload = {
     action: 'generate-free-email',
     clientDraftId: ensureClientDraftId(),
@@ -3087,15 +3151,29 @@ function triggerFreeReportDelivery() {
     .then(async response => {
       const data = await response.json().catch(() => ({}));
       if (!response.ok || data.error) throw new Error(data.error || data.message || 'Free report delivery failed');
+      freeReportDeliverySucceeded = true;
+      if (button) {
+        button.textContent = 'Free report email sent';
+        button.disabled = true;
+      }
+      if (status) status.textContent = `Your free report has been sent to ${clientEmail}.`;
       logHermesEvent('free_report_delivery_result', 'success', {
         emailed: !!data.emailed,
-        recipientConfirmed: !!data.recipient
+        recipientConfirmed: !!data.recipient,
+        deliveryMode: options.manual ? 'manual_click' : 'automatic_completion'
       });
     })
     .catch(err => {
+      freeReportDeliveryStarted = false;
+      if (button) {
+        button.textContent = 'Try sending my free report again';
+        button.disabled = false;
+      }
+      if (status) status.textContent = 'We could not confirm report delivery. Please try again or contact team@bridgetoai.ca.';
       console.error('Free report delivery failed:', err);
       logHermesEvent('free_report_delivery_result', 'failed', {
-        error: err.message || 'Free report delivery failed'
+        error: err.message || 'Free report delivery failed',
+        deliveryMode: options.manual ? 'manual_click' : 'automatic_completion'
       });
     });
 }
@@ -3103,6 +3181,9 @@ function triggerFreeReportDelivery() {
 function maybeLaunchCompletionTestMode() {
   const params = new URLSearchParams(window.location.search);
   if (params.get('testComplete') !== '1') return;
+  const providedRecordId = params.get('recordId') || '';
+  const allowRealDelivery = params.get('allowRealDelivery') === '1' && !!providedRecordId;
+  completionTestMode = !allowRealDelivery;
 
   clientName = params.get('name') || 'Test Client';
   businessName = params.get('business') || 'Prairie Hearth Bakery';
@@ -3115,18 +3196,21 @@ function maybeLaunchCompletionTestMode() {
   privacyConsentAt = new Date().toISOString();
   btaiFollowupInterest = 'maybe';
   btaiFollowupInterestAt = new Date().toISOString();
-  clientDraftId = params.get('recordId') || `completion_test_${Date.now()}`;
-  lastSecureStorage = { saved: true, outputId: 'completion-test-only', reason: 'Completion page test mode only' };
+  clientDraftId = providedRecordId || `completion_test_${Date.now()}`;
+  lastSecureStorage = { saved: true, outputId: allowRealDelivery ? 'existing-secure-record' : 'completion-test-only', reason: allowRealDelivery ? 'Real delivery test mode using an existing Record ID' : 'Completion page test mode only' };
 
   initCampaignContext();
   showScreen('screen-complete');
   document.getElementById('complete-message').textContent =
-    activePartnerProfile()?.completion || `Thank you, ${clientName}. This is completion-page test mode. No interview was submitted and no report email was sent.`;
+    allowRealDelivery
+      ? `Thank you, ${clientName}. This is real delivery test mode using an existing secure Record ID. Click "Email my free report" to test report delivery without retaking the interview.`
+      : (activePartnerProfile()?.completion || `Thank you, ${clientName}. This is completion-page test mode. No interview was submitted and no report email was sent.`);
   const status = document.getElementById('followup-save-status');
-  if (status) status.textContent = 'Test mode: no report email sent.';
+  if (status) status.textContent = allowRealDelivery ? 'Real delivery test mode: no email sent until you click the button.' : 'Test mode: no report email sent.';
   logHermesEvent('completion_page_test_mode_loaded', 'info', {
     partner: campaignPartner,
-    campaign: campaignId
+    campaign: campaignId,
+    allowRealDelivery
   });
 }
 initCampaignContext();
