@@ -1,4 +1,4 @@
-# Bridge To AI Intake v1.57.2 Secure Deploy Checklist
+# Bridge To AI Intake v1.58 Secure Deploy Checklist
 
 ## 1. Supabase
 
@@ -38,6 +38,12 @@ INTAKE_EMAIL_ATTACHMENTS_ENABLED=false
 INTAKE_DIRECT_RECIPIENT=darren@ourcopacker.ca
 INTAKE_BCC_RECIPIENT=darren.randles@gmail.com
 BTAI_STORE_RECORD_LABELS=false
+BTAI_GENERATE_INTERNAL_BRIEF_AFTER_FREE=true
+BTAI_LEVEL2_PRICE_LABEL=$147 introductory
+BTAI_LEVEL3_PRICE_LABEL=$397 introductory
+BTAI_LEVEL2_PAYMENT_URL=
+BTAI_LEVEL3_PAYMENT_URL=
+BTAI_CONSULTATION_URL=
 ```
 
 `BTAI_STORE_RECORD_LABELS=false` keeps client and business names out of plaintext Supabase metadata. The names remain inside encrypted payloads.
@@ -88,7 +94,7 @@ validate-output.js
 
 1. Open the Vercel preview URL.
 2. Open `/privacy.html` and confirm the Privacy Policy loads and shows version `2026-07-25-v1.56.1`.
-3. Open `/admin.html` and confirm the Report Pack panel includes **Generate Full Report Pack**.
+3. Open `/admin.html` and confirm the page includes **Generate Full Report Pack** and **Download Privacy Proof JSON**.
 4. Open `/?testComplete=1` and confirm the completion page appears without taking an interview.
 5. Open `/?partner=AFPA&campaign=demo&testComplete=1` and confirm the AFPA completion copy appears.
 6. Confirm the completion page primary button says **Email my free report**, not **Save preference**.
@@ -98,6 +104,8 @@ validate-output.js
    - `INTAKE_BCC_RECIPIENT` receives a copy with the report attached;
    - the original intake notification email includes the Record ID for admin retrieval;
    - Supabase has `report_free_snapshot_markdown`, `report_free_snapshot_docx`, and `free_report_emailed` event records.
+   - Supabase has `report_btai_advisor_brief_markdown` and `report_btai_advisor_brief_docx` if `BTAI_GENERATE_INTERNAL_BRIEF_AFTER_FREE=true`.
+   - The free-report email includes Level 2, Level 3, and implementation/workbench breadcrumbs.
 9. To test the actual final-page button without another interview, open `/?testComplete=1&allowRealDelivery=1&recordId=PASTE_REAL_RECORD_ID&email=CLIENT_EMAIL_ON_THAT_RECORD`, then click **Email my free report**.
 3. Open `/?partner=AFPA&campaign=AFPA_December_AI_Course_2026`.
 4. Confirm the welcome screen is co-branded for AFPA and says AFPA receives anonymized aggregate insights only.
@@ -119,13 +127,19 @@ validate-output.js
    - Secure processing events in `intake_events`
    - KPI rows visible through the `intake_kpi_events` view
 17. Open `/admin.html` and retrieve the test DNA using the Record ID and `BTAI_ADMIN_SECRET`.
-18. On `/admin.html`, generate the reports one at a time:
+18. On `/admin.html`, click **Download Privacy Proof JSON** and confirm:
+    - `encryptedRecordsConfirmed` is `true`
+    - `anonymizedAiAnalysisConfirmed` is `true`
+    - `rawDataSharedWithPartner` is `false`
+    - `rawDnaIncludedInReportZip` is `false`
+    - the export contains proof events but no raw interview answers
+19. On `/admin.html`, generate the reports one at a time if needed:
     - Free Snapshot
     - Detailed Opportunity Report
     - Preliminary Action Plan
     - BTAI Advisor Brief
-19. Download the Report Pack ZIP.
-20. Confirm Supabase has encrypted rows in `intake_outputs` for:
+20. Download the Report Pack ZIP.
+21. Confirm Supabase has encrypted rows in `intake_outputs` for:
     - `report_free_snapshot_markdown`
     - `report_free_snapshot_docx`
     - `report_detailed_growth_markdown`
@@ -135,6 +149,11 @@ validate-output.js
     - `report_btai_advisor_brief_markdown`
     - `report_btai_advisor_brief_docx`
     - `three_report_pack_zip`
+22. Confirm ZIP filenames use:
+    - `Client_Name_Level1_report.docx`
+    - `Client_Name_Level2_Report.docx`
+    - `Client_Name_Level3_Report.docx`
+    - `Client_Name_Internal_brief.docx`
 
 ## 6. Security Notes
 
@@ -150,3 +169,4 @@ validate-output.js
 - Google Drive is no longer the primary storage path.
 - Report files are generated from the encrypted completed intake record and stored encrypted before admin download.
 - The report pack ZIP intentionally excludes the raw Venture DNA markdown. The raw markdown remains available only through the protected admin MD retrieval action.
+- Privacy proof logs are sanitized event records. They prove encryption/anonymization/report handling without logging raw answers, client email, recipes, suppliers, payroll, invoices, formulas, or confidential operating data.

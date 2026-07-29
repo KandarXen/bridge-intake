@@ -814,7 +814,7 @@
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag" id="header-tag">Business Discovery Session</span>
-      <span class="header-version">v1.57.2</span>
+      <span class="header-version">v1.58</span>
   </div>
 </header>
 
@@ -1004,7 +1004,7 @@
       <div class="spinner"></div>
       <div class="processing-title">Creating your private business profile...</div>
       <p class="processing-body" id="processing-body">
-        Your answers are being turned into a detailed advisor-style report. This usually takes 1-3 minutes because we are reviewing the full interview, identifying AI opportunities, saving a secure copy, and sending it to the Bridge Team.
+        Your answers are being turned into a secure business profile. The free report is prepared after your secure record is saved, and deeper reports are generated only when requested.
       </p>
       <p class="processing-body" id="processing-timer" style="font-size:0.86rem;color:var(--ink-soft);margin-top:-1rem;">
         Working for 0:00. Please keep this tab open until you see the confirmation screen.
@@ -1016,15 +1016,15 @@
         </div>
         <div class="p-step" id="pstep-2">
           <div class="p-icon">2</div>
-          Creating the advisor report
+          Creating the secure business profile
         </div>
         <div class="p-step" id="pstep-3">
           <div class="p-icon">3</div>
-          Ranking AI opportunities
+          Preparing report-ready insights
         </div>
         <div class="p-step" id="pstep-4">
           <div class="p-icon">4</div>
-          Saving and sending securely
+          Saving encrypted records securely
         </div>
       </div>
     </div>
@@ -1058,7 +1058,7 @@
           <div class="next-step-num">2</div>
           <div class="next-step-content">
             <div class="next-step-title" id="next-title-2">You choose whether to go deeper</div>
-            <div class="next-step-desc" id="next-desc-2">The free snapshot is directional. If you want more detail, Bridge To AI can prepare a deeper opportunity report or implementation roadmap.</div>
+            <div class="next-step-desc" id="next-desc-2">The free snapshot is directional. If you want more detail, Bridge To AI can prepare a paid opportunity report or implementation roadmap from the same secure record.</div>
           </div>
         </div>
 
@@ -1094,7 +1094,7 @@
           <div class="next-step-num">A</div>
           <div class="next-step-content">
             <div class="next-step-title">Detailed AI Opportunity Report</div>
-            <div class="next-step-desc">A deeper diagnosis of your highest-value AI opportunities, readiness gaps, and first practical projects. Best when you want clarity before deciding whether to implement.</div>
+            <div class="next-step-desc">A deeper diagnosis of your highest-value AI opportunities, readiness gaps, and first practical projects. Suggested launch price: $147.</div>
           </div>
         </div>
 
@@ -1102,7 +1102,7 @@
           <div class="next-step-num">B</div>
           <div class="next-step-content">
             <div class="next-step-title">Preliminary AI Action Plan</div>
-            <div class="next-step-desc">A more complete planning document with prioritized workflows, implementation phases, risk controls, and questions to confirm before a build.</div>
+            <div class="next-step-desc">A more complete planning document with prioritized workflows, implementation phases, risk controls, and questions to confirm before a build. Suggested launch price: $397.</div>
           </div>
         </div>
 
@@ -1110,7 +1110,7 @@
           <div class="next-step-num">C</div>
           <div class="next-step-content">
             <div class="next-step-title">Implementation support</div>
-            <div class="next-step-desc">If you want help turning the plan into a working AI system or workbench, Bridge To AI can scope that separately after reviewing your free report.</div>
+            <div class="next-step-desc">A workbench is a private operating dashboard built around your business so repeated workflows can run from one place instead of scattered notes, files, prompts, and tools.</div>
           </div>
         </div>
       </div>
@@ -2639,8 +2639,13 @@ document.getElementById('privacy-consent').addEventListener('change', event => {
   privacyConsent = event.target.checked;
   if (privacyConsent && !privacyConsentAt) privacyConsentAt = new Date().toISOString();
   logHermesEvent(privacyConsent ? 'privacy_consent_checked' : 'privacy_consent_unchecked', privacyConsent ? 'success' : 'info', {
+    privacyProofType: 'consent',
     privacyConsentAt: privacyConsent ? privacyConsentAt : '',
-    privacyPolicyVersion: PRIVACY_POLICY_VERSION
+    privacyPolicyVersion: PRIVACY_POLICY_VERSION,
+    rawInterviewIncluded: false,
+    partnerRawAccess: false,
+    partnerAggregateOnly: true,
+    proofStatus: privacyConsent ? 'accepted' : 'not_accepted'
   });
   saveDraft(false);
 });
@@ -2820,9 +2825,9 @@ function animateProcessingSteps() {
   const steps = ['pstep-1', 'pstep-2', 'pstep-3', 'pstep-4'];
   const messages = [
     'Reviewing the full interview for business patterns and constraints.',
-    'Creating the private advisor report. Longer answers can take a little more time.',
-    'Ranking AI opportunities against feasibility, readiness, and likely business value.',
-    'Saving the file and sending the completed profile to the Bridge Team.',
+    'Creating the secure business profile. Longer answers can take a little more time.',
+    'Preparing the free-report analysis and proof trail.',
+    'Saving encrypted records and notifying the Bridge Team.',
     'Still working. This is normal for a detailed profile, especially after a full interview.'
   ];
   const startedAt = Date.now();
@@ -3060,16 +3065,28 @@ async function generateDNAWithClaude() {
   const data = await response.json();
   if (data.hermesPrivacy) {
     logHermesEvent('tokenization_result', data.hermesPrivacy.anonymized ? 'success' : 'failed', {
+      privacyProofType: 'browser_confirmation_anonymization',
       privacyAnonymized: !!data.hermesPrivacy.anonymized,
       anonymizationReplacements: data.hermesPrivacy.stats?.replacements || 0,
+      directIdentifiersRemoved: !!data.hermesPrivacy.anonymized,
+      rawInterviewIncluded: false,
+      aiPayloadType: 'anonymized_business_profile',
+      piiMappingStoredEncrypted: !!data.hermesPrivacy.mappingSaved,
       driveSaved: !!data.hermesPrivacy.mappingSaved,
-      driveReason: data.hermesPrivacy.mappingSaveReason || ''
+      driveReason: data.hermesPrivacy.mappingSaveReason || '',
+      proofStatus: data.hermesPrivacy.anonymized ? 'passed' : 'failed'
     });
   }
   if (data.secureStorage) {
     lastSecureStorage = data.secureStorage;
     logHermesEvent('secure_storage_result', data.secureStorage.saved ? 'success' : 'failed', {
+      privacyProofType: 'browser_confirmation_secure_storage',
       draftSaved: !!data.secureStorage.saved,
+      encryptedAtRest: !!data.secureStorage.saved,
+      encryptionAlg: 'AES-256-GCM',
+      rawDnaIncluded: false,
+      partnerRawAccess: false,
+      proofStatus: data.secureStorage.saved ? 'passed' : 'failed',
       error: data.secureStorage.reason || ''
     });
   }

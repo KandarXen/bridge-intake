@@ -1,11 +1,18 @@
-# Bridge To AI Intake App - v1.57.2 Delivery Test And Paid Offer
+# Bridge To AI Intake App - v1.58 Live Report Funnel And Privacy Proof
 
-This build keeps the v1.56 trust-first, controlled industry-adaptive intake and adds the first report orchestration layer for a better client and admin experience.
+This build keeps the trust-first, controlled industry-adaptive intake and adds the live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, and admin privacy proof export.
 
 ## What Changed
 
 - Privacy Policy version is now `2026-07-25-v1.56.1`.
-- Header version is now `v1.57.2`.
+- Header version is now `v1.58`.
+- Server-side privacy-proof events are logged for consent, anonymized AI analysis, encrypted mapping storage, encrypted output storage, report generation, free-report email delivery, ZIP creation, and admin ZIP download.
+- Admin page now includes **Download Privacy Proof JSON** so BTAI can produce an AFPA-safe proof package for a Record ID without exposing raw answers.
+- Free-report delivery now logs timing data so Hermes can monitor generation speed, delivery speed, retries/failures, and report bottlenecks.
+- The free report is generated automatically; Level 2 and Level 3 reports are positioned as on-demand paid upgrades.
+- The internal BTAI Advisor Brief is generated after the free report unless `BTAI_GENERATE_INTERNAL_BRIEF_AFTER_FREE=false`.
+- Free-report email now includes paid-report breadcrumbs, optional payment/booking links, and a plain-English workbench description.
+- Report DOCX names now use the client-level convention: `Client_Name_Level1_report.docx`, `Client_Name_Level2_Report.docx`, `Client_Name_Level3_Report.docx`, and `Client_Name_Internal_brief.docx`.
 - Admin page now includes **Send/Resend Free Report Email** so real report delivery can be tested from an existing Record ID without retaking the interview.
 - Completion page now includes a visible deeper-support offer for the Detailed AI Opportunity Report, Preliminary AI Action Plan, and implementation support.
 - The free-report email now includes the same optional deeper-support offer.
@@ -76,6 +83,12 @@ INTAKE_EMAIL_ATTACHMENTS_ENABLED=false
 BTAI_STORE_RECORD_LABELS=false
 INTAKE_DIRECT_RECIPIENT=darren@ourcopacker.ca
 INTAKE_BCC_RECIPIENT=darren.randles@gmail.com
+BTAI_GENERATE_INTERNAL_BRIEF_AFTER_FREE=true
+BTAI_LEVEL2_PRICE_LABEL=$147 introductory
+BTAI_LEVEL3_PRICE_LABEL=$397 introductory
+BTAI_LEVEL2_PAYMENT_URL=
+BTAI_LEVEL3_PAYMENT_URL=
+BTAI_CONSULTATION_URL=
 ```
 
 ## Admin Retrieval
@@ -125,15 +138,35 @@ The DNA is decrypted server-side only after the admin secret is verified.
 The admin page can also generate the report files:
 
 ```text
-0-Free_AI_Opportunity_Snapshot.docx
-1-Detailed_AI_Readiness_Opportunity_Report.docx
-2-Preliminary_AI_Action_Plan.docx
-3-BTAI_Advisor_Brief_Internal.docx
+Client_Name_Level1_report.docx
+Client_Name_Level2_Report.docx
+Client_Name_Level3_Report.docx
+Client_Name_Internal_brief.docx
 ```
 
 Generate one report at a time, then download the ZIP. Each generated report is encrypted and stored in Supabase before retrieval.
 
 The internal BTAI Advisor Brief is for Bridge To AI only. It summarizes what to clarify, what to listen for, likely opportunity angles, risk notes, and proposal direction without requiring the raw Venture DNA file to leave secure storage.
+
+## Privacy Proof Export
+
+Use `/admin.html`, paste the Record ID and `BTAI_ADMIN_SECRET`, then click **Download Privacy Proof JSON**.
+
+The export is designed for AFPA/client trust review. It includes sanitized event proof such as:
+
+```text
+privacy_proof_anonymization_completed
+privacy_proof_mapping_storage
+privacy_proof_ai_analysis_requested
+privacy_proof_secure_output_storage
+report_generation_started
+report_generated
+free_report_emailed
+report_pack_zip_built
+report_pack_zip_downloaded
+```
+
+The proof export does not include raw interview answers, raw Venture DNA content, client email, private recipes, supplier/customer details, payroll, invoices, formulas, or confidential operating data.
 
 ## Privacy Model
 
@@ -175,8 +208,13 @@ interview_completed_answers
 interview_submission_complete
 submission_failed
 report_generated
+free_report_emailed
+internal_brief_after_free_complete
 report_pack_zip_built
 report_pack_zip_downloaded
+privacy_proof_anonymization_completed
+privacy_proof_ai_analysis_requested
+privacy_proof_secure_output_storage
 ```
 
 Use the Supabase `intake_kpi_events` view for aggregate dashboards and AFPA reports.

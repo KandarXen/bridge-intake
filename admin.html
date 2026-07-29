@@ -162,6 +162,7 @@
       <button id="download-md-btn" type="button">Download Venture DNA .md</button>
       <button id="refresh-status-btn" class="secondary" type="button">Check Report Status</button>
       <button id="send-free-report-btn" class="secondary" type="button">Send/Resend Free Report Email</button>
+      <button id="privacy-proof-btn" class="secondary" type="button">Download Privacy Proof JSON</button>
     </div>
 
     <div class="panel">
@@ -296,6 +297,25 @@
     });
 
     document.getElementById('refresh-status-btn').addEventListener('click', () => refreshReportStatus(false));
+
+    document.getElementById('privacy-proof-btn').addEventListener('click', async () => {
+      const values = requireBasics();
+      if (!values) return;
+      setBusy(true, 'Building privacy proof summary from sanitized event logs...');
+      try {
+        const data = await postJson('/api/report-pack', {
+          action: 'privacy-proof-summary',
+          clientDraftId: values.clientDraftId
+        }, values.adminSecret);
+        const filename = `${values.filename || values.clientDraftId}_Privacy_Proof.json`.replace(/[^a-zA-Z0-9_.-]+/g, '_');
+        downloadText(filename, JSON.stringify(data.privacyProof, null, 2));
+        statusEl.textContent = `Downloaded ${filename}\nProof events: ${data.privacyProof?.proofEventCount || 0}\nEncrypted records confirmed: ${data.privacyProof?.encryptedRecordsConfirmed ? 'yes' : 'not yet'}\nAnonymized AI analysis confirmed: ${data.privacyProof?.anonymizedAiAnalysisConfirmed ? 'yes' : 'not yet'}\nRaw data shared with partner: ${data.privacyProof?.rawDataSharedWithPartner ? 'yes' : 'no'}`;
+      } catch (err) {
+        statusEl.textContent = `Error: ${err.message}`;
+      } finally {
+        setBusy(false);
+      }
+    });
 
     document.getElementById('send-free-report-btn').addEventListener('click', async () => {
       const values = requireBasics();

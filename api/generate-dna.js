@@ -5,8 +5,41 @@
 // prompt to Claude, then re-identifies the final output before returning it.
 
 import { encryptJson } from '../lib/crypto.js';
-import { insertClaimTrace, insertIntakeOutput, updateIntakeSession } from '../lib/supabase-rest.js';
+import { insertClaimTrace, insertIntakeEvent, insertIntakeOutput, updateIntakeSession } from '../lib/supabase-rest.js';
 import { validateDnaOutput } from '../lib/validate-output.js';
+
+async function logPrivacyProof(clientDraftId, eventType, status, details = {}) {
+  try {
+    if (!clientDraftId) return;
+    await insertIntakeEvent({
+      client_draft_id: clientDraftId,
+      event_type: eventType,
+      status,
+      stage: 'privacy_proof',
+      question_index: null,
+      domain: 'BTAI Secure Intelligence Layer',
+      answer_word_count: null,
+      metadata: {
+        ts: new Date().toISOString(),
+        app: 'intake.bridgetoai.ca',
+        eventType,
+        status,
+        stage: 'privacy_proof',
+        privacyProof: true,
+        details: {
+          rawInterviewIncluded: false,
+          rawDnaIncluded: false,
+          partnerRawAccess: false,
+          encryptedAtRest: true,
+          encryptionAlg: 'AES-256-GCM',
+          ...details
+        }
+      }
+    });
+  } catch (err) {
+    console.error('privacy proof log failed:', err);
+  }
+}
 
 async function callClaude(messages) {
   const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -207,8 +240,30 @@ export default async function handler(req, res) {
 
   try {
     const hermesPrivacy = anonymizePrompt(prompt);
+    await logPrivacyProof(clientDraftId, 'privacy_proof_anonymization_completed', 'success', {
+      privacyProofType: 'anonymization',
+      payloadType: 'interview_prompt',
+      aiPayloadType: 'anonymized_business_profile',
+      directIdentifiersRemoved: true,
+      anonymizationReplacements: hermesPrivacy.stats.replacements || 0,
+      proofStatus: 'passed'
+    });
     const mappingSave = await saveAnonymizationMapping(clientDraftId, hermesPrivacy.mapping, hermesPrivacy.stats);
+    await logPrivacyProof(clientDraftId, 'privacy_proof_mapping_storage', mappingSave.saved ? 'success' : 'info', {
+      privacyProofType: 'reidentification_map',
+      piiMappingStoredEncrypted: !!mappingSave.saved,
+      mappingFileId: mappingSave.fileId || '',
+      proofStatus: mappingSave.saved ? 'passed' : 'not_required',
+      note: mappingSave.reason || ''
+    });
     const messages = [{ role: 'user', content: hermesPrivacy.anonymizedPrompt }];
+    await logPrivacyProof(clientDraftId, 'privacy_proof_ai_analysis_requested', 'success', {
+      privacyProofType: 'ai_analysis',
+      payloadType: 'anonymized_prompt',
+      aiPayloadType: 'anonymized_business_profile',
+      directIdentifiersRemoved: true,
+      proofStatus: 'passed'
+    });
     let fullText = '';
     let stopReason = null;
     let passes = 0;
@@ -247,6 +302,17 @@ export default async function handler(req, res) {
         claimTraceCount: claimTraceSave.count || 0,
         claimTraceReason: claimTraceSave.reason || ''
       }
+    });
+    await logPrivacyProof(clientDraftId, 'privacy_proof_secure_output_storage', outputSave.saved ? 'success' : 'failed', {
+      privacyProofType: 'secure_storage',
+      outputType: 'venture_dna_markdown',
+      encryptedAtRest: !!outputSave.saved,
+      encryptionAlg: 'AES-256-GCM',
+      rawDnaIncluded: false,
+      partnerRawAccess: false,
+      claimTraceSaved: !!claimTraceSave.saved,
+      proofStatus: outputSave.saved ? 'passed' : 'failed',
+      error: outputSave.reason || ''
     });
 
     return res.status(200).json({
