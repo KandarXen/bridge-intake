@@ -110,6 +110,39 @@
   .screen.active { display: flex; flex-direction: column; }
 
   /* -- Welcome screen -- */
+  #screen-welcome {
+    max-width: 1120px;
+  }
+
+  .welcome-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(360px, 430px);
+    gap: 1.6rem;
+    align-items: start;
+  }
+
+  .welcome-copy-panel,
+  .welcome-form-panel {
+    min-width: 0;
+  }
+
+  .welcome-form-panel {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    box-shadow: var(--shadow);
+  }
+
+  .welcome-form-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--bridge-teal);
+    margin-bottom: 1rem;
+  }
+
   .welcome-eyebrow {
     font-size: 0.72rem;
     font-weight: 600;
@@ -201,7 +234,7 @@
     border: 1px solid #b8ddd7;
     border-radius: var(--radius);
     padding: 1.25rem 1.5rem;
-    margin-bottom: 2rem;
+    margin-bottom: 0;
   }
 
   .welcome-steps p {
@@ -826,6 +859,23 @@
     .main { padding: 2rem 1rem 3rem; }
     .header { padding: 1rem 1.25rem; }
   }
+
+  @media (max-width: 900px) {
+    #screen-welcome {
+      max-width: 640px;
+    }
+
+    .welcome-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .welcome-form-panel {
+      padding: 0;
+      border: 0;
+      box-shadow: none;
+      background: transparent;
+    }
+  }
 </style>
 </head>
 <body>
@@ -854,144 +904,152 @@
       <div id="partner-banner-text">This intake helps shape practical AI education and support for participating members.</div>
     </div>
 
-    <div class="welcome-eyebrow" id="welcome-eyebrow">Confidential - for your eyes only</div>
-    <h1 class="welcome-headline" id="welcome-headline">Let's understand your business <em>before</em> we talk about AI.</h1>
-    <p class="welcome-body" id="welcome-body">
-      This session takes about 20-30 minutes. There are no right or wrong answers.
-      General ranges and directional examples are enough for this first report; please do not
-      enter private financials, recipes, customer lists, supplier contracts, payroll details,
-      invoices, or confidential operating data. The interview adapts as you go: short answers
-      may get a quick clarifying follow-up, while more detailed answers usually help us move
-      faster. Your answers are encrypted, stored securely, and used only to prepare your
-      private AI opportunity report.
-    </p>
+    <div class="welcome-layout">
+      <div class="welcome-copy-panel">
+        <div class="welcome-eyebrow" id="welcome-eyebrow">Confidential - for your eyes only</div>
+        <h1 class="welcome-headline" id="welcome-headline">Let's understand your business <em>before</em> we talk about AI.</h1>
+        <p class="welcome-body" id="welcome-body">
+          This session takes about 20-30 minutes. There are no right or wrong answers.
+          General ranges and directional examples are enough for this first report; please do not
+          enter private financials, recipes, customer lists, supplier contracts, payroll details,
+          invoices, or confidential operating data. The interview adapts as you go: short answers
+          may get a quick clarifying follow-up, while more detailed answers usually help us move
+          faster. Your answers are encrypted, stored securely, and used only to prepare your
+          private AI opportunity report.
+        </p>
 
-    <div class="evidence-first-box">
-      <strong>Evidence-first, not an AI sales pitch</strong>
-      <p>
-        We have programmed our AI to work from evidence, not flattery. If the intake is vague,
-        the report will be limited. If the intake is honest about what is messy, slow, stuck,
-        or unclear, the report can be much more useful. We will show you where AI may help,
-        where the foundations need cleanup first, and what should not be automated yet.
-      </p>
-    </div>
+        <div class="evidence-first-box">
+          <strong>Evidence-first, not an AI sales pitch</strong>
+          <p>
+            We have programmed our AI to work from evidence, not flattery. If the intake is vague,
+            the report will be limited. If the intake is honest about what is messy, slow, stuck,
+            or unclear, the report can be much more useful. We will show you where AI may help,
+            where the foundations need cleanup first, and what should not be automated yet.
+          </p>
+        </div>
 
-    <div class="welcome-steps">
-      <p>How this works</p>
-      <ul class="step-list">
-        <li><span class="step-num">1</span> <span id="step-one-text">You'll start with a quick scenario, then move through 8 areas of your business and a short reflection on you as the owner.</span></li>
-        <li><span class="step-num">2</span> Speak your answer using the microphone, or type it directly.</li>
-        <li><span class="step-num">3</span> Review what was captured, edit if needed, then hit Continue.</li>
-        <li><span class="step-num">4</span> <span id="step-four-text">A few answers may trigger a quick follow-up so we can understand the real issue instead of guessing. Your progress is saved securely as you go, and your first report is based on directional business signals rather than confidential operating details.</span></li>
-      </ul>
-    </div>
+        <div class="welcome-steps">
+          <p>How this works</p>
+          <ul class="step-list">
+            <li><span class="step-num">1</span> <span id="step-one-text">You'll start with a quick scenario, then move through 8 areas of your business and a short reflection on you as the owner.</span></li>
+            <li><span class="step-num">2</span> Speak your answer using the microphone, or type it directly.</li>
+            <li><span class="step-num">3</span> Review what was captured, edit if needed, then hit Continue.</li>
+            <li><span class="step-num">4</span> <span id="step-four-text">A few answers may trigger a quick follow-up so we can understand the real issue instead of guessing. Your progress is saved securely as you go, and your first report is based on directional business signals rather than confidential operating details.</span></li>
+          </ul>
+        </div>
+      </div>
 
-    <div class="resume-card" id="resume-card">
-      <div class="resume-title">Resume your previous session?</div>
-      <div class="resume-body" id="resume-summary">We found saved progress from this browser.</div>
-      <div class="resume-actions">
-        <button class="btn-primary" type="button" onclick="resumeSavedInterview()">Resume session</button>
-        <button class="btn-secondary" type="button" onclick="clearSavedInterview(true)">Start over</button>
+      <div class="welcome-form-panel">
+        <div class="welcome-form-title">Start here</div>
+
+        <div class="resume-card" id="resume-card">
+          <div class="resume-title">Resume your previous session?</div>
+          <div class="resume-body" id="resume-summary">We found saved progress from this browser.</div>
+          <div class="resume-actions">
+            <button class="btn-primary" type="button" onclick="resumeSavedInterview()">Resume session</button>
+            <button class="btn-secondary" type="button" onclick="clearSavedInterview(true)">Start over</button>
+          </div>
+        </div>
+
+        <div class="name-field">
+          <label for="client-name">Your name</label>
+          <input type="text" id="client-name" placeholder="e.g. Jane Smith" autocomplete="off" />
+        </div>
+
+        <div class="name-field">
+          <label for="client-email">Email for your report link</label>
+          <input type="email" id="client-email" placeholder="e.g. jane@yourbusiness.ca" autocomplete="email" />
+        </div>
+
+        <div class="name-field">
+          <label for="business-name">Your business name</label>
+          <input type="text" id="business-name" placeholder="e.g. Acme Plumbing Ltd." autocomplete="off" />
+        </div>
+
+        <div class="name-field">
+          <label for="business-category">What type of business are you in?</label>
+          <select id="business-category">
+            <option value="">Choose the closest category...</option>
+            <option value="Bakery / Grains">Bakery / Grains</option>
+            <option value="Beverages">Beverages</option>
+            <option value="Meat / Protein">Meat / Protein</option>
+            <option value="Produce / Fresh Pack">Produce / Fresh Pack</option>
+            <option value="Prepared Foods">Prepared Foods</option>
+            <option value="Distribution / Wholesale">Distribution / Wholesale</option>
+            <option value="Retail / Food Service">Retail / Food Service</option>
+            <option value="Professional Services">Professional Services</option>
+            <option value="Trades / Field Services">Trades / Field Services</option>
+            <option value="Manufacturing">Manufacturing</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div class="name-field">
+          <label for="business-niche">Is there a more specific niche we should understand? <span style="font-weight:400;color:var(--ink-soft);">(optional)</span></label>
+          <input type="text" id="business-niche" placeholder="e.g. wholesale bakery, kombucha producer, grant consultant..." autocomplete="off" />
+        </div>
+
+        <div class="name-field">
+          <label for="share-comfort">For this first intake, how much detail are you comfortable sharing?</label>
+          <select id="share-comfort">
+            <option value="Directional only">Directional only</option>
+            <option value="General ranges are okay">General ranges are okay</option>
+            <option value="I may share more in a private scoping session">I may share more in a private scoping session</option>
+            <option value="Not sure yet">Not sure yet</option>
+          </select>
+        </div>
+
+        <div class="name-field">
+          <label for="website-url">Business website <span style="font-weight:400;color:var(--ink-soft);">(optional)</span></label>
+          <input type="url" id="website-url" placeholder="e.g. https://yourbusiness.ca" autocomplete="off" />
+        </div>
+
+        <div class="name-field">
+          <label for="company-size">Roughly how many people work in your business?</label>
+          <input type="text" id="company-size" placeholder="e.g. 1, 8, 45..." autocomplete="off" inputmode="numeric" />
+        </div>
+
+        <div class="name-field">
+          <label for="owner-work-status">How are you involved in the business right now? <span style="font-weight:400;color:var(--ink-soft);">(optional, but helps tailor the questions)</span></label>
+          <input type="text" id="owner-work-status" placeholder="e.g. full-time owner, semi-retired, side business, managing a team..." autocomplete="off" />
+        </div>
+
+        <div class="name-field">
+          <label>Which departments or functions does your business have? <span style="font-weight:400;color:var(--ink-soft);">(tap all that apply)</span></label>
+          <div class="dept-grid">
+            <label class="dept-pill"><input type="checkbox" value="Sales"><span>Sales</span></label>
+            <label class="dept-pill"><input type="checkbox" value="Marketing"><span>Marketing</span></label>
+            <label class="dept-pill"><input type="checkbox" value="Operations"><span>Operations</span></label>
+            <label class="dept-pill"><input type="checkbox" value="Finance / Accounting"><span>Finance / Accounting</span></label>
+            <label class="dept-pill"><input type="checkbox" value="Customer Service"><span>Customer Service</span></label>
+            <label class="dept-pill"><input type="checkbox" value="Production / Fulfillment"><span>Production / Fulfillment</span></label>
+            <label class="dept-pill"><input type="checkbox" value="HR / People"><span>HR / People</span></label>
+            <label class="dept-pill"><input type="checkbox" value="IT / Tech"><span>IT / Tech</span></label>
+            <label class="dept-pill"><input type="checkbox" value="Admin"><span>Admin</span></label>
+            <label class="dept-pill"><input type="checkbox" value="It's mostly just me"><span>It's mostly just me</span></label>
+          </div>
+        </div>
+
+        <div class="consent-box">
+          <label class="consent-label" for="privacy-consent">
+            <input type="checkbox" id="privacy-consent" />
+            <span>
+              I agree to the <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>
+              and consent to Bridge To AI securely processing my interview responses to prepare my private AI opportunity report and related service materials.
+              <span class="partner-consent-note" id="partner-consent-note">
+                I understand that anonymized, aggregated insights from participating members may be shared with the partner organization for education, course planning, and member-support strategy. Raw interview records and individual answers are not shared with the partner.
+              </span>
+            </span>
+          </label>
+        </div>
+
+        <div id="welcome-error" class="error-banner">Please fill in your name, valid email, business name, business type, and privacy consent before continuing.</div>
+
+        <button class="btn-primary" onclick="startInterview(event)" style="width:100%;">
+          Begin my discovery session ->
+        </button>
       </div>
     </div>
-
-    <div class="name-field">
-      <label for="client-name">Your name</label>
-      <input type="text" id="client-name" placeholder="e.g. Jane Smith" autocomplete="off" />
-    </div>
-
-    <div class="name-field">
-      <label for="client-email">Email for your report link</label>
-      <input type="email" id="client-email" placeholder="e.g. jane@yourbusiness.ca" autocomplete="email" />
-    </div>
-
-    <div class="name-field">
-      <label for="business-name">Your business name</label>
-      <input type="text" id="business-name" placeholder="e.g. Acme Plumbing Ltd." autocomplete="off" />
-    </div>
-
-    <div class="name-field">
-      <label for="business-category">What type of business are you in?</label>
-      <select id="business-category">
-        <option value="">Choose the closest category...</option>
-        <option value="Bakery / Grains">Bakery / Grains</option>
-        <option value="Beverages">Beverages</option>
-        <option value="Meat / Protein">Meat / Protein</option>
-        <option value="Produce / Fresh Pack">Produce / Fresh Pack</option>
-        <option value="Prepared Foods">Prepared Foods</option>
-        <option value="Distribution / Wholesale">Distribution / Wholesale</option>
-        <option value="Retail / Food Service">Retail / Food Service</option>
-        <option value="Professional Services">Professional Services</option>
-        <option value="Trades / Field Services">Trades / Field Services</option>
-        <option value="Manufacturing">Manufacturing</option>
-        <option value="Other">Other</option>
-      </select>
-    </div>
-
-    <div class="name-field">
-      <label for="business-niche">Is there a more specific niche we should understand? <span style="font-weight:400;color:var(--ink-soft);">(optional)</span></label>
-      <input type="text" id="business-niche" placeholder="e.g. wholesale bakery, kombucha producer, grant consultant..." autocomplete="off" />
-    </div>
-
-    <div class="name-field">
-      <label for="share-comfort">For this first intake, how much detail are you comfortable sharing?</label>
-      <select id="share-comfort">
-        <option value="Directional only">Directional only</option>
-        <option value="General ranges are okay">General ranges are okay</option>
-        <option value="I may share more in a private scoping session">I may share more in a private scoping session</option>
-        <option value="Not sure yet">Not sure yet</option>
-      </select>
-    </div>
-
-    <div class="name-field">
-      <label for="website-url">Business website <span style="font-weight:400;color:var(--ink-soft);">(optional)</span></label>
-      <input type="url" id="website-url" placeholder="e.g. https://yourbusiness.ca" autocomplete="off" />
-    </div>
-
-    <div class="name-field">
-      <label for="company-size">Roughly how many people work in your business?</label>
-      <input type="text" id="company-size" placeholder="e.g. 1, 8, 45..." autocomplete="off" inputmode="numeric" />
-    </div>
-
-    <div class="name-field">
-      <label for="owner-work-status">How are you involved in the business right now? <span style="font-weight:400;color:var(--ink-soft);">(optional, but helps tailor the questions)</span></label>
-      <input type="text" id="owner-work-status" placeholder="e.g. full-time owner, semi-retired, side business, managing a team..." autocomplete="off" />
-    </div>
-
-    <div class="name-field">
-      <label>Which departments or functions does your business have? <span style="font-weight:400;color:var(--ink-soft);">(tap all that apply)</span></label>
-      <div class="dept-grid">
-        <label class="dept-pill"><input type="checkbox" value="Sales"><span>Sales</span></label>
-        <label class="dept-pill"><input type="checkbox" value="Marketing"><span>Marketing</span></label>
-        <label class="dept-pill"><input type="checkbox" value="Operations"><span>Operations</span></label>
-        <label class="dept-pill"><input type="checkbox" value="Finance / Accounting"><span>Finance / Accounting</span></label>
-        <label class="dept-pill"><input type="checkbox" value="Customer Service"><span>Customer Service</span></label>
-        <label class="dept-pill"><input type="checkbox" value="Production / Fulfillment"><span>Production / Fulfillment</span></label>
-        <label class="dept-pill"><input type="checkbox" value="HR / People"><span>HR / People</span></label>
-        <label class="dept-pill"><input type="checkbox" value="IT / Tech"><span>IT / Tech</span></label>
-        <label class="dept-pill"><input type="checkbox" value="Admin"><span>Admin</span></label>
-        <label class="dept-pill"><input type="checkbox" value="It's mostly just me"><span>It's mostly just me</span></label>
-      </div>
-    </div>
-
-    <div class="consent-box">
-      <label class="consent-label" for="privacy-consent">
-        <input type="checkbox" id="privacy-consent" />
-        <span>
-          I agree to the <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>
-          and consent to Bridge To AI securely processing my interview responses to prepare my private AI opportunity report and related service materials.
-          <span class="partner-consent-note" id="partner-consent-note">
-            I understand that anonymized, aggregated insights from participating members may be shared with the partner organization for education, course planning, and member-support strategy. Raw interview records and individual answers are not shared with the partner.
-          </span>
-        </span>
-      </label>
-    </div>
-
-    <div id="welcome-error" class="error-banner">Please fill in your name, valid email, business name, business type, and privacy consent before continuing.</div>
-
-    <button class="btn-primary" onclick="startInterview(event)" style="width:100%;">
-      Begin my discovery session ->
-    </button>
   </div>
 
   <!-- -- Screen 2: Interview -- -->

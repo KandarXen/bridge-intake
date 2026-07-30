@@ -117,8 +117,9 @@ validate-output.js
 9. To test the actual final-page button without another interview, open `/?testComplete=1&allowRealDelivery=1&recordId=PASTE_REAL_RECORD_ID&email=CLIENT_EMAIL_ON_THAT_RECORD`, then click **Email my free report**.
 3. Open `/?partner=AFPA&campaign=AFPA_December_AI_Course_2026`.
 4. Confirm the welcome screen is co-branded for AFPA and says AFPA receives anonymized aggregate insights only.
-5. Confirm the welcome screen says exact financials, recipes, customer lists, supplier contracts, payroll details, invoices, and confidential operating data are not needed for the first intake.
-5. Confirm the welcome screen links to `/privacy.html` from both the consent checkbox and footer.
+5. On desktop, confirm the welcome screen uses a wider two-column layout: explanation/trust content on the left, start form on the right.
+6. Confirm the welcome screen says exact financials, recipes, customer lists, supplier contracts, payroll details, invoices, and confidential operating data are not needed for the first intake.
+7. Confirm the welcome screen links to `/privacy.html` from both the consent checkbox and footer.
 6. Try to start an intake without checking the Privacy Policy consent box; confirm it blocks start.
 7. Start an intake after entering name, valid email, business name, business type, and checking consent.
 8. Confirm the adaptive interview explanation appears on the welcome screen.

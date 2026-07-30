@@ -7,6 +7,7 @@ This build keeps the trust-first, controlled industry-adaptive intake, live-inte
 - Privacy Policy version is now `2026-07-25-v1.56.1`.
 - Header version is now `v1.59.1`.
 - The intake welcome page now explains that Bridge To AI reports are evidence-first, not AI sales pitches.
+- The desktop welcome page now uses a wider two-column layout so the trust message, instructions, and start form are not stacked into one long narrow page.
 - Report prompts now include a permanent Evidence-First / No-Sycophancy Standard.
 - Reports are instructed to say when to build now, clean up first, or avoid automation for now.
 - Free, Level 2, and Level 3 client reports now include the configured purchase/booking links inside the report content, not only in the email body.
