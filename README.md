@@ -1,11 +1,14 @@
-# Bridge To AI Intake App - v1.58 Live Report Funnel And Privacy Proof
+# Bridge To AI Intake App - v1.58.1 Navigation And Test Mode Patch
 
 This build keeps the trust-first, controlled industry-adaptive intake and adds the live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, and admin privacy proof export.
 
 ## What Changed
 
 - Privacy Policy version is now `2026-07-25-v1.56.1`.
-- Header version is now `v1.58`.
+- Header version is now `v1.58.1`.
+- The two Voice & Standards prompts are now counted as interview steps 1 and 2, so the first business question appears as step 3 of 44 instead of question 1 of 42.
+- Back navigation from the first business question now returns to the second Voice & Standards prompt.
+- Pure completion-page test mode now disables the report-send button and labels it as test-only.
 - Server-side privacy-proof events are logged for consent, anonymized AI analysis, encrypted mapping storage, encrypted output storage, report generation, free-report email delivery, ZIP creation, and admin ZIP download.
 - Admin page now includes **Download Privacy Proof JSON** so BTAI can produce an AFPA-safe proof package for a Record ID without exposing raw answers.
 - Free-report delivery now logs timing data so Hermes can monitor generation speed, delivery speed, retries/failures, and report bottlenecks.

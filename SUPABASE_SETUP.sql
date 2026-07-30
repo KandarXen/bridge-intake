@@ -1,4 +1,4 @@
--- Bridge To AI Intake v1.52 secure storage schema
+-- Bridge To AI Intake v1.56 trust-first industry-adaptive secure storage schema
 -- Safe to rerun: uses IF NOT EXISTS where possible.
 
 create extension if not exists pgcrypto;
@@ -76,7 +76,9 @@ grant select, insert, update, delete on public.intake_outputs to service_role;
 grant select, insert, update, delete on public.intake_events to service_role;
 grant select, insert, update, delete on public.claim_trace to service_role;
 
-create or replace view public.intake_kpi_events as
+drop view if exists public.intake_kpi_events;
+
+create view public.intake_kpi_events as
 select
   id,
   created_at,
@@ -90,6 +92,8 @@ select
   metadata #>> '{details,partner}' as partner,
   metadata #>> '{details,campaign}' as campaign,
   metadata #>> '{businessCategory}' as business_category,
+  metadata #>> '{businessNiche}' as business_niche,
+  metadata #>> '{shareComfort}' as share_comfort,
   metadata #>> '{companySize}' as company_size,
   metadata #>> '{ownerWorkStatus}' as owner_work_status,
   metadata #>> '{details,answerQualityBucket}' as answer_quality_bucket,
@@ -107,6 +111,9 @@ select
   nullif(metadata #>> '{details,shortAnswerRate}', '')::numeric as short_answer_rate,
   nullif(metadata #>> '{details,generatedProbeCount}', '')::integer as generated_probe_count,
   nullif(metadata #>> '{details,answeredProbeCount}', '')::integer as answered_probe_count,
+  metadata #>> '{details,rejectedReason}' as adaptive_probe_rejected_reason,
+  metadata #>> '{details,sensitivityLevel}' as adaptive_probe_sensitivity_level,
+  metadata #>> '{details,proposedQuestionType}' as adaptive_probe_proposed_type,
   metadata
 from public.intake_events;
 

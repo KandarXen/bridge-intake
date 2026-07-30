@@ -1,4 +1,4 @@
-# Bridge To AI Intake v1.58 Secure Deploy Checklist
+# Bridge To AI Intake v1.58.1 Secure Deploy Checklist
 
 ## 1. Supabase
 
@@ -98,8 +98,14 @@ validate-output.js
 4. Open `/?testComplete=1` and confirm the completion page appears without taking an interview.
 5. Open `/?partner=AFPA&campaign=demo&testComplete=1` and confirm the AFPA completion copy appears.
 6. Confirm the completion page primary button says **Email my free report**, not **Save preference**.
-7. Open `/admin.html`, paste a real completed Record ID and `BTAI_ADMIN_SECRET`, then click **Send/Resend Free Report Email**.
-8. Confirm:
+7. Confirm pure `?testComplete=1` mode disables the report button and says **Test mode only - no report to send**.
+8. Start a real intake and confirm:
+   - first Voice & Standards prompt shows as step 1 of 44;
+   - second Voice & Standards prompt shows as step 2 of 44;
+   - first business question shows as step 3 of 44;
+   - Back from the first business question returns to the second Voice & Standards prompt.
+9. Open `/admin.html`, paste a real completed Record ID and `BTAI_ADMIN_SECRET`, then click **Send/Resend Free Report Email**.
+10. Confirm:
    - the interviewee receives the free report email with DOCX attached;
    - `INTAKE_BCC_RECIPIENT` receives a copy with the report attached;
    - the original intake notification email includes the Record ID for admin retrieval;

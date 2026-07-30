@@ -814,7 +814,7 @@
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag" id="header-tag">Business Discovery Session</span>
-      <span class="header-version">v1.58</span>
+      <span class="header-version">v1.58.1</span>
   </div>
 </header>
 
@@ -2083,8 +2083,9 @@ function renderScenario() {
   document.getElementById('btn-back').style.visibility = (scenarioStage === 'good') ? 'hidden' : 'visible';
   document.getElementById('btn-next').textContent = 'Continue ->';
 
-  // Progress: treat the 2 scenario beats as the very first steps
-  document.getElementById('progress-fill').style.width = '2%';
+  const totalSteps = (Array.isArray(QUESTIONS) ? QUESTIONS.length : 0) + 2;
+  const scenarioStep = scenarioStage === 'good' ? 1 : 2;
+  document.getElementById('progress-fill').style.width = Math.round((scenarioStep / totalSteps) * 100) + '%';
 
   let label, text, hint, saved;
   if (scenarioStage === 'good') {
@@ -2092,13 +2093,13 @@ function renderScenario() {
     text = 'Read the situation below, then write the reply you\'d be proud of - the one that shows your business at its best.';
     hint = 'SCENARIO: ' + scenarioText + '\n\nDon\'t worry about being polished. Write it the way you actually would, in your own words.';
     saved = scenarioGood;
-    document.getElementById('progress-count').textContent = 'Your voice - best reply';
+    document.getElementById('progress-count').textContent = `Your voice - ${scenarioStep} of ${totalSteps}`;
   } else {
     label = 'Your Voice & Standards';
     text = 'Now write the kind of reply you\'ve seen go wrong - rushed, dismissive, or off-brand. The kind you\'d never want sent.';
     hint = 'Same situation as before. Showing what "bad" looks like helps us understand your standards just as much as the good version.';
     saved = scenarioBad;
-    document.getElementById('progress-count').textContent = 'Your voice - what to avoid';
+    document.getElementById('progress-count').textContent = `Your voice - ${scenarioStep} of ${totalSteps}`;
   }
 
   document.getElementById('q-domain').textContent = label;
@@ -2277,9 +2278,11 @@ function renderQuestion() {
     }
     if (subStep === 'probe' && activeProbe) logHermesSectionStarted('adaptive_probe', activeProbe.domain, { questionCount: 1 });
 
-    const pct = Math.round(((currentQ + 1) / total) * 100);
+    const totalSteps = total + 2;
+    const displayStep = currentQ + 3;
+    const pct = Math.round((displayStep / totalSteps) * 100);
     document.getElementById('progress-fill').style.width = pct + '%';
-    document.getElementById('btn-back').style.visibility = (currentQ === 0 && subStep === 'main') ? 'hidden' : 'visible';
+    document.getElementById('btn-back').style.visibility = (currentQ === 0 && subStep === 'main' && !scenarioDone) ? 'hidden' : 'visible';
     document.getElementById('answer-error').style.display = 'none';
 
     let domainLabel = q.domain || 'Discovery Question';
@@ -2316,7 +2319,7 @@ function renderQuestion() {
     document.getElementById('q-hint').textContent = qHint;
     document.getElementById('progress-label').textContent = domainLabel;
     document.getElementById('progress-count').textContent =
-      countText ? `${countText} - ${currentQ + 1} of ${total}` : `Question ${currentQ + 1} of ${total}`;
+      countText ? `${countText} - ${displayStep} of ${totalSteps}` : `Question ${displayStep} of ${totalSteps}`;
 
     const isLastItem = (currentQ === total - 1);
     const lastQ = QUESTIONS[total - 1] || {};
@@ -2621,6 +2624,12 @@ function prevQuestion() {
   if (isRecording) stopRecording();
   if (subStep === 'followup' || subStep === 'probe') {
     transitionToQuestion(currentQ, 'main', null);
+    return;
+  }
+  if (currentQ === 0 && subStep === 'main' && scenarioDone) {
+    scenarioStage = 'bad';
+    saveDraft(false);
+    renderScenario();
     return;
   }
   if (currentQ > 0) {
@@ -3224,6 +3233,14 @@ function maybeLaunchCompletionTestMode() {
       : (activePartnerProfile()?.completion || `Thank you, ${clientName}. This is completion-page test mode. No interview was submitted and no report email was sent.`);
   const status = document.getElementById('followup-save-status');
   if (status) status.textContent = allowRealDelivery ? 'Real delivery test mode: no email sent until you click the button.' : 'Test mode: no report email sent.';
+  const deliveryButton = document.getElementById('report-delivery-btn');
+  if (deliveryButton && !allowRealDelivery) {
+    deliveryButton.textContent = 'Test mode only - no report to send';
+    deliveryButton.disabled = true;
+  } else if (deliveryButton) {
+    deliveryButton.textContent = 'Email my free report';
+    deliveryButton.disabled = false;
+  }
   logHermesEvent('completion_page_test_mode_loaded', 'info', {
     partner: campaignPartner,
     campaign: campaignId,
