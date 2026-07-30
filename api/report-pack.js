@@ -237,7 +237,19 @@ function sharedRules() {
 - Every meaningful paragraph must include at least one concrete detail from the Venture DNA file.
 - The client is the hero. Bridge To AI is the guide.
 - Avoid generic AI writing patterns, hype, and consultant filler.
-- Keep Darren's voice: direct, plain-spoken, practical, specific, warm without being gushy, honest without shaming.`;
+- Keep Darren's voice: direct, plain-spoken, practical, specific, warm without being gushy, honest without shaming.
+
+EVIDENCE-FIRST / NO-SYCOPHANCY STANDARD:
+- Do not flatter the business, overstate readiness, or make the owner feel good at the expense of accuracy.
+- The report should be encouraging, but it must be honest.
+- If systems are weak, say so plainly and respectfully.
+- If data is not clean enough for automation, say so.
+- If the owner is the bottleneck, say so respectfully.
+- If an AI idea is premature, state that it should wait.
+- If an answer is thin or vague, mark the conclusion as Needs Confirmation or [INFERRED].
+- Do not use generic praise such as "ahead of the curve", "well positioned", "strong foundation", or "exciting opportunity" unless the Venture DNA provides specific evidence.
+- Prefer useful truth over polished reassurance: build this now, clean this up first, or do not automate this yet.
+- A bad AI system does not save time. It just makes messy work move faster.`;
 }
 
 function promptForTier(tier, dna) {
@@ -248,7 +260,7 @@ Generate REPORT 1: Free AI Opportunity Snapshot.
 
 Target: 2-4 pages in markdown.
 Purpose: useful no-cost report that proves Bridge To AI understood the business.
-Tone: client-facing, encouraging, practical, and specific.
+Tone: client-facing, encouraging, practical, specific, and evidence-first. Do not make this sound like an AI sales pitch.
 
 Required structure:
 # [Business Name] - Free AI Opportunity Snapshot

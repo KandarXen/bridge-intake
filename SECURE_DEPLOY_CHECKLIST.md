@@ -1,4 +1,4 @@
-# Bridge To AI Intake v1.59 Secure Deploy Checklist
+# Bridge To AI Intake v1.59.1 Secure Deploy Checklist
 
 ## 1. Supabase
 
@@ -188,3 +188,4 @@ validate-output.js
 - The report pack ZIP intentionally excludes the raw Venture DNA markdown. The raw markdown remains available only through the protected admin MD retrieval action.
 - Privacy proof logs are sanitized event records. They prove encryption/anonymization/report handling without logging raw answers, client email, recipes, suppliers, payroll, invoices, formulas, or confidential operating data.
 - v1.59 proof logs include consent proof, cross-border notice proof, retention proof, report privacy scan proof, and admin access audit proof.
+- v1.59.1 adds the evidence-first/no-sycophancy standard to the intake welcome screen and report prompts.

@@ -1,11 +1,14 @@
-# Bridge To AI Intake App - v1.59 Payment Links And Privacy Proof Hardening
+# Bridge To AI Intake App - v1.59.1 Evidence-First Reporting
 
-This build keeps the trust-first, controlled industry-adaptive intake and adds the live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, and admin privacy proof export.
+This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, and admin privacy proof export. v1.59.1 adds the evidence-first/no-sycophancy trust standard to the intake page and report prompts.
 
 ## What Changed
 
 - Privacy Policy version is now `2026-07-25-v1.56.1`.
-- Header version is now `v1.59`.
+- Header version is now `v1.59.1`.
+- The intake welcome page now explains that Bridge To AI reports are evidence-first, not AI sales pitches.
+- Report prompts now include a permanent Evidence-First / No-Sycophancy Standard.
+- Reports are instructed to say when to build now, clean up first, or avoid automation for now.
 - Free, Level 2, and Level 3 client reports now include the configured purchase/booking links inside the report content, not only in the email body.
 - Every report now includes the standard BTAI Secure Intelligence Layer privacy statement.
 - Reports are scanned before DOCX creation for obvious sensitive-data patterns, and the scan result is logged to the privacy proof trail.
