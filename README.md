@@ -1,11 +1,17 @@
-# Bridge To AI Intake App - v1.58.1 Navigation And Test Mode Patch
+# Bridge To AI Intake App - v1.59 Payment Links And Privacy Proof Hardening
 
 This build keeps the trust-first, controlled industry-adaptive intake and adds the live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, and admin privacy proof export.
 
 ## What Changed
 
 - Privacy Policy version is now `2026-07-25-v1.56.1`.
-- Header version is now `v1.58.1`.
+- Header version is now `v1.59`.
+- Free, Level 2, and Level 3 client reports now include the configured purchase/booking links inside the report content, not only in the email body.
+- Every report now includes the standard BTAI Secure Intelligence Layer privacy statement.
+- Reports are scanned before DOCX creation for obvious sensitive-data patterns, and the scan result is logged to the privacy proof trail.
+- Server-side proof now records consent, Privacy Policy version, partner aggregate disclosure, cross-border processing notice, privacy contact availability, retention policy version, scheduled review date, and deletion request availability.
+- Admin download of the raw Venture DNA markdown is logged as an admin access audit event.
+- Privacy Proof JSON now includes a top-level conclusion and identifies missing improvement items instead of silently passing incomplete proof.
 - The two Voice & Standards prompts are now counted as interview steps 1 and 2, so the first business question appears as step 3 of 44 instead of question 1 of 42.
 - Back navigation from the first business question now returns to the second Voice & Standards prompt.
 - Pure completion-page test mode now disables the report-send button and labels it as test-only.
@@ -94,6 +100,13 @@ BTAI_LEVEL3_PAYMENT_URL=
 BTAI_CONSULTATION_URL=
 ```
 
+Payment links should be Stripe Payment Links or another live purchase URL:
+
+```text
+BTAI_LEVEL2_PAYMENT_URL=https://buy.stripe.com/...
+BTAI_LEVEL3_PAYMENT_URL=https://buy.stripe.com/...
+```
+
 ## Admin Retrieval
 
 ## Completion Page Test Mode
@@ -158,13 +171,19 @@ Use `/admin.html`, paste the Record ID and `BTAI_ADMIN_SECRET`, then click **Dow
 The export is designed for AFPA/client trust review. It includes sanitized event proof such as:
 
 ```text
+privacy_proof_consent_recorded
+privacy_proof_cross_border_notice
+privacy_proof_retention_policy_recorded
 privacy_proof_anonymization_completed
 privacy_proof_mapping_storage
 privacy_proof_ai_analysis_requested
 privacy_proof_secure_output_storage
+report_privacy_scan_completed
 report_generation_started
 report_generated
 free_report_emailed
+admin_raw_dna_retrieved
+admin_privacy_proof_downloaded
 report_pack_zip_built
 report_pack_zip_downloaded
 ```

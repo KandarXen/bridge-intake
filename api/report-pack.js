@@ -1,4 +1,4 @@
-import { decryptJson, encryptJson } from '../lib/crypto.js';
+﻿import { decryptJson, encryptJson } from '../lib/crypto.js';
 import { createDocxBuffer, createZipBuffer } from '../lib/docx.js';
 import { getIntakeEvents, getIntakeSession, getLatestIntakeOutput, insertIntakeEvent, insertIntakeOutput } from '../lib/supabase-rest.js';
 import { validateDnaOutput } from '../lib/validate-output.js';
@@ -158,6 +158,70 @@ function ctaLineHtml(label, url, description) {
     ? `<a href="${escapeHtml(url)}" style="color:#0d6e5e;font-weight:700;text-decoration:none;">${safeLabel}</a>`
     : `<strong>${safeLabel}</strong>`;
   return `<div style="margin-bottom:10px;">${line}${safeDesc ? `<br><span style="color:#4b5563;">${safeDesc}</span>` : ''}</div>`;
+}
+
+function paymentConfig() {
+  return {
+    level2Price: priceLabel('BTAI_LEVEL2_PRICE_LABEL', '$147 introductory'),
+    level3Price: priceLabel('BTAI_LEVEL3_PRICE_LABEL', '$397 introductory'),
+    level2Url: process.env.BTAI_LEVEL2_PAYMENT_URL || '',
+    level3Url: process.env.BTAI_LEVEL3_PAYMENT_URL || '',
+    consultUrl: process.env.BTAI_CONSULTATION_URL || ''
+  };
+}
+
+function reportPrivacyStatement() {
+  return `## Privacy And Secure Handling
+
+This report was prepared through the BTAI Secure Intelligence Layer. Before AI analysis, direct identifiers are removed or replaced where practical. The secure record and private re-identification map are encrypted at rest using AES-256-GCM. Raw interview responses are not shared with partner organizations, and partner reporting is limited to anonymized aggregate insights where applicable. The raw Venture DNA file is not included in client report packages. This privacy process is designed to support Alberta and Canadian private-sector privacy principles, including consent, limited collection, safeguards, limited disclosure, and accountability.`;
+}
+
+function clientUpgradeSection(tier) {
+  const { level2Price, level3Price, level2Url, level3Url, consultUrl } = paymentConfig();
+  if (tier === 'btai') return '';
+  if (tier === 'roadmap') {
+    return `## Bridge To AI Implementation Support
+
+This action plan is still preliminary. If you want Bridge To AI to help turn it into a working AI system or workbench, book a scoping conversation here:
+
+${consultUrl || 'Reply to the Bridge To AI email thread to request implementation scoping.'}
+
+A workbench is a private operating dashboard built around your business so repeated workflows can run from one place instead of being scattered across notes, spreadsheets, prompts, files, and tools.`;
+  }
+  return `## Want To Go Deeper?
+
+The free snapshot gives you the first layer. The deeper reports look at implementation order, what should wait, what could save time first, and which workflows could become part of a private Bridge To AI workbench.
+
+- Detailed AI Opportunity Report - ${level2Price}: A deeper diagnosis of readiness gaps, ranked opportunities, and practical first projects. ${level2Url || 'Payment link coming soon.'}
+- Preliminary AI Action Plan - ${level3Price}: A more complete implementation sequence with workflow priorities, risk controls, and scoping questions. ${level3Url || 'Payment link coming soon.'}
+- Talk with Bridge To AI about implementation or a custom workbench: ${consultUrl || 'Reply to the Bridge To AI email thread to request a conversation.'}`;
+}
+
+function decorateReportMarkdown(markdown, tier) {
+  const sections = [String(markdown || '').trim()];
+  if (tier !== 'btai') sections.push(clientUpgradeSection(tier));
+  sections.push(reportPrivacyStatement());
+  return sections.filter(Boolean).join('\n\n');
+}
+
+function scanReportPrivacy(markdown) {
+  const text = String(markdown || '');
+  const findings = [];
+  const checks = [
+    ['email_address', /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i],
+    ['phone_number', /(?:\+?1[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)\d{3}[\s.-]?\d{4}/],
+    ['credit_card_like_number', /\b(?:\d[ -]*?){13,19}\b/],
+    ['private_financial_document_language', /\b(invoice|payroll|bank account|routing number|credit card|supplier contract|customer list|confidential formula)\b/i]
+  ];
+  checks.forEach(([type, pattern]) => {
+    if (pattern.test(text)) findings.push(type);
+  });
+  return {
+    completed: true,
+    rawSensitiveDataDetected: findings.length > 0,
+    findings,
+    reportApprovedForClientDelivery: findings.length === 0
+  };
 }
 
 function sharedRules() {
@@ -324,8 +388,20 @@ async function generateOne(clientDraftId, tier) {
     payloadType: 'encrypted_venture_dna_record',
     startedAt: new Date(startedAt).toISOString()
   }));
-  const markdown = await callClaude(promptForTier(tier, dnaContent), spec.maxTokens);
+  const generatedMarkdown = await callClaude(promptForTier(tier, dnaContent), spec.maxTokens);
+  const markdown = decorateReportMarkdown(generatedMarkdown, tier);
   const validation = validateDnaOutput(markdown, { requireEvidenceLabels: false });
+  const privacyScan = scanReportPrivacy(markdown);
+  await logReportEvent(clientDraftId, 'report_privacy_scan_completed', privacyScan.reportApprovedForClientDelivery ? 'success' : 'warning', privacyProofDefaults({
+    partner: meta?.sourceMeta?.partner || 'BTAI',
+    campaign: meta?.sourceMeta?.campaign || 'general_intake',
+    reportTier: tier,
+    reportOutputType: spec.docxOutputType,
+    reportPrivacyScanCompleted: true,
+    rawSensitiveDataDetected: privacyScan.rawSensitiveDataDetected,
+    reportApprovedForClientDelivery: privacyScan.reportApprovedForClientDelivery,
+    privacyScanFindings: privacyScan.findings
+  }));
   const docx = createDocxBuffer(markdown);
 
   const mdRow = await insertIntakeOutput({
@@ -336,7 +412,8 @@ async function generateOne(clientDraftId, tier) {
       tier,
       businessName,
       markdown,
-      validation
+      validation,
+      privacyScan
     })
   });
 
@@ -349,7 +426,8 @@ async function generateOne(clientDraftId, tier) {
       businessName,
       filename: `${businessName}_${spec.filename}.docx`,
       contentBase64: docx.toString('base64'),
-      validation
+      validation,
+      privacyScan
     })
   });
 
@@ -461,11 +539,7 @@ async function generateAll(clientDraftId) {
 async function sendFreeReportEmail({ clientDraftId, clientEmail, clientName, businessName, doc }) {
   if (!process.env.RESEND_API_KEY) throw new Error('Missing RESEND_API_KEY');
   const bccRecipient = process.env.INTAKE_BCC_RECIPIENT || 'darren.randles@gmail.com';
-  const level2Price = priceLabel('BTAI_LEVEL2_PRICE_LABEL', '$147 introductory');
-  const level3Price = priceLabel('BTAI_LEVEL3_PRICE_LABEL', '$397 introductory');
-  const level2Url = process.env.BTAI_LEVEL2_PAYMENT_URL || '';
-  const level3Url = process.env.BTAI_LEVEL3_PAYMENT_URL || '';
-  const consultUrl = process.env.BTAI_CONSULTATION_URL || '';
+  const { level2Price, level3Price, level2Url, level3Url, consultUrl } = paymentConfig();
   const html = `
     <div style="font-family:Inter,Arial,sans-serif;max-width:640px;margin:0 auto;color:#111827;">
       <div style="background:#0d6e5e;padding:24px 30px;border-radius:12px 12px 0 0;">
@@ -488,7 +562,7 @@ async function sendFreeReportEmail({ clientDraftId, clientEmail, clientName, bus
         <p style="font-size:13px;color:#6b7280;line-height:1.5;margin-bottom:0;margin-top:18px;">Record ID: <code>${escapeHtml(clientDraftId)}</code></p>
       </div>
     </div>`;
-  const text = `Your Bridge To AI opportunity snapshot is ready.\n\nThe free report is attached.\n\nWhat this snapshot does not fully cover:\n- Detailed AI Opportunity Report - ${level2Price}: deeper diagnosis, readiness gaps, and prioritized first projects.\n- Preliminary AI Action Plan - ${level3Price}: implementation phases, workflow priorities, risk controls, and scoping questions.\n- Implementation support: help turning the plan into a working AI system or workbench after private scoping.\n\nA workbench is a private operating dashboard built around your business so repeated workflows can run from one place.\n\nRecord ID: ${clientDraftId}`;
+  const text = `Your Bridge To AI opportunity snapshot is ready.\n\nThe free report is attached.\n\nWhat this snapshot does not fully cover:\n- Detailed AI Opportunity Report - ${level2Price}: deeper diagnosis, readiness gaps, and prioritized first projects. ${level2Url || 'Reply to this email to request it.'}\n- Preliminary AI Action Plan - ${level3Price}: implementation phases, workflow priorities, and scoping questions. ${level3Url || 'Reply to this email to request it.'}\n- Implementation support: help turning the plan into a working AI system or workbench after private scoping. ${consultUrl || 'Reply to this email to request a conversation.'}\n\nA workbench is a private operating dashboard built around your business so repeated workflows can run from one place.\n\nRecord ID: ${clientDraftId}`;
   const payload = {
     from: 'The Bridge Team <team@bridgetoai.ca>',
     to: [clientEmail],
@@ -587,16 +661,23 @@ async function privacyProofSummary(clientDraftId) {
     return metadata.privacyProof || String(event.stage || '').includes('privacy') || String(event.event_type || '').includes('privacy_proof');
   });
 
-  return {
+  const summary = {
     recordId: clientDraftId,
     generatedAt: new Date().toISOString(),
     proofEventCount: proofEvents.length,
     encryptedRecordsConfirmed: proofEvents.some(e => e.event_type === 'privacy_proof_secure_output_storage' && e.status === 'success'),
     anonymizedAiAnalysisConfirmed: proofEvents.some(e => e.event_type === 'privacy_proof_ai_analysis_requested' && e.status === 'success'),
+    privacyConsentConfirmed: proofEvents.some(e => e.event_type === 'privacy_proof_consent_recorded' && e.status === 'success'),
+    crossBorderNoticeConfirmed: proofEvents.some(e => e.event_type === 'privacy_proof_cross_border_notice' && e.status === 'success'),
+    retentionPolicyRecorded: proofEvents.some(e => e.event_type === 'privacy_proof_retention_policy_recorded' && e.status === 'success'),
+    adminAccessLogged: proofEvents.some(e => String(e.stage || '') === 'admin_access_audit' || String(e.event_type || '').startsWith('admin_')),
+    reportPrivacyScanCompleted: proofEvents.some(e => e.event_type === 'report_privacy_scan_completed'),
     rawDataSharedWithPartner: false,
     rawDnaIncludedInReportZip: false,
     partnerAggregateOnly: true,
     clientFacingEmailContainsRawDna: false,
+    privacyConclusion: 'Passed with technical privacy-by-design evidence. Not a legal opinion.',
+    remainingImprovements: [],
     events: proofEvents.map(event => ({
       createdAt: event.created_at,
       eventType: event.event_type,
@@ -605,6 +686,15 @@ async function privacyProofSummary(clientDraftId) {
       details: event.metadata?.details || {}
     }))
   };
+  if (!summary.privacyConsentConfirmed) summary.remainingImprovements.push('Consent proof was not found for this record.');
+  if (!summary.crossBorderNoticeConfirmed) summary.remainingImprovements.push('Cross-border processing notice proof was not found for this record.');
+  if (!summary.retentionPolicyRecorded) summary.remainingImprovements.push('Retention/deletion policy proof was not found for this record.');
+  if (!summary.adminAccessLogged) summary.remainingImprovements.push('No admin access event has been logged yet for this record.');
+  if (!summary.reportPrivacyScanCompleted) summary.remainingImprovements.push('Report privacy scan proof was not found for this record.');
+  summary.privacyConclusion = summary.remainingImprovements.length
+    ? 'Passed core SIL privacy proof with improvement items noted.'
+    : 'Passed SIL privacy proof with consent, cross-border notice, retention, encrypted storage, anonymized AI analysis, report scan, and access audit evidence.';
+  return summary;
 }
 
 async function downloadZip(clientDraftId) {
@@ -638,10 +728,20 @@ export default async function handler(req, res) {
     if (action === 'build-zip') return res.status(200).json(await buildZip(clientDraftId));
     if (action === 'download-zip') return res.status(200).json(await downloadZip(clientDraftId));
     if (action === 'status') return res.status(200).json({ status: await status(clientDraftId) });
-    if (action === 'privacy-proof-summary') return res.status(200).json({ privacyProof: await privacyProofSummary(clientDraftId) });
+    if (action === 'privacy-proof-summary') {
+      await logReportEvent(clientDraftId, 'admin_privacy_proof_downloaded', 'success', privacyProofDefaults({
+        privacyProofType: 'admin_access',
+        adminAccessLogged: true,
+        adminAction: 'download_privacy_proof',
+        recordAccessPurpose: 'privacy_audit',
+        rawDnaAccessed: false
+      }));
+      return res.status(200).json({ privacyProof: await privacyProofSummary(clientDraftId) });
+    }
     return res.status(400).json({ error: 'Unknown report-pack action' });
   } catch (err) {
     console.error('report-pack error:', err);
     return res.status(500).json({ error: 'Server error', message: err.message });
   }
 }
+

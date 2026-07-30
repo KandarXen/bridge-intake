@@ -1,4 +1,4 @@
-# Bridge To AI Intake v1.58.1 Secure Deploy Checklist
+# Bridge To AI Intake v1.59 Secure Deploy Checklist
 
 ## 1. Supabase
 
@@ -45,6 +45,8 @@ BTAI_LEVEL2_PAYMENT_URL=
 BTAI_LEVEL3_PAYMENT_URL=
 BTAI_CONSULTATION_URL=
 ```
+
+For live purchases, `BTAI_LEVEL2_PAYMENT_URL` and `BTAI_LEVEL3_PAYMENT_URL` should be Stripe Payment Links such as `https://buy.stripe.com/...`.
 
 `BTAI_STORE_RECORD_LABELS=false` keeps client and business names out of plaintext Supabase metadata. The names remain inside encrypted payloads.
 
@@ -136,6 +138,10 @@ validate-output.js
 18. On `/admin.html`, click **Download Privacy Proof JSON** and confirm:
     - `encryptedRecordsConfirmed` is `true`
     - `anonymizedAiAnalysisConfirmed` is `true`
+    - `privacyConsentConfirmed` is `true`
+    - `crossBorderNoticeConfirmed` is `true`
+    - `retentionPolicyRecorded` is `true`
+    - `reportPrivacyScanCompleted` is `true`
     - `rawDataSharedWithPartner` is `false`
     - `rawDnaIncludedInReportZip` is `false`
     - the export contains proof events but no raw interview answers
@@ -160,6 +166,11 @@ validate-output.js
     - `Client_Name_Level2_Report.docx`
     - `Client_Name_Level3_Report.docx`
     - `Client_Name_Internal_brief.docx`
+23. Open the free report DOCX and confirm:
+    - the Level 2 purchase link appears in the report body
+    - the Level 3 purchase link appears in the report body
+    - the BTAI Secure Intelligence Layer privacy statement appears in the report body
+    - no raw Venture DNA markdown is included
 
 ## 6. Security Notes
 
@@ -176,3 +187,4 @@ validate-output.js
 - Report files are generated from the encrypted completed intake record and stored encrypted before admin download.
 - The report pack ZIP intentionally excludes the raw Venture DNA markdown. The raw markdown remains available only through the protected admin MD retrieval action.
 - Privacy proof logs are sanitized event records. They prove encryption/anonymization/report handling without logging raw answers, client email, recipes, suppliers, payroll, invoices, formulas, or confidential operating data.
+- v1.59 proof logs include consent proof, cross-border notice proof, retention proof, report privacy scan proof, and admin access audit proof.

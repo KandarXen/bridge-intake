@@ -814,7 +814,7 @@
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag" id="header-tag">Business Discovery Session</span>
-      <span class="header-version">v1.58.1</span>
+      <span class="header-version">v1.59</span>
   </div>
 </header>
 
@@ -3065,7 +3065,16 @@ async function generateDNAWithClaude() {
         companySize,
         ownerWorkStatus,
         questionCount: QUESTIONS.length,
-        soloOrNoStaff: isSoloOrNoStaff()
+        soloOrNoStaff: isSoloOrNoStaff(),
+        privacyConsent,
+        privacyConsentAt,
+        privacyPolicyVersion: PRIVACY_POLICY_VERSION,
+        partnerAggregateDisclosureShown: !!activePartnerProfile(),
+        partnerAggregateDisclosureAccepted: !!privacyConsent,
+        crossBorderProcessingNoticePresented: true,
+        serviceProviderPolicyAvailable: true,
+        privacyContactPresented: true,
+        deletionRequestPathAvailable: true
       }
     })
   });

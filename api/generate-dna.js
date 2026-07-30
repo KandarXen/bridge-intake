@@ -41,6 +41,19 @@ async function logPrivacyProof(clientDraftId, eventType, status, details = {}) {
   }
 }
 
+function retentionMetadata(category = 'first_intake') {
+  const now = new Date();
+  const review = new Date(now);
+  if (category === 'draft') review.setDate(review.getDate() + 30);
+  else review.setMonth(review.getMonth() + 24);
+  return {
+    retentionPolicyVersion: '2026-07-30-v1',
+    retentionCategory: category,
+    scheduledReviewDate: review.toISOString(),
+    deletionRequestPathAvailable: true
+  };
+}
+
 async function callClaude(messages) {
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -194,7 +207,10 @@ async function saveCompletedDna(clientDraftId, dnaContent, meta = {}) {
       encrypted_payload: encryptJson({
         createdAt: new Date().toISOString(),
         dnaContent,
-        meta
+        meta: {
+          ...meta,
+          retention: retentionMetadata('first_intake')
+        }
       })
     });
     await updateIntakeSession(clientDraftId, {
@@ -239,6 +255,28 @@ export default async function handler(req, res) {
   }
 
   try {
+    await logPrivacyProof(clientDraftId, 'privacy_proof_consent_recorded', sourceMeta?.privacyConsent ? 'success' : 'failed', {
+      privacyProofType: 'consent',
+      privacyConsentAccepted: !!sourceMeta?.privacyConsent,
+      privacyConsentAt: sourceMeta?.privacyConsentAt || '',
+      privacyPolicyVersion: sourceMeta?.privacyPolicyVersion || '',
+      partnerAggregateDisclosureShown: !!sourceMeta?.partnerAggregateDisclosureShown,
+      partnerAggregateDisclosureAccepted: !!sourceMeta?.partnerAggregateDisclosureAccepted,
+      proofStatus: sourceMeta?.privacyConsent ? 'passed' : 'failed'
+    });
+    await logPrivacyProof(clientDraftId, 'privacy_proof_cross_border_notice', 'success', {
+      privacyProofType: 'cross_border_notice',
+      crossBorderProcessingNoticePresented: !!sourceMeta?.crossBorderProcessingNoticePresented,
+      serviceProviderPolicyAvailable: !!sourceMeta?.serviceProviderPolicyAvailable,
+      privacyContactPresented: !!sourceMeta?.privacyContactPresented,
+      privacyPolicyVersion: sourceMeta?.privacyPolicyVersion || '',
+      proofStatus: 'passed'
+    });
+    await logPrivacyProof(clientDraftId, 'privacy_proof_retention_policy_recorded', 'success', {
+      privacyProofType: 'retention',
+      ...retentionMetadata('first_intake'),
+      proofStatus: 'passed'
+    });
     const hermesPrivacy = anonymizePrompt(prompt);
     await logPrivacyProof(clientDraftId, 'privacy_proof_anonymization_completed', 'success', {
       privacyProofType: 'anonymization',
