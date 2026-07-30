@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BTAI Admin Retrieval And Reports</title>
+  <style>
+    :root {
+      --green: #0d6e5e;
+      --green-dark: #095a4d;
+      --ink: #171717;
+      --muted: #6f7378;
+      --line: #dedbd4;
+      --paper: #fafaf8;
+      --warn: #8a5b00;
+      --soft: #f3f1ec;
+      --ok: #127c45;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+      padding: 24px;
+    }
+    main {
+      width: min(920px, 100%);
+      margin: 0 auto;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 28px;
+      box-shadow: 0 16px 42px rgba(0,0,0,.06);
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 1.35rem;
+      letter-spacing: 0;
+    }
+    h2 {
+      margin: 28px 0 10px;
+      font-size: 1rem;
+      letter-spacing: .02em;
+    }
+    p {
+      margin: 0 0 18px;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+    label {
+      display: block;
+      font-weight: 650;
+      margin: 18px 0 7px;
+      font-size: .9rem;
+    }
+    input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 12px 13px;
+      font-size: 1rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+    button {
+      background: var(--green);
+      color: #fff;
+      border: 0;
+      border-radius: 6px;
+      padding: 12px 16px;
+      font-weight: 700;
+      cursor: pointer;
+      min-height: 44px;
+    }
+    button:hover { background: var(--green-dark); }
+    button:disabled {
+      opacity: .65;
+      cursor: wait;
+    }
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .secondary {
+      background: #fff;
+      color: var(--green);
+      border: 1px solid var(--green);
+    }
+    .secondary:hover {
+      background: #f0faf7;
+    }
+    .panel {
+      border: 1px solid var(--line);
+      background: var(--soft);
+      border-radius: 8px;
+      padding: 18px;
+      margin-top: 18px;
+    }
+    .notice {
+      margin-top: 20px;
+      border: 1px solid #ecd596;
+      background: #fff8e6;
+      color: var(--warn);
+      border-radius: 6px;
+      padding: 12px 14px;
+      font-size: .9rem;
+    }
+    .status {
+      margin-top: 18px;
+      white-space: pre-wrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .86rem;
+      color: #374151;
+      line-height: 1.5;
+    }
+    .checklist {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: .92rem;
+    }
+    .ready {
+      color: var(--ok);
+      font-weight: 700;
+    }
+    @media (max-width: 720px) {
+      body { padding: 14px; }
+      main { padding: 20px; }
+      .grid { grid-template-columns: 1fr; }
+      button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>BTAI Admin Retrieval And Reports</h1>
+    <p>Use the Record ID from the intake notification email to retrieve the encrypted Venture DNA file, then generate the client reports and the internal BTAI advisor brief.</p>
+
+    <div class="grid">
+      <div>
+        <label for="record-id">Record ID / clientDraftId</label>
+        <input id="record-id" autocomplete="off" placeholder="Paste the Record ID from the notification email">
+      </div>
+      <div>
+        <label for="admin-secret">Admin secret</label>
+        <input id="admin-secret" type="password" autocomplete="current-password" placeholder="Paste BTAI_ADMIN_SECRET">
+      </div>
+    </div>
+
+    <label for="filename">Filename label for MD download (optional)</label>
+    <input id="filename" autocomplete="off" placeholder="Example_Client_Name">
+
+    <div class="button-row">
+      <button id="download-md-btn" type="button">Download Venture DNA .md</button>
+      <button id="refresh-status-btn" class="secondary" type="button">Check Report Status</button>
+      <button id="send-free-report-btn" class="secondary" type="button">Send/Resend Free Report Email</button>
+      <button id="privacy-proof-btn" class="secondary" type="button">Download Privacy Proof JSON</button>
+    </div>
+
+    <div class="panel">
+      <h2>Report Pack</h2>
+      <p>Generate the full report pack in one orchestration run. The individual buttons remain available only as recovery tools. Each file is created from the encrypted Venture DNA record and stored back into the secure session before download. The raw Venture DNA markdown is not included in the ZIP.</p>
+      <div class="button-row">
+        <button id="generate-all-btn" type="button">Generate Full Report Pack</button>
+        <button data-tier="free" type="button">Generate Free Snapshot</button>
+        <button data-tier="detailed" type="button">Generate Detailed Opportunity Report</button>
+        <button data-tier="roadmap" type="button">Generate Preliminary Action Plan</button>
+        <button data-tier="btai" type="button">Generate BTAI Advisor Brief</button>
+        <button id="download-zip-btn" class="secondary" type="button">Download Report Pack ZIP</button>
+      </div>
+      <div id="report-status" class="checklist">
+        <div>Free Snapshot: unknown</div>
+        <div>Detailed Opportunity Report: unknown</div>
+        <div>Preliminary Action Plan: unknown</div>
+        <div>BTAI Advisor Brief: unknown</div>
+        <div>ZIP: unknown</div>
+      </div>
+    </div>
+
+    <div class="notice">Do not share this page or admin secret. Files are decrypted only after the server verifies the admin secret.</div>
+    <div id="status" class="status"></div>
+  </main>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const reportStatusEl = document.getElementById('report-status');
+    const buttons = Array.from(document.querySelectorAll('button'));
+
+    function formValues() {
+      return {
+        clientDraftId: document.getElementById('record-id').value.trim(),
+        adminSecret: document.getElementById('admin-secret').value,
+        filename: document.getElementById('filename').value.trim()
+      };
+    }
+
+    function requireBasics() {
+      const values = formValues();
+      if (!values.clientDraftId || !values.adminSecret) {
+        statusEl.textContent = 'Record ID and admin secret are required.';
+        return null;
+      }
+      return values;
+    }
+
+    function setBusy(isBusy, message) {
+      buttons.forEach(button => { button.disabled = isBusy; });
+      if (message) statusEl.textContent = message;
+    }
+
+    function downloadText(filename, text) {
+      const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
+      downloadBlob(filename, blob);
+    }
+
+    function downloadZip(filename, contentBase64) {
+      const bytes = Uint8Array.from(atob(contentBase64), char => char.charCodeAt(0));
+      downloadBlob(filename, new Blob([bytes], { type: 'application/zip' }));
+    }
+
+    function downloadBlob(filename, blob) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    async function postJson(url, body, adminSecret) {
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-btai-admin-secret': adminSecret
+        },
+        body: JSON.stringify(body)
+      });
+      const data = await resp.json();
+      if (!resp.ok || data.success === false || data.error) {
+        throw new Error(data.error || data.message || 'Request failed');
+      }
+      return data;
+    }
+
+    async function refreshReportStatus(silent) {
+      const values = requireBasics();
+      if (!values) return;
+      if (!silent) setBusy(true, 'Checking report status...');
+      try {
+        const data = await postJson('/api/report-pack', {
+          action: 'status',
+          clientDraftId: values.clientDraftId
+        }, values.adminSecret);
+        const s = data.status || {};
+        reportStatusEl.innerHTML = `
+          <div class="${s.free ? 'ready' : ''}">Free Snapshot: ${s.free ? 'ready' : 'not generated'}</div>
+          <div class="${s.detailed ? 'ready' : ''}">Detailed Opportunity Report: ${s.detailed ? 'ready' : 'not generated'}</div>
+          <div class="${s.roadmap ? 'ready' : ''}">Preliminary Action Plan: ${s.roadmap ? 'ready' : 'not generated'}</div>
+          <div class="${s.btai ? 'ready' : ''}">BTAI Advisor Brief: ${s.btai ? 'ready' : 'not generated'}</div>
+          <div class="${s.zip ? 'ready' : ''}">ZIP: ${s.zip ? 'ready' : 'not built yet'}</div>
+        `;
+        if (!silent) statusEl.textContent = 'Report status updated.';
+      } catch (err) {
+        statusEl.textContent = `Error: ${err.message}`;
+      } finally {
+        if (!silent) setBusy(false);
+      }
+    }
+
+    document.getElementById('download-md-btn').addEventListener('click', async () => {
+      const values = requireBasics();
+      if (!values) return;
+      setBusy(true, 'Retrieving encrypted Venture DNA output...');
+      try {
+        const data = await postJson('/api/admin-output', {
+          clientDraftId: values.clientDraftId,
+          filename: values.filename
+        }, values.adminSecret);
+        downloadText(data.filename, data.dnaContent);
+        statusEl.textContent = `Downloaded ${data.filename}\nOutput ID: ${data.outputId}\nCreated: ${data.createdAt}`;
+      } catch (err) {
+        statusEl.textContent = `Error: ${err.message}`;
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    document.getElementById('refresh-status-btn').addEventListener('click', () => refreshReportStatus(false));
+
+    document.getElementById('privacy-proof-btn').addEventListener('click', async () => {
+      const values = requireBasics();
+      if (!values) return;
+      setBusy(true, 'Building privacy proof summary from sanitized event logs...');
+      try {
+        const data = await postJson('/api/report-pack', {
+          action: 'privacy-proof-summary',
+          clientDraftId: values.clientDraftId
+        }, values.adminSecret);
+        const filename = `${values.filename || values.clientDraftId}_Privacy_Proof.json`.replace(/[^a-zA-Z0-9_.-]+/g, '_');
+        downloadText(filename, JSON.stringify(data.privacyProof, null, 2));
+        statusEl.textContent = `Downloaded ${filename}\nProof events: ${data.privacyProof?.proofEventCount || 0}\nEncrypted records confirmed: ${data.privacyProof?.encryptedRecordsConfirmed ? 'yes' : 'not yet'}\nAnonymized AI analysis confirmed: ${data.privacyProof?.anonymizedAiAnalysisConfirmed ? 'yes' : 'not yet'}\nRaw data shared with partner: ${data.privacyProof?.rawDataSharedWithPartner ? 'yes' : 'no'}`;
+      } catch (err) {
+        statusEl.textContent = `Error: ${err.message}`;
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    document.getElementById('send-free-report-btn').addEventListener('click', async () => {
+      const values = requireBasics();
+      if (!values) return;
+      setBusy(true, 'Generating and sending the free report email from the secure record...');
+      try {
+        const data = await postJson('/api/report-pack', {
+          action: 'generate-free-email',
+          clientDraftId: values.clientDraftId
+        }, values.adminSecret);
+        statusEl.textContent = `Free report email sent.\nRecipient: ${data.recipient || 'session email'}\nResend ID: ${data.id || 'not returned'}`;
+        await refreshReportStatus(true);
+      } catch (err) {
+        statusEl.textContent = `Error: ${err.message}`;
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    document.getElementById('generate-all-btn').addEventListener('click', async () => {
+      const values = requireBasics();
+      if (!values) return;
+      setBusy(true, 'Generating the full report pack...\nThis runs the four report jobs together, then builds the ZIP. Keep this page open until the status updates.');
+      try {
+        const data = await postJson('/api/report-pack', {
+          action: 'generate-all',
+          clientDraftId: values.clientDraftId
+        }, values.adminSecret);
+        statusEl.textContent = `Full report pack ready.\nZIP output: ${data.zip?.outputId || 'created'}\nReports: ${(data.results || []).map(r => `${r.tier}${r.generated ? ' generated' : ' already ready'}`).join(', ')}`;
+        await refreshReportStatus(true);
+      } catch (err) {
+        statusEl.textContent = `Error: ${err.message}`;
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    document.querySelectorAll('[data-tier]').forEach(button => {
+      button.addEventListener('click', async () => {
+        const values = requireBasics();
+        if (!values) return;
+        const tier = button.getAttribute('data-tier');
+        setBusy(true, `Generating ${button.textContent}...\nThis can take a minute. Keep this page open until the status updates.`);
+        try {
+          const data = await postJson('/api/report-pack', {
+            action: 'generate-one',
+            clientDraftId: values.clientDraftId,
+            tier
+          }, values.adminSecret);
+          statusEl.textContent = `Generated ${data.tier} report.\nMarkdown output: ${data.markdownOutputId}\nDOCX output: ${data.docxOutputId}\nWarnings: ${(data.warnings || []).join('; ') || 'none'}`;
+          await refreshReportStatus(true);
+        } catch (err) {
+          statusEl.textContent = `Error: ${err.message}`;
+        } finally {
+          setBusy(false);
+        }
+      });
+    });
+
+    document.getElementById('download-zip-btn').addEventListener('click', async () => {
+      const values = requireBasics();
+      if (!values) return;
+      setBusy(true, 'Building or retrieving the report pack ZIP...');
+      try {
+        const data = await postJson('/api/report-pack', {
+          action: 'download-zip',
+          clientDraftId: values.clientDraftId
+        }, values.adminSecret);
+        downloadZip(data.filename, data.contentBase64);
+        statusEl.textContent = `Downloaded ${data.filename}\nZIP output: ${data.outputId || 'created now'}`;
+        await refreshReportStatus(true);
+      } catch (err) {
+        statusEl.textContent = `Error: ${err.message}`;
+      } finally {
+        setBusy(false);
+      }
+    });
+  </script>
+</body>
+</html>
