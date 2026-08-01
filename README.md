@@ -1,11 +1,16 @@
-# Bridge To AI Intake App - v1.60 Privacy Proof Certificates
+# Bridge To AI Intake App - v1.61 HTML Report Output
 
-This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, and admin privacy proof export. v1.60 adds deterministic privacy certificates, report-generation timing in admin, stricter proof logic, cleaner scanner classification, and a human-readable report package summary.
+This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, and deterministic privacy certificates. v1.61 makes the generated client reports HTML-first, while keeping DOCX files as editable backup copies.
 
 ## What Changed
 
 - Privacy Policy version is now `2026-07-25-v1.56.1`.
-- Header version is now `v1.60`.
+- Header version is now `v1.61`.
+- Report generation now stores a polished HTML version for each report tier in encrypted Supabase output.
+- The free report email now attaches the HTML report instead of the rougher DOCX version.
+- Admin report ZIPs now include `HTML_Reports/` as the primary readable report set and `DOCX_Backup/` as editable backup files.
+- Existing report records with markdown/DOCX can be converted to HTML without re-running the AI generation step.
+- Admin report status now shows whether each tier has HTML and DOCX outputs.
 - The intake welcome page now explains that Bridge To AI reports are evidence-first, not AI sales pitches.
 - The desktop welcome page now uses a wider two-column layout so the trust message, instructions, and start form are not stacked into one long narrow page.
 - The direct BTAI welcome page now includes a subtle white-label positioning note for associations, training groups, and business communities; partner links hide this note from members.

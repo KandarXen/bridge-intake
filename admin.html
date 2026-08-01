@@ -336,11 +336,19 @@
         }, values.adminSecret);
         const s = data.status || {};
         const t = s.timings || {};
+        const f = s.formats || {};
+        const formatNote = (tier) => {
+          const formats = f[tier] || {};
+          if (formats.html && formats.docx) return ' - HTML + DOCX';
+          if (formats.html) return ' - HTML';
+          if (formats.docx) return ' - DOCX only';
+          return '';
+        };
         reportStatusEl.innerHTML = `
-          <div class="${s.free ? 'ready' : ''}">Free Snapshot: ${s.free ? 'ready' : 'not generated'}${t.free?.generationMs ? ` - ${formatMs(t.free.generationMs)}` : ''}</div>
-          <div class="${s.detailed ? 'ready' : ''}">Detailed Opportunity Report: ${s.detailed ? 'ready' : 'not generated'}${t.detailed?.generationMs ? ` - ${formatMs(t.detailed.generationMs)}` : ''}</div>
-          <div class="${s.roadmap ? 'ready' : ''}">Preliminary Action Plan: ${s.roadmap ? 'ready' : 'not generated'}${t.roadmap?.generationMs ? ` - ${formatMs(t.roadmap.generationMs)}` : ''}</div>
-          <div class="${s.btai ? 'ready' : ''}">BTAI Advisor Brief: ${s.btai ? 'ready' : 'not generated'}${t.btai?.generationMs ? ` - ${formatMs(t.btai.generationMs)}` : ''}</div>
+          <div class="${s.free ? 'ready' : ''}">Free Snapshot: ${s.free ? 'ready' : 'not generated'}${formatNote('free')}${t.free?.generationMs ? ` - ${formatMs(t.free.generationMs)}` : ''}</div>
+          <div class="${s.detailed ? 'ready' : ''}">Detailed Opportunity Report: ${s.detailed ? 'ready' : 'not generated'}${formatNote('detailed')}${t.detailed?.generationMs ? ` - ${formatMs(t.detailed.generationMs)}` : ''}</div>
+          <div class="${s.roadmap ? 'ready' : ''}">Preliminary Action Plan: ${s.roadmap ? 'ready' : 'not generated'}${formatNote('roadmap')}${t.roadmap?.generationMs ? ` - ${formatMs(t.roadmap.generationMs)}` : ''}</div>
+          <div class="${s.btai ? 'ready' : ''}">BTAI Advisor Brief: ${s.btai ? 'ready' : 'not generated'}${formatNote('btai')}${t.btai?.generationMs ? ` - ${formatMs(t.btai.generationMs)}` : ''}</div>
           <div class="${s.zip ? 'ready' : ''}">ZIP: ${s.zip ? 'ready' : 'not built yet'}</div>
         `;
         if (!silent) statusEl.textContent = 'Report status updated.';

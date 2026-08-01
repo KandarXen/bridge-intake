@@ -1,5 +1,6 @@
 ﻿import { decryptJson, encryptJson } from '../lib/crypto.js';
 import { createDocxBuffer, createZipBuffer } from '../lib/docx.js';
+import { createReportHtml } from '../lib/report-html.js';
 import { getIntakeEvents, getIntakeSession, getLatestIntakeOutput, insertIntakeEvent, insertIntakeOutput } from '../lib/supabase-rest.js';
 import { validateDnaOutput } from '../lib/validate-output.js';
 
@@ -8,6 +9,7 @@ const REPORTS = {
     title: 'Free AI Opportunity Snapshot',
     outputType: 'report_free_snapshot_markdown',
     docxOutputType: 'report_free_snapshot_docx',
+    htmlOutputType: 'report_free_snapshot_html',
     filename: 'Level1_report',
     maxTokens: 3200
   },
@@ -15,6 +17,7 @@ const REPORTS = {
     title: 'Detailed AI Readiness & Opportunity Report',
     outputType: 'report_detailed_growth_markdown',
     docxOutputType: 'report_detailed_growth_docx',
+    htmlOutputType: 'report_detailed_growth_html',
     filename: 'Level2_Report',
     maxTokens: 6200
   },
@@ -22,6 +25,7 @@ const REPORTS = {
     title: 'Preliminary AI Action Plan',
     outputType: 'report_full_roadmap_markdown',
     docxOutputType: 'report_full_roadmap_docx',
+    htmlOutputType: 'report_full_roadmap_html',
     filename: 'Level3_Report',
     maxTokens: 7600
   },
@@ -29,6 +33,7 @@ const REPORTS = {
     title: 'BTAI Advisor Brief',
     outputType: 'report_btai_advisor_brief_markdown',
     docxOutputType: 'report_btai_advisor_brief_docx',
+    htmlOutputType: 'report_btai_advisor_brief_html',
     filename: 'Internal_brief',
     maxTokens: 5200
   }
@@ -403,7 +408,7 @@ async function generateOne(clientDraftId, tier) {
     partner: meta?.sourceMeta?.partner || 'BTAI',
     campaign: meta?.sourceMeta?.campaign || 'general_intake',
     reportTier: tier,
-    reportOutputType: spec.docxOutputType,
+    reportOutputType: spec.htmlOutputType,
     payloadType: 'encrypted_venture_dna_record',
     startedAt: new Date(startedAt).toISOString()
   }));
@@ -411,11 +416,17 @@ async function generateOne(clientDraftId, tier) {
   const markdown = decorateReportMarkdown(generatedMarkdown, tier);
   const validation = validateDnaOutput(markdown, { requireEvidenceLabels: false });
   const privacyScan = scanReportPrivacy(markdown);
+  const htmlReport = createReportHtml(markdown, {
+    title: `${businessName} - ${spec.title}`,
+    businessName,
+    tierLabel: spec.title,
+    generatedAt: new Date().toISOString()
+  });
   await logReportEvent(clientDraftId, 'report_privacy_scan_completed', privacyScan.reportApprovedForClientDelivery ? 'success' : 'warning', privacyProofDefaults({
     partner: meta?.sourceMeta?.partner || 'BTAI',
     campaign: meta?.sourceMeta?.campaign || 'general_intake',
     reportTier: tier,
-    reportOutputType: spec.docxOutputType,
+    reportOutputType: spec.htmlOutputType,
     reportPrivacyScanCompleted: true,
     rawSensitiveDataDetected: privacyScan.rawSensitiveDataDetected,
     reportApprovedForClientDelivery: privacyScan.reportApprovedForClientDelivery,
@@ -452,13 +463,28 @@ async function generateOne(clientDraftId, tier) {
     })
   });
 
+  const htmlRow = await insertIntakeOutput({
+    client_draft_id: clientDraftId,
+    output_type: spec.htmlOutputType,
+    encrypted_payload: encryptJson({
+      createdAt: new Date().toISOString(),
+      tier,
+      businessName,
+      filename: `${businessName}_${spec.filename}.html`,
+      contentBase64: Buffer.from(htmlReport, 'utf8').toString('base64'),
+      contentType: 'text/html',
+      validation,
+      privacyScan
+    })
+  });
+
   await logReportEvent(clientDraftId, 'report_generated', 'success', privacyProofDefaults({
     partner: meta?.sourceMeta?.partner || 'BTAI',
     campaign: meta?.sourceMeta?.campaign || 'general_intake',
     reportTier: tier,
-    reportOutputType: spec.docxOutputType,
+    reportOutputType: spec.htmlOutputType,
     warningCount: validation.warnings?.length || 0,
-    payloadType: 'client_report_docx',
+    payloadType: 'client_report_html_and_docx',
     generationMs: Date.now() - startedAt,
     completedAt: new Date().toISOString()
   }));
@@ -469,24 +495,79 @@ async function generateOne(clientDraftId, tier) {
     businessName,
     markdownOutputId: mdRow?.id || '',
     docxOutputId: docxRow?.id || '',
+    htmlOutputId: htmlRow?.id || '',
     warnings: validation.warnings || []
   };
 }
 
 async function getOrGenerateOne(clientDraftId, tier) {
-  const existing = await loadGenerated(clientDraftId, tier);
-  if (existing?.contentBase64) {
-    return { generated: false, tier, businessName: existing.businessName || '', warnings: existing.validation?.warnings || [] };
+  const existingHtml = await loadGenerated(clientDraftId, tier, 'html');
+  const existingDocx = await loadGenerated(clientDraftId, tier, 'docx');
+  if (existingHtml?.contentBase64 && existingDocx?.contentBase64) {
+    return { generated: false, tier, businessName: existingHtml.businessName || existingDocx.businessName || '', warnings: existingHtml.validation?.warnings || existingDocx.validation?.warnings || [] };
+  }
+  if (!existingHtml?.contentBase64 && existingDocx?.contentBase64) {
+    const converted = await ensureHtmlReport(clientDraftId, tier);
+    if (converted?.contentBase64) {
+      return { generated: false, convertedHtml: true, tier, businessName: converted.businessName || existingDocx.businessName || '', warnings: converted.validation?.warnings || existingDocx.validation?.warnings || [] };
+    }
   }
   return generateOne(clientDraftId, tier);
 }
 
-async function loadGenerated(clientDraftId, tier) {
+async function loadGenerated(clientDraftId, tier, format = 'docx') {
   const spec = REPORTS[tier];
   if (!spec) throw new Error(`Unknown report tier: ${tier || 'blank'}`);
-  const row = await getLatestIntakeOutput(clientDraftId, spec.docxOutputType);
+  const outputType = format === 'html' ? spec.htmlOutputType : spec.docxOutputType;
+  const row = await getLatestIntakeOutput(clientDraftId, outputType);
   if (!row) return null;
   return decryptJson(row.encrypted_payload);
+}
+
+async function loadGeneratedMarkdown(clientDraftId, tier) {
+  const spec = REPORTS[tier];
+  if (!spec) throw new Error(`Unknown report tier: ${tier || 'blank'}`);
+  const row = await getLatestIntakeOutput(clientDraftId, spec.outputType);
+  if (!row) return null;
+  return decryptJson(row.encrypted_payload);
+}
+
+async function ensureHtmlReport(clientDraftId, tier) {
+  const existingHtml = await loadGenerated(clientDraftId, tier, 'html');
+  if (existingHtml?.contentBase64) return existingHtml;
+  const spec = REPORTS[tier];
+  const markdownRecord = await loadGeneratedMarkdown(clientDraftId, tier);
+  if (!markdownRecord?.markdown) return null;
+  const businessName = markdownRecord.businessName || businessNameFromDna(markdownRecord.markdown);
+  const htmlReport = createReportHtml(markdownRecord.markdown, {
+    title: `${businessName} - ${spec.title}`,
+    businessName,
+    tierLabel: spec.title,
+    generatedAt: markdownRecord.createdAt || new Date().toISOString()
+  });
+  const payload = {
+    createdAt: new Date().toISOString(),
+    tier,
+    businessName,
+    filename: `${businessName}_${spec.filename}.html`,
+    contentBase64: Buffer.from(htmlReport, 'utf8').toString('base64'),
+    contentType: 'text/html',
+    validation: markdownRecord.validation || null,
+    privacyScan: markdownRecord.privacyScan || null,
+    convertedFromMarkdown: true
+  };
+  await insertIntakeOutput({
+    client_draft_id: clientDraftId,
+    output_type: spec.htmlOutputType,
+    encrypted_payload: encryptJson(payload)
+  });
+  await logReportEvent(clientDraftId, 'report_html_generated_from_markdown', 'success', privacyProofDefaults({
+    reportTier: tier,
+    reportOutputType: spec.htmlOutputType,
+    payloadType: 'client_report_html',
+    rawDnaIncluded: false
+  }));
+  return payload;
 }
 
 async function buildZip(clientDraftId) {
@@ -495,12 +576,20 @@ async function buildZip(clientDraftId) {
   const files = [];
 
   for (const tier of ['free', 'detailed', 'roadmap', 'btai']) {
-    const doc = await loadGenerated(clientDraftId, tier);
+    const htmlDoc = await ensureHtmlReport(clientDraftId, tier);
+    const doc = await loadGenerated(clientDraftId, tier, 'docx');
+    if (!htmlDoc?.contentBase64) {
+      throw new Error(`Missing generated HTML for tier: ${tier}. Generate that report first, then download the ZIP.`);
+    }
     if (!doc?.contentBase64) {
       throw new Error(`Missing generated DOCX for tier: ${tier}. Generate that report first, then download the ZIP.`);
     }
     files.push({
-      name: doc.filename || `${businessName}_${REPORTS[tier].filename}.docx`,
+      name: `HTML_Reports/${htmlDoc.filename || `${businessName}_${REPORTS[tier].filename}.html`}`,
+      content: Buffer.from(htmlDoc.contentBase64, 'base64')
+    });
+    files.push({
+      name: `DOCX_Backup/${doc.filename || `${businessName}_${REPORTS[tier].filename}.docx`}`,
       content: Buffer.from(doc.contentBase64, 'base64')
     });
   }
@@ -514,7 +603,7 @@ async function buildZip(clientDraftId) {
     partnerRawAccess: false,
     encryptedSourceRecord: true,
     privacyProof: true,
-    note: 'Reports were generated from the encrypted Venture DNA record and stored encrypted before ZIP retrieval. The raw Venture DNA markdown is intentionally not included in this ZIP.'
+    note: 'Reports were generated from the encrypted Venture DNA record and stored encrypted before ZIP retrieval. HTML reports are the primary client-readable format. DOCX files are included as editable backups. The raw Venture DNA markdown is intentionally not included in this ZIP.'
   };
   files.push({ name: 'BTAI_Report_Pack_Summary.md', content: reportPackSummaryMarkdown({ clientDraftId, businessName, files }) });
   files.push({ name: 'validation-summary.json', content: JSON.stringify(validationSummary, null, 2) });
@@ -561,7 +650,7 @@ async function generateAll(clientDraftId) {
   return { ready: true, results, zip };
 }
 
-async function sendFreeReportEmail({ clientDraftId, clientEmail, clientName, businessName, doc }) {
+async function sendFreeReportEmail({ clientDraftId, clientEmail, clientName, businessName, reportFile }) {
   if (!process.env.RESEND_API_KEY) throw new Error('Missing RESEND_API_KEY');
   const bccRecipient = process.env.INTAKE_BCC_RECIPIENT || 'darren.randles@gmail.com';
   const { level2Price, level3Price, level2Url, level3Url, consultUrl } = paymentConfig();
@@ -572,7 +661,7 @@ async function sendFreeReportEmail({ clientDraftId, clientEmail, clientName, bus
       </div>
       <div style="border:1px solid #d9e7e3;border-top:0;padding:26px 30px;border-radius:0 0 12px 12px;background:#fafaf8;">
         <p style="font-size:15px;line-height:1.6;margin-top:0;">Hi ${escapeHtml(clientName || 'there')},</p>
-        <p style="font-size:15px;line-height:1.6;">Thank you for completing the intake. Your free AI Opportunity Snapshot is attached.</p>
+        <p style="font-size:15px;line-height:1.6;">Thank you for completing the intake. Your free AI Opportunity Snapshot is attached as a clean HTML report you can read in your browser or print.</p>
         <p style="font-size:15px;line-height:1.6;">This first report is intentionally practical and directional. It avoids private financials, recipes, customer lists, supplier contracts, payroll details, invoices, and confidential formulas.</p>
         <div style="background:#e8f4f1;border:1px solid #b8ddd7;border-radius:10px;padding:14px 16px;color:#0d6e5e;font-size:14px;line-height:1.5;margin-bottom:16px;">
           <strong>Next step:</strong> Review the snapshot first. If you want to go deeper, Bridge To AI can prepare a more detailed report or discuss a custom AI workbench.
@@ -596,9 +685,9 @@ async function sendFreeReportEmail({ clientDraftId, clientEmail, clientName, bus
     html,
     text,
     attachments: [{
-      filename: doc.filename || 'Bridge_To_AI_Free_AI_Opportunity_Snapshot.docx',
-      content: doc.contentBase64,
-      content_type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      filename: reportFile.filename || 'Bridge_To_AI_Free_AI_Opportunity_Snapshot.html',
+      content: reportFile.contentBase64,
+      content_type: reportFile.contentType || 'text/html'
     }]
   };
 
@@ -629,14 +718,14 @@ async function generateFreeAndEmail(clientDraftId, providedEmail = '') {
     startedAt: new Date(startedAt).toISOString()
   }));
   await getOrGenerateOne(clientDraftId, 'free');
-  const doc = await loadGenerated(clientDraftId, 'free');
-  if (!doc?.contentBase64) throw new Error('Free report was not generated');
+  const htmlDoc = await ensureHtmlReport(clientDraftId, 'free');
+  if (!htmlDoc?.contentBase64) throw new Error('Free HTML report was not generated');
   const result = await sendFreeReportEmail({
     clientDraftId,
     clientEmail: sessionEmail,
     clientName: sessionPayload.clientName || '',
-    businessName: sessionPayload.businessName || doc.businessName || '',
-    doc
+    businessName: sessionPayload.businessName || htmlDoc.businessName || '',
+    reportFile: htmlDoc
   });
   await logReportEvent(clientDraftId, 'free_report_emailed', 'success', privacyProofDefaults({
     reportTier: 'free',
@@ -653,7 +742,7 @@ async function generateFreeAndEmail(clientDraftId, providedEmail = '') {
       internalBrief = { attempted: true, generated: !!briefResult.generated, alreadyReady: !briefResult.generated };
       await logReportEvent(clientDraftId, 'internal_brief_after_free_complete', 'success', privacyProofDefaults({
         reportTier: 'btai',
-        reportOutputType: REPORTS.btai.docxOutputType,
+        reportOutputType: REPORTS.btai.htmlOutputType,
         clientReportOnly: false,
         payloadType: 'encrypted_venture_dna_record'
       }));
@@ -672,8 +761,12 @@ async function generateFreeAndEmail(clientDraftId, providedEmail = '') {
 
 async function status(clientDraftId) {
   const result = {};
+  result.formats = {};
   for (const tier of Object.keys(REPORTS)) {
-    result[tier] = !!(await getLatestIntakeOutput(clientDraftId, REPORTS[tier].docxOutputType));
+    const htmlReady = !!(await getLatestIntakeOutput(clientDraftId, REPORTS[tier].htmlOutputType));
+    const docxReady = !!(await getLatestIntakeOutput(clientDraftId, REPORTS[tier].docxOutputType));
+    result[tier] = htmlReady || docxReady;
+    result.formats[tier] = { html: htmlReady, docx: docxReady };
   }
   result.zip = !!(await getLatestIntakeOutput(clientDraftId, 'three_report_pack_zip'));
   result.timings = {};
@@ -901,7 +994,7 @@ This package was generated from the encrypted Bridge To AI intake record.
 
 | File | Purpose |
 | --- | --- |
-${files.map(file => `| ${file.name} | ${file.name.includes('Internal') ? 'Internal Bridge To AI advisor use only.' : 'Client-facing report document.'} |`).join('\n')}
+${files.map(file => `| ${file.name} | ${file.name.includes('Internal') ? 'Internal Bridge To AI advisor use only.' : file.name.includes('HTML_Reports') ? 'Primary client-readable HTML report.' : 'Editable DOCX backup copy.'} |`).join('\n')}
 
 ---
 
@@ -924,7 +1017,7 @@ Record ID: ${clientDraftId}
 
 Generated: ${new Date().toISOString()}
 
-This summary is included so the package is readable without opening the raw validation JSON. The raw Venture DNA markdown is intentionally not included in this ZIP.
+This summary is included so the package is readable without opening the raw validation JSON. HTML reports are the primary readable files. DOCX files are backup/editable copies. The raw Venture DNA markdown is intentionally not included in this ZIP.
 `;
 }
 
