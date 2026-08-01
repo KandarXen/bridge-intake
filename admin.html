@@ -209,6 +209,27 @@
       </div>
     </div>
 
+    <div class="panel">
+      <h2>Partner Aggregate Intelligence</h2>
+      <p>Download a privacy-safe partner report from KPI/event metadata only. This does not decrypt raw interviews, include member names, include emails, or expose individual answers.</p>
+      <div class="grid">
+        <div>
+          <label for="partner-code">Partner code</label>
+          <input id="partner-code" autocomplete="off" value="AFPA">
+        </div>
+        <div>
+          <label for="campaign-code">Campaign</label>
+          <input id="campaign-code" autocomplete="off" value="all" placeholder="all, demo, december-course">
+        </div>
+      </div>
+      <label for="aggregate-days">Lookback days</label>
+      <input id="aggregate-days" type="number" min="1" max="1095" value="120">
+      <div class="button-row">
+        <button id="download-aggregate-html-btn" type="button">Download Partner HTML Report</button>
+        <button id="download-aggregate-md-btn" class="secondary" type="button">Download Partner Markdown Report</button>
+      </div>
+    </div>
+
     <div class="notice">Do not share this page or admin secret. Files are decrypted only after the server verifies the admin secret.</div>
     <div id="status" class="status"></div>
   </main>
@@ -283,6 +304,11 @@
 
     function downloadText(filename, text) {
       const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
+      downloadBlob(filename, blob);
+    }
+
+    function downloadHtml(filename, html) {
+      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
       downloadBlob(filename, blob);
     }
 
@@ -423,6 +449,44 @@
 
     document.getElementById('privacy-detailed-btn').addEventListener('click', () => {
       downloadPrivacyCertificate('privacy-certificate-detailed', 'Detailed_Privacy_Attestation');
+    });
+
+    async function downloadAggregateReport(format) {
+      const values = formValues();
+      if (!values.adminSecret) {
+        statusEl.textContent = 'Admin secret is required for partner aggregate reports.';
+        return;
+      }
+      const partner = document.getElementById('partner-code').value.trim() || 'AFPA';
+      const campaign = document.getElementById('campaign-code').value.trim() || 'all';
+      const days = document.getElementById('aggregate-days').value || '120';
+      setBusy(true, `Building ${partner} aggregate ${format.toUpperCase()} report from KPI metadata only...`);
+      try {
+        const data = await postJson('/api/partner-aggregate', {
+          partner,
+          campaign,
+          days,
+          format
+        }, values.adminSecret);
+        if (format === 'html') {
+          downloadHtml(data.filename, data.content || '');
+        } else {
+          downloadText(data.filename, data.markdown || '');
+        }
+        statusEl.textContent = `Downloaded ${data.filename}\nPartner: ${partner}\nCampaign: ${campaign}\nKPI events included: ${data.eventCount || 0}\nRaw interviews decrypted: no\nMember names/emails included: no`;
+      } catch (err) {
+        statusEl.textContent = `Error: ${err.message}`;
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    document.getElementById('download-aggregate-html-btn').addEventListener('click', () => {
+      downloadAggregateReport('html');
+    });
+
+    document.getElementById('download-aggregate-md-btn').addEventListener('click', () => {
+      downloadAggregateReport('markdown');
     });
 
     document.getElementById('send-free-report-btn').addEventListener('click', async () => {

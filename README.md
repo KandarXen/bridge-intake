@@ -1,11 +1,16 @@
-# Bridge To AI Intake App - v1.61 HTML Report Output
+# Bridge To AI Intake App - v1.62 Partner Aggregate Intelligence
 
-This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, and deterministic privacy certificates. v1.61 makes the generated client reports HTML-first, while keeping DOCX files as editable backup copies.
+This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, and HTML-first client reports. v1.62 adds a privacy-safe partner aggregate intelligence report for AFPA-style programs.
 
 ## What Changed
 
 - Privacy Policy version is now `2026-07-25-v1.56.1`.
-- Header version is now `v1.61`.
+- Header version is now `v1.62`.
+- Admin now includes a **Partner Aggregate Intelligence** section.
+- New `/api/partner-aggregate` endpoint creates AFPA-style aggregate reports from `intake_kpi_events` only.
+- Partner aggregate reports can be downloaded as polished HTML or editable Markdown.
+- Partner aggregate reports do not decrypt raw interviews, include member names, include emails, expose raw answers, or include Venture DNA files.
+- The first aggregate report includes participation funnel, member segment mix, intake quality/readiness signals, likely education themes, privacy boundaries, and recommended next conversation points.
 - Report generation now stores a polished HTML version for each report tier in encrypted Supabase output.
 - The free report email now attaches the HTML report instead of the rougher DOCX version.
 - Admin report ZIPs now include `HTML_Reports/` as the primary readable report set and `DOCX_Backup/` as editable backup files.
