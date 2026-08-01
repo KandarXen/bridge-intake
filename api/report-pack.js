@@ -207,20 +207,27 @@ function decorateReportMarkdown(markdown, tier) {
 function scanReportPrivacy(markdown) {
   const text = String(markdown || '');
   const findings = [];
+  const blockingFindings = [];
+  const nonBlockingFindings = [];
   const checks = [
-    ['email_address', /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i],
-    ['phone_number', /(?:\+?1[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)\d{3}[\s.-]?\d{4}/],
-    ['credit_card_like_number', /\b(?:\d[ -]*?){13,19}\b/],
-    ['private_financial_document_language', /\b(invoice|payroll|bank account|routing number|credit card|supplier contract|customer list|confidential formula)\b/i]
+    ['email_address', /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i, true],
+    ['phone_number', /(?:\+?1[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)\d{3}[\s.-]?\d{4}/, true],
+    ['credit_card_like_number', /\b(?:\d[ -]*?){13,19}\b/, true],
+    ['private_financial_document_language', /\b(invoice|payroll|bank account|routing number|credit card|supplier contract|customer list|confidential formula)\b/i, false]
   ];
-  checks.forEach(([type, pattern]) => {
-    if (pattern.test(text)) findings.push(type);
+  checks.forEach(([type, pattern, blocksDelivery]) => {
+    if (!pattern.test(text)) return;
+    findings.push(type);
+    if (blocksDelivery) blockingFindings.push(type);
+    else nonBlockingFindings.push(type);
   });
   return {
     completed: true,
     rawSensitiveDataDetected: findings.length > 0,
     findings,
-    reportApprovedForClientDelivery: findings.length === 0
+    blockingFindings,
+    nonBlockingFindings,
+    reportApprovedForClientDelivery: blockingFindings.length === 0
   };
 }
 
@@ -412,7 +419,9 @@ async function generateOne(clientDraftId, tier) {
     reportPrivacyScanCompleted: true,
     rawSensitiveDataDetected: privacyScan.rawSensitiveDataDetected,
     reportApprovedForClientDelivery: privacyScan.reportApprovedForClientDelivery,
-    privacyScanFindings: privacyScan.findings
+    privacyScanFindings: privacyScan.findings,
+    blockingFindings: privacyScan.blockingFindings,
+    nonBlockingFindings: privacyScan.nonBlockingFindings
   }));
   const docx = createDocxBuffer(markdown);
 
@@ -507,6 +516,7 @@ async function buildZip(clientDraftId) {
     privacyProof: true,
     note: 'Reports were generated from the encrypted Venture DNA record and stored encrypted before ZIP retrieval. The raw Venture DNA markdown is intentionally not included in this ZIP.'
   };
+  files.push({ name: 'BTAI_Report_Pack_Summary.md', content: reportPackSummaryMarkdown({ clientDraftId, businessName, files }) });
   files.push({ name: 'validation-summary.json', content: JSON.stringify(validationSummary, null, 2) });
 
   const zip = createZipBuffer(files);
@@ -666,6 +676,25 @@ async function status(clientDraftId) {
     result[tier] = !!(await getLatestIntakeOutput(clientDraftId, REPORTS[tier].docxOutputType));
   }
   result.zip = !!(await getLatestIntakeOutput(clientDraftId, 'three_report_pack_zip'));
+  result.timings = {};
+  const events = await getIntakeEvents(clientDraftId, 200);
+  events
+    .filter(event => event.event_type === 'report_generated' && event.metadata?.details?.reportTier)
+    .forEach(event => {
+      const details = event.metadata.details;
+      result.timings[details.reportTier] = {
+        generationMs: details.generationMs || null,
+        completedAt: details.completedAt || event.created_at || ''
+      };
+    });
+  const batch = [...events].reverse().find(event => event.event_type === 'report_pack_batch_complete');
+  if (batch?.metadata?.details) {
+    result.batch = {
+      completedAt: batch.created_at,
+      generatedCount: batch.metadata.details.generatedCount || 0,
+      zipOutputId: batch.metadata.details.zipOutputId || ''
+    };
+  }
   return result;
 }
 
@@ -675,18 +704,38 @@ async function privacyProofSummary(clientDraftId) {
     const metadata = event.metadata || {};
     return metadata.privacyProof || String(event.stage || '').includes('privacy') || String(event.event_type || '').includes('privacy_proof');
   });
+  const successfulEvent = eventType => proofEvents.find(e => e.event_type === eventType && e.status === 'success');
+  const successfulEventWithDetail = (eventType, predicate) => proofEvents.find(e => {
+    const details = e.metadata?.details || {};
+    return e.event_type === eventType && e.status === 'success' && predicate(details);
+  });
+  const consentEvent = successfulEventWithDetail('privacy_proof_consent_recorded', details =>
+    !!details.privacyConsentAccepted && !!details.privacyConsentAt && !!details.privacyPolicyVersion
+  );
+  const crossBorderEvent = successfulEventWithDetail('privacy_proof_cross_border_notice', details =>
+    !!details.crossBorderProcessingNoticePresented && !!details.serviceProviderPolicyAvailable &&
+    !!details.privacyContactPresented && !!details.privacyPolicyVersion
+  );
+  const reportScanEvents = proofEvents.filter(e => e.event_type === 'report_privacy_scan_completed');
+  const blockingReportScanEvents = reportScanEvents.filter(e => {
+    const details = e.metadata?.details || {};
+    return Array.isArray(details.blockingFindings)
+      ? details.blockingFindings.length > 0
+      : details.reportApprovedForClientDelivery === false && !(Array.isArray(details.privacyScanFindings) && details.privacyScanFindings.length === 1 && details.privacyScanFindings[0] === 'private_financial_document_language');
+  });
 
   const summary = {
     recordId: clientDraftId,
     generatedAt: new Date().toISOString(),
     proofEventCount: proofEvents.length,
-    encryptedRecordsConfirmed: proofEvents.some(e => e.event_type === 'privacy_proof_secure_output_storage' && e.status === 'success'),
-    anonymizedAiAnalysisConfirmed: proofEvents.some(e => e.event_type === 'privacy_proof_ai_analysis_requested' && e.status === 'success'),
-    privacyConsentConfirmed: proofEvents.some(e => e.event_type === 'privacy_proof_consent_recorded' && e.status === 'success'),
-    crossBorderNoticeConfirmed: proofEvents.some(e => e.event_type === 'privacy_proof_cross_border_notice' && e.status === 'success'),
-    retentionPolicyRecorded: proofEvents.some(e => e.event_type === 'privacy_proof_retention_policy_recorded' && e.status === 'success'),
+    encryptedRecordsConfirmed: !!successfulEvent('privacy_proof_secure_output_storage'),
+    anonymizedAiAnalysisConfirmed: !!successfulEvent('privacy_proof_ai_analysis_requested'),
+    privacyConsentConfirmed: !!consentEvent,
+    crossBorderNoticeConfirmed: !!crossBorderEvent,
+    retentionPolicyRecorded: !!successfulEvent('privacy_proof_retention_policy_recorded'),
     adminAccessLogged: proofEvents.some(e => String(e.stage || '') === 'admin_access_audit' || String(e.event_type || '').startsWith('admin_')),
-    reportPrivacyScanCompleted: proofEvents.some(e => e.event_type === 'report_privacy_scan_completed'),
+    reportPrivacyScanCompleted: reportScanEvents.length > 0,
+    reportPrivacyScanBlockingIssueFound: blockingReportScanEvents.length > 0,
     rawDataSharedWithPartner: false,
     rawDnaIncludedInReportZip: false,
     partnerAggregateOnly: true,
@@ -706,10 +755,177 @@ async function privacyProofSummary(clientDraftId) {
   if (!summary.retentionPolicyRecorded) summary.remainingImprovements.push('Retention/deletion policy proof was not found for this record.');
   if (!summary.adminAccessLogged) summary.remainingImprovements.push('No admin access event has been logged yet for this record.');
   if (!summary.reportPrivacyScanCompleted) summary.remainingImprovements.push('Report privacy scan proof was not found for this record.');
+  if (summary.reportPrivacyScanBlockingIssueFound) summary.remainingImprovements.push('A report privacy scan found a blocking client-delivery issue.');
   summary.privacyConclusion = summary.remainingImprovements.length
     ? 'Passed core SIL privacy proof with improvement items noted.'
     : 'Passed SIL privacy proof with consent, cross-border notice, retention, encrypted storage, anonymized AI analysis, report scan, and access audit evidence.';
   return summary;
+}
+
+function yesNo(value) {
+  return value ? 'Verified' : 'Needs review';
+}
+
+function msToDuration(ms) {
+  const n = Number(ms);
+  if (!Number.isFinite(n) || n <= 0) return 'Not recorded';
+  const seconds = Math.round(n / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  return minutes ? `${minutes}m ${remainder}s` : `${remainder}s`;
+}
+
+function certificateStatus(summary) {
+  if (summary.remainingImprovements?.length) return 'VERIFIED WITH NOTES';
+  return 'VERIFIED';
+}
+
+function briefPrivacyCertificateMarkdown(summary) {
+  const status = certificateStatus(summary);
+  return `# Your Data Privacy & Security Summary
+
+**Status:** ${status}
+
+---
+
+## Executive Summary
+
+Your Bridge To AI intake record was handled through the BTAI Secure Intelligence Layer. The proof log confirms encrypted storage, anonymized AI analysis where practical, partner access limits, and raw interview/DNA exclusion from the report package.
+
+${summary.remainingImprovements?.length ? 'There are improvement notes on the internal audit record. These notes do not indicate that raw interview data was shared with a partner or included in the report package.' : 'No open privacy-proof improvement items were found in this record.'}
+
+---
+
+## Core Protections
+
+| Protection | Status |
+| --- | --- |
+| Encrypted secure storage | ${yesNo(summary.encryptedRecordsConfirmed)} |
+| Anonymized AI analysis step | ${yesNo(summary.anonymizedAiAnalysisConfirmed)} |
+| Raw interview/DNA excluded from report ZIP | ${summary.rawDnaIncludedInReportZip ? 'Needs review' : 'Verified'} |
+| Partner raw access blocked | ${summary.rawDataSharedWithPartner ? 'Needs review' : 'Verified'} |
+| Partner reporting limited to aggregate insights | ${yesNo(summary.partnerAggregateOnly)} |
+| Client-facing email does not contain raw DNA | ${summary.clientFacingEmailContainsRawDna ? 'Needs review' : 'Verified'} |
+| Retention/deletion review recorded | ${yesNo(summary.retentionPolicyRecorded)} |
+
+---
+
+## Plain-English Note
+
+This summary is intended to explain how the intake record was handled. It is not a legal opinion or formal privacy audit. A more detailed internal privacy and security attestation can be reviewed by Bridge To AI if a deeper audit trail is required.
+`;
+}
+
+function detailedPrivacyCertificateMarkdown(summary) {
+  const status = certificateStatus(summary);
+  const warnings = summary.remainingImprovements?.length
+    ? summary.remainingImprovements.map(item => `- **ACTION REQUIRED:** ${item}`).join('\n')
+    : '- **No action items found** in the privacy proof summary.';
+  const eventRows = (summary.events || []).map(event => {
+    const details = event.details || {};
+    const result = `${event.status || 'unknown'}${details.proofStatus ? ` / ${details.proofStatus}` : ''}`;
+    return `| ${event.createdAt || ''} | ${event.stage || ''} | ${event.eventType || ''} | ${result} |`;
+  }).join('\n');
+
+  return `# Internal Privacy & Security Attestation Report
+
+**Record ID:** ${summary.recordId}
+
+**Generated At (UTC):** ${summary.generatedAt}
+
+**Overall Validation Status:** ${status}
+
+---
+
+## Action Items / Warnings
+
+${warnings}
+
+---
+
+## Technical Protections
+
+| Compliance Measure | Status | Technical Details |
+| --- | --- | --- |
+| Encrypted records at rest | ${yesNo(summary.encryptedRecordsConfirmed)} | AES-256-GCM is recorded in proof events where encryption is logged. |
+| Anonymized AI analysis | ${yesNo(summary.anonymizedAiAnalysisConfirmed)} | AI analysis request is logged as an anonymized business profile/prompt where practical. |
+| Consent proof | ${yesNo(summary.privacyConsentConfirmed)} | Requires accepted consent, consent timestamp, and Privacy Policy version. |
+| Cross-border/vendor notice proof | ${yesNo(summary.crossBorderNoticeConfirmed)} | Requires notice presented, provider policy availability, privacy contact presented, and policy version. |
+| Retention/deletion proof | ${yesNo(summary.retentionPolicyRecorded)} | Retention review and deletion request path must be recorded. |
+| Admin access audit | ${yesNo(summary.adminAccessLogged)} | Admin retrieval/proof downloads are logged as privacy proof events. |
+| Report privacy scan | ${yesNo(summary.reportPrivacyScanCompleted)} | Blocking client-delivery issues found: ${summary.reportPrivacyScanBlockingIssueFound ? 'yes' : 'no'}. |
+| Partner raw access | ${summary.rawDataSharedWithPartner ? 'Needs review' : 'Verified'} | Summary reports raw partner access as false. |
+| Raw DNA in report ZIP | ${summary.rawDnaIncludedInReportZip ? 'Needs review' : 'Verified'} | Raw Venture DNA markdown is intentionally excluded from ZIP packages. |
+
+---
+
+## Event Audit Trail
+
+| Time | Pipeline Stage | Event | Result |
+| --- | --- | --- | --- |
+${eventRows || '| No events found | N/A | N/A | N/A |'}
+
+---
+
+## Notes
+
+This report is generated from sanitized privacy proof events. It is designed for internal compliance, legal, or administrative review. It is not a legal opinion.
+`;
+}
+
+async function privacyCertificate(clientDraftId, certificateType) {
+  const summary = await privacyProofSummary(clientDraftId);
+  const markdown = certificateType === 'detailed'
+    ? detailedPrivacyCertificateMarkdown(summary)
+    : briefPrivacyCertificateMarkdown(summary);
+  const suffix = certificateType === 'detailed'
+    ? 'Detailed_Privacy_And_Security_Attestation.md'
+    : 'Brief_Privacy_And_Security_Certificate.md';
+  return {
+    success: true,
+    certificateType,
+    filename: `${safeName(summary.recordId)}_${suffix}`,
+    markdown,
+    privacyProof: summary
+  };
+}
+
+function reportPackSummaryMarkdown({ clientDraftId, businessName, files }) {
+  return `# Bridge To AI Report Package Summary
+
+This package was generated from the encrypted Bridge To AI intake record.
+
+---
+
+## Package Contents
+
+| File | Purpose |
+| --- | --- |
+${files.map(file => `| ${file.name} | ${file.name.includes('Internal') ? 'Internal Bridge To AI advisor use only.' : 'Client-facing report document.'} |`).join('\n')}
+
+---
+
+## Privacy Handling
+
+| Privacy Measure | Status |
+| --- | --- |
+| Raw Venture DNA markdown included in this ZIP | No |
+| Source intake record stored encrypted | Yes |
+| Partner raw access allowed | No |
+| Partner reporting limited to anonymized aggregate insights where applicable | Yes |
+
+---
+
+## Record Reference
+
+Business: ${businessName}
+
+Record ID: ${clientDraftId}
+
+Generated: ${new Date().toISOString()}
+
+This summary is included so the package is readable without opening the raw validation JSON. The raw Venture DNA markdown is intentionally not included in this ZIP.
+`;
 }
 
 async function downloadZip(clientDraftId) {
@@ -752,6 +968,17 @@ export default async function handler(req, res) {
         rawDnaAccessed: false
       }));
       return res.status(200).json({ privacyProof: await privacyProofSummary(clientDraftId) });
+    }
+    if (action === 'privacy-certificate-brief' || action === 'privacy-certificate-detailed') {
+      const certificateType = action === 'privacy-certificate-detailed' ? 'detailed' : 'brief';
+      await logReportEvent(clientDraftId, `admin_privacy_certificate_${certificateType}_downloaded`, 'success', privacyProofDefaults({
+        privacyProofType: 'admin_access',
+        adminAccessLogged: true,
+        adminAction: `download_privacy_certificate_${certificateType}`,
+        recordAccessPurpose: 'privacy_certificate',
+        rawDnaAccessed: false
+      }));
+      return res.status(200).json(await privacyCertificate(clientDraftId, certificateType));
     }
     return res.status(400).json({ error: 'Unknown report-pack action' });
   } catch (err) {

@@ -131,6 +131,24 @@
       color: var(--ok);
       font-weight: 700;
     }
+    .timer-panel {
+      margin-top: 14px;
+      border: 1px solid #cfe2dc;
+      background: #f1faf7;
+      color: var(--green-dark);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: .9rem;
+      line-height: 1.45;
+      display: none;
+    }
+    .timer-panel.active {
+      display: block;
+    }
+    .timer-value {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-weight: 800;
+    }
     @media (max-width: 720px) {
       body { padding: 14px; }
       main { padding: 20px; }
@@ -163,6 +181,8 @@
       <button id="refresh-status-btn" class="secondary" type="button">Check Report Status</button>
       <button id="send-free-report-btn" class="secondary" type="button">Send/Resend Free Report Email</button>
       <button id="privacy-proof-btn" class="secondary" type="button">Download Privacy Proof JSON</button>
+      <button id="privacy-brief-btn" class="secondary" type="button">Download Brief Privacy Certificate</button>
+      <button id="privacy-detailed-btn" class="secondary" type="button">Download Detailed Privacy Attestation</button>
     </div>
 
     <div class="panel">
@@ -183,6 +203,10 @@
         <div>BTAI Advisor Brief: unknown</div>
         <div>ZIP: unknown</div>
       </div>
+      <div id="timer-panel" class="timer-panel">
+        <div id="timer-message">Working...</div>
+        <div>Elapsed: <span id="timer-value" class="timer-value">0s</span></div>
+      </div>
     </div>
 
     <div class="notice">Do not share this page or admin secret. Files are decrypted only after the server verifies the admin secret.</div>
@@ -192,7 +216,44 @@
   <script>
     const statusEl = document.getElementById('status');
     const reportStatusEl = document.getElementById('report-status');
+    const timerPanel = document.getElementById('timer-panel');
+    const timerMessage = document.getElementById('timer-message');
+    const timerValue = document.getElementById('timer-value');
     const buttons = Array.from(document.querySelectorAll('button'));
+    let timerStartedAt = 0;
+    let timerHandle = null;
+
+    function formatMs(ms) {
+      const n = Number(ms);
+      if (!Number.isFinite(n) || n < 0) return 'not recorded';
+      const seconds = Math.round(n / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const remainder = seconds % 60;
+      return minutes ? `${minutes}m ${remainder}s` : `${remainder}s`;
+    }
+
+    function startTimer(message) {
+      timerStartedAt = Date.now();
+      timerMessage.textContent = message || 'Working...';
+      timerValue.textContent = '0s';
+      timerPanel.classList.add('active');
+      if (timerHandle) clearInterval(timerHandle);
+      timerHandle = setInterval(() => {
+        timerValue.textContent = formatMs(Date.now() - timerStartedAt);
+      }, 1000);
+    }
+
+    function stopTimer() {
+      const elapsed = timerStartedAt ? Date.now() - timerStartedAt : 0;
+      if (timerHandle) clearInterval(timerHandle);
+      timerHandle = null;
+      if (timerStartedAt) {
+        timerValue.textContent = formatMs(elapsed);
+        timerMessage.textContent = `Ready. Last action took ${formatMs(elapsed)}.`;
+      }
+      timerStartedAt = 0;
+      return elapsed;
+    }
 
     function formValues() {
       return {
@@ -213,7 +274,11 @@
 
     function setBusy(isBusy, message) {
       buttons.forEach(button => { button.disabled = isBusy; });
-      if (message) statusEl.textContent = message;
+      if (isBusy && message) {
+        statusEl.textContent = message;
+        startTimer(message.split('\n')[0]);
+      }
+      if (!isBusy) stopTimer();
     }
 
     function downloadText(filename, text) {
@@ -270,11 +335,12 @@
           clientDraftId: values.clientDraftId
         }, values.adminSecret);
         const s = data.status || {};
+        const t = s.timings || {};
         reportStatusEl.innerHTML = `
-          <div class="${s.free ? 'ready' : ''}">Free Snapshot: ${s.free ? 'ready' : 'not generated'}</div>
-          <div class="${s.detailed ? 'ready' : ''}">Detailed Opportunity Report: ${s.detailed ? 'ready' : 'not generated'}</div>
-          <div class="${s.roadmap ? 'ready' : ''}">Preliminary Action Plan: ${s.roadmap ? 'ready' : 'not generated'}</div>
-          <div class="${s.btai ? 'ready' : ''}">BTAI Advisor Brief: ${s.btai ? 'ready' : 'not generated'}</div>
+          <div class="${s.free ? 'ready' : ''}">Free Snapshot: ${s.free ? 'ready' : 'not generated'}${t.free?.generationMs ? ` - ${formatMs(t.free.generationMs)}` : ''}</div>
+          <div class="${s.detailed ? 'ready' : ''}">Detailed Opportunity Report: ${s.detailed ? 'ready' : 'not generated'}${t.detailed?.generationMs ? ` - ${formatMs(t.detailed.generationMs)}` : ''}</div>
+          <div class="${s.roadmap ? 'ready' : ''}">Preliminary Action Plan: ${s.roadmap ? 'ready' : 'not generated'}${t.roadmap?.generationMs ? ` - ${formatMs(t.roadmap.generationMs)}` : ''}</div>
+          <div class="${s.btai ? 'ready' : ''}">BTAI Advisor Brief: ${s.btai ? 'ready' : 'not generated'}${t.btai?.generationMs ? ` - ${formatMs(t.btai.generationMs)}` : ''}</div>
           <div class="${s.zip ? 'ready' : ''}">ZIP: ${s.zip ? 'ready' : 'not built yet'}</div>
         `;
         if (!silent) statusEl.textContent = 'Report status updated.';
@@ -322,6 +388,33 @@
       } finally {
         setBusy(false);
       }
+    });
+
+    async function downloadPrivacyCertificate(action, suffix) {
+      const values = requireBasics();
+      if (!values) return;
+      setBusy(true, `Building ${suffix} from sanitized privacy proof logs...`);
+      try {
+        const data = await postJson('/api/report-pack', {
+          action,
+          clientDraftId: values.clientDraftId
+        }, values.adminSecret);
+        const filename = `${values.filename || values.clientDraftId}_${suffix}.md`.replace(/[^a-zA-Z0-9_.-]+/g, '_');
+        downloadText(data.filename || filename, data.markdown || '');
+        statusEl.textContent = `Downloaded ${data.filename || filename}\nCertificate type: ${data.certificateType || suffix}`;
+      } catch (err) {
+        statusEl.textContent = `Error: ${err.message}`;
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    document.getElementById('privacy-brief-btn').addEventListener('click', () => {
+      downloadPrivacyCertificate('privacy-certificate-brief', 'Brief_Privacy_Certificate');
+    });
+
+    document.getElementById('privacy-detailed-btn').addEventListener('click', () => {
+      downloadPrivacyCertificate('privacy-certificate-detailed', 'Detailed_Privacy_Attestation');
     });
 
     document.getElementById('send-free-report-btn').addEventListener('click', async () => {

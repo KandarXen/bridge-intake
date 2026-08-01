@@ -264,13 +264,19 @@ export default async function handler(req, res) {
       partnerAggregateDisclosureAccepted: !!sourceMeta?.partnerAggregateDisclosureAccepted,
       proofStatus: sourceMeta?.privacyConsent ? 'passed' : 'failed'
     });
-    await logPrivacyProof(clientDraftId, 'privacy_proof_cross_border_notice', 'success', {
+    const crossBorderNoticePassed = !!(
+      sourceMeta?.crossBorderProcessingNoticePresented &&
+      sourceMeta?.serviceProviderPolicyAvailable &&
+      sourceMeta?.privacyContactPresented &&
+      sourceMeta?.privacyPolicyVersion
+    );
+    await logPrivacyProof(clientDraftId, 'privacy_proof_cross_border_notice', crossBorderNoticePassed ? 'success' : 'failed', {
       privacyProofType: 'cross_border_notice',
       crossBorderProcessingNoticePresented: !!sourceMeta?.crossBorderProcessingNoticePresented,
       serviceProviderPolicyAvailable: !!sourceMeta?.serviceProviderPolicyAvailable,
       privacyContactPresented: !!sourceMeta?.privacyContactPresented,
       privacyPolicyVersion: sourceMeta?.privacyPolicyVersion || '',
-      proofStatus: 'passed'
+      proofStatus: crossBorderNoticePassed ? 'passed' : 'failed'
     });
     await logPrivacyProof(clientDraftId, 'privacy_proof_retention_policy_recorded', 'success', {
       privacyProofType: 'retention',

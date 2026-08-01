@@ -1,15 +1,22 @@
-# Bridge To AI Intake App - v1.59.3 Admin Report Recovery
+# Bridge To AI Intake App - v1.60 Privacy Proof Certificates
 
-This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, and admin privacy proof export. v1.59.3 includes the evidence-first/no-sycophancy trust standard, wider welcome layout, white-label positioning note, and clearer admin report retrieval errors.
+This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, and admin privacy proof export. v1.60 adds deterministic privacy certificates, report-generation timing in admin, stricter proof logic, cleaner scanner classification, and a human-readable report package summary.
 
 ## What Changed
 
 - Privacy Policy version is now `2026-07-25-v1.56.1`.
-- Header version is now `v1.59.3`.
+- Header version is now `v1.60`.
 - The intake welcome page now explains that Bridge To AI reports are evidence-first, not AI sales pitches.
 - The desktop welcome page now uses a wider two-column layout so the trust message, instructions, and start form are not stacked into one long narrow page.
 - The direct BTAI welcome page now includes a subtle white-label positioning note for associations, training groups, and business communities; partner links hide this note from members.
 - Admin report retrieval now surfaces the actual server message instead of hiding useful causes behind a generic "Server error".
+- Admin report generation now shows a live elapsed timer while long report jobs run.
+- Admin report status now shows server-recorded generation duration when available.
+- Admin now provides two privacy proof downloads: **Brief Privacy Certificate** and **Detailed Privacy Attestation**.
+- Privacy proof generation is deterministic from server logs; it does not send raw proof logs through an AI model.
+- Cross-border proof now fails if the underlying notice/provider/contact proof fields are missing.
+- Report privacy scans now separate blocking findings from non-blocking policy language, so delivery is only marked blocked when it should actually stop.
+- Report ZIPs now include `BTAI_Report_Pack_Summary.md` in addition to the raw validation JSON.
 - Report prompts now include a permanent Evidence-First / No-Sycophancy Standard.
 - Reports are instructed to say when to build now, clean up first, or avoid automation for now.
 - Free, Level 2, and Level 3 client reports now include the configured purchase/booking links inside the report content, not only in the email body.
