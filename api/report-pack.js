@@ -387,7 +387,7 @@ ${dna}`;
 
 async function generateOne(clientDraftId, tier) {
   const spec = REPORTS[tier];
-  if (!spec) throw new Error('Unknown report tier');
+  if (!spec) throw new Error(`Unknown report tier: ${tier || 'blank'}`);
 
   const startedAt = Date.now();
   const { dnaContent, meta } = await getDna(clientDraftId);
@@ -474,6 +474,7 @@ async function getOrGenerateOne(clientDraftId, tier) {
 
 async function loadGenerated(clientDraftId, tier) {
   const spec = REPORTS[tier];
+  if (!spec) throw new Error(`Unknown report tier: ${tier || 'blank'}`);
   const row = await getLatestIntakeOutput(clientDraftId, spec.docxOutputType);
   if (!row) return null;
   return decryptJson(row.encrypted_payload);
@@ -486,7 +487,9 @@ async function buildZip(clientDraftId) {
 
   for (const tier of ['free', 'detailed', 'roadmap', 'btai']) {
     const doc = await loadGenerated(clientDraftId, tier);
-    if (!doc?.contentBase64) throw new Error(`Missing generated DOCX for tier: ${tier}`);
+    if (!doc?.contentBase64) {
+      throw new Error(`Missing generated DOCX for tier: ${tier}. Generate that report first, then download the ZIP.`);
+    }
     files.push({
       name: doc.filename || `${businessName}_${REPORTS[tier].filename}.docx`,
       content: Buffer.from(doc.contentBase64, 'base64')

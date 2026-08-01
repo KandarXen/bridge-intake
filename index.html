@@ -200,6 +200,27 @@
     margin-bottom: 0.5rem;
   }
 
+  .white-label-note {
+    display: block;
+    border: 1px solid #d8d2c7;
+    background: #fffdf7;
+    border-radius: var(--radius);
+    padding: 0.9rem 1rem;
+    margin: -0.55rem 0 1.75rem;
+    color: var(--ink-mid);
+    font-size: 0.9rem;
+    line-height: 1.55;
+  }
+
+  .white-label-note strong {
+    color: var(--bridge-teal);
+    font-weight: 700;
+  }
+
+  .white-label-note.hidden {
+    display: none;
+  }
+
   .partner-banner {
     display: none;
     border: 1px solid #b8ddd7;
@@ -891,7 +912,7 @@
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag" id="header-tag">Business Discovery Session</span>
-      <span class="header-version">v1.59.1</span>
+      <span class="header-version">v1.59.3</span>
   </div>
 </header>
 
@@ -926,6 +947,11 @@
             or unclear, the report can be much more useful. We will show you where AI may help,
             where the foundations need cleanup first, and what should not be automated yet.
           </p>
+        </div>
+
+        <div class="white-label-note" id="white-label-note">
+          <strong>For associations, training groups, and business communities:</strong>
+          this intake can be adapted to help you teach practical AI based on what your members actually need.
         </div>
 
         <div class="welcome-steps">
@@ -1594,9 +1620,11 @@ function applyPartnerBranding() {
   const profile = activePartnerProfile();
   const banner = document.getElementById('partner-banner');
   const partnerConsent = document.getElementById('partner-consent-note');
+  const whiteLabelNote = document.getElementById('white-label-note');
   if (!profile) {
     if (banner) banner.classList.remove('active');
     if (partnerConsent) partnerConsent.classList.remove('active');
+    if (whiteLabelNote) whiteLabelNote.classList.remove('hidden');
     setText('header-tag', 'Business Discovery Session');
     return;
   }
@@ -1617,6 +1645,7 @@ function applyPartnerBranding() {
   }
   if (banner) banner.classList.add('active');
   if (partnerConsent) partnerConsent.classList.add('active');
+  if (whiteLabelNote) whiteLabelNote.classList.add('hidden');
 }
 
 function answerQuality(text) {

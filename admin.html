@@ -246,9 +246,16 @@
         },
         body: JSON.stringify(body)
       });
-      const data = await resp.json();
+      const raw = await resp.text();
+      let data = {};
+      try {
+        data = raw ? JSON.parse(raw) : {};
+      } catch (err) {
+        const summary = raw ? raw.slice(0, 500) : 'No response body returned.';
+        throw new Error(`Request failed with HTTP ${resp.status}. Server returned non-JSON output: ${summary}`);
+      }
       if (!resp.ok || data.success === false || data.error) {
-        throw new Error(data.error || data.message || 'Request failed');
+        throw new Error(data.message || data.error || `Request failed with HTTP ${resp.status}`);
       }
       return data;
     }
