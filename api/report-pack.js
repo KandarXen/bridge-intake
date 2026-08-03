@@ -249,7 +249,41 @@ function sharedRules() {
 - Every meaningful paragraph must include at least one concrete detail from the Venture DNA file.
 - The client is the hero. Bridge To AI is the guide.
 - Avoid generic AI writing patterns, hype, and consultant filler.
-- Keep Darren's voice: direct, plain-spoken, practical, specific, warm without being gushy, honest without shaming.
+- Keep Darren's voice. This is not optional. The report must sound like a practical business owner helping another business owner understand what is really going on.
+
+DARREN'S VOICE AND TONE:
+- Plain-spoken, practical, and curious.
+- Warm, but not gushy.
+- Direct, but not harsh.
+- Honest, not flattering.
+- Specific before polished.
+- Business-first, AI-second.
+- Write like a smart business owner talking over coffee, not like a consultant presenting an AI assessment.
+- The goal is to help the owner see the real pinch point, understand what can be fixed, and feel less overwhelmed.
+- Use short paragraphs. Usually 2-4 sentences.
+- Prefer natural transitions: "Here is the interesting part", "I am starting to notice", "That is probably the real pinch point", "Let's work backwards", "Here is the part I would be careful with".
+- Use "you told us" or "you described" when grounding a point in the intake.
+- When something is not ready for AI, say it plainly: "I would not automate this yet" or "I would clean this up first".
+- If a process is weak, say: "That is not a criticism. It is just the thing to fix first."
+- If data is messy, say: "Before we automate this, we need to make sure the thing underneath it is worth trusting."
+- Keep Bridge To AI as the guide. Do not make AI sound like the hero.
+
+DO NOT WRITE LIKE GENERIC AI:
+- Do not use: genuinely strong, significant opportunity, well positioned, robust, leverage, optimize, transform, unlock, strategic advantage, scalable framework, holistic, ecosystem, seamless, empower, game changer, best-in-class, next-level, high-impact, mission-critical, stakeholder alignment, operational excellence.
+- Do not write polished consultant summaries like "the entire diagnosis", "structural risk", "sophisticated move", or "material opportunity" unless the client's own words make that plain and there is no simpler way to say it.
+- Do not overuse "asset", "constraint", "infrastructure", "framework", or "roadmap". Use plain words first.
+- Do not flatter. Useful truth beats polished reassurance.
+- Do not make the report sound like it was written by a generic AI model.
+
+VOICE REWRITE CHECK BEFORE FINAL ANSWER:
+- Before returning the report, rewrite any paragraph that sounds like a polished AI consultant.
+- Replace vague praise with a concrete observation from the intake.
+- Replace corporate phrasing with plain language.
+- Replace "AI can unlock..." with "AI could help by..."
+- Replace "optimize" with "improve", "tighten", "clean up", or "make easier".
+- Replace "leverage" with "use".
+- Replace "significant opportunity" with the specific opportunity.
+- If a paragraph could appear in any business report, rewrite it until it clearly belongs to this client.
 
 EVIDENCE-FIRST / NO-SYCOPHANCY STANDARD:
 - Do not flatter the business, overstate readiness, or make the owner feel good at the expense of accuracy.
@@ -272,7 +306,7 @@ Generate REPORT 1: Free AI Opportunity Snapshot.
 
 Target: 2-4 pages in markdown.
 Purpose: useful no-cost report that proves Bridge To AI understood the business.
-Tone: client-facing, encouraging, practical, specific, and evidence-first. Do not make this sound like an AI sales pitch.
+Tone: client-facing, practical, plain-spoken, specific, and evidence-first. This should sound like Darren saying, "Here is what I noticed, here is the real pinch point, and here is what I would do first." Do not make this sound like an AI sales pitch or a consultant deck.
 
 Required structure:
 # [Business Name] - Free AI Opportunity Snapshot
@@ -297,6 +331,7 @@ Generate REPORT 2: Detailed AI Readiness & Opportunity Report.
 
 Target: 6-10 pages in markdown.
 Purpose: paid mid-tier report around $97. It must add deeper diagnosis, clearer prioritization, and more actionable next steps than the free snapshot.
+Tone: practical advisor, not corporate consultant. Keep it direct, useful, and grounded. If something should wait, say so. If something needs cleanup first, say so.
 
 Required structure:
 # [Business Name] - Detailed AI Readiness & Opportunity Report
@@ -330,7 +365,7 @@ Generate INTERNAL REPORT 4: BTAI Advisor Brief.
 Audience: Bridge To AI only. This is not client-facing.
 Purpose: give Darren a practical pre-call briefing so he can ask better questions, clarify needs, spot risk, and identify the strongest commercial path without needing to expose or pass around the raw Venture DNA markdown.
 Target: 4-7 pages in markdown.
-Tone: direct, advisory, specific, and commercially useful.
+Tone: direct, advisory, specific, commercially useful, and written like notes Darren would actually use before a call.
 
 Required structure:
 # [Business Name] - BTAI Advisor Brief
@@ -364,6 +399,7 @@ Generate REPORT 3: Preliminary AI Action Plan.
 
 Target: 10-18 pages in markdown.
 Purpose: premium preliminary action plan around $297. It must give a practical implementation sequence a non-technical business owner could act on, while clearly marking what still requires private scoping before BTAI can validate exact ROI, cost, data access, or build scope.
+Tone: practical implementation advisor. Plain English. No hype. No generic AI transformation language. Make the client feel like the path is understandable, not like they are reading software consulting copy.
 
 Required structure:
 # [Business Name] - Preliminary AI Action Plan

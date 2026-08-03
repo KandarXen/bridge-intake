@@ -1,11 +1,15 @@
-# Bridge To AI Intake App - v1.62.4 Admin Interview Index
+# Bridge To AI Intake App - v1.62.5 Darren Voice Report Prompt
 
-This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, and the private records console route. v1.62.4 adds an admin-only interview index for finding Record IDs quickly.
+This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, and the admin interview index. v1.62.5 tightens the client report prompts so generated reports sound more like Darren and less like generic AI consulting copy.
 
 ## What Changed
 
 - Privacy Policy version is now `2026-07-25-v1.56.1`.
-- Header version is now `v1.62.4`.
+- Header version is now `v1.62.5`.
+- Report prompts now include a stronger Darren voice standard: plain-spoken, practical, curious, business-first, and direct without being harsh.
+- Report prompts now include banned generic AI/consulting phrases such as `leverage`, `optimize`, `transform`, `unlock`, `robust`, `well positioned`, and `significant opportunity`.
+- Report prompts now require a final voice rewrite pass before output.
+- Each report tier now reinforces the practical advisor tone in addition to the shared source-of-truth rules.
 - The records console now includes **Load Interview Index**.
 - The interview index shows recent Record IDs, business names, client names, client emails, category, partner/campaign, status, and updated date.
 - Clicking a row fills the Record ID and filename fields for faster Venture DNA retrieval or report generation.
