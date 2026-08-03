@@ -1,11 +1,19 @@
-# Bridge To AI Intake App - v1.62.7 Darren Voice Calibration
+# Bridge To AI Intake App - v1.62.8 Report Quality Gate
 
-This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the admin interview index, the regenerate report checkbox, and the tightened Darren voice report prompt. v1.62.7 adds a stronger Darren voice calibration layer for client reports.
+This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the admin interview index, the regenerate report checkbox, and the tightened Darren voice report prompt. v1.62.8 adds report quality gates, better HTML cleanup, and stronger plain-language report section rules.
 
 ## What Changed
 
 - Privacy Policy version is now `2026-07-25-v1.56.1`.
-- Header version is now `v1.62.7`.
+- Header version is now `v1.62.8`.
+- Report generation now runs a completion quality gate before storing report files.
+- Reports that appear cut off, miss the required final section, or end mid-thought are logged as failed and are not stored as deliverable client reports.
+- Report validation now flags overused Darren-style phrases so the report does not sound artificially prompted.
+- Report validation now flags generic AI/consultant phrases such as `genuinely strong`, `emotionally resonant`, `well positioned`, `significant opportunity`, and `implementation strategy`.
+- HTML report rendering now converts italic markdown and horizontal rules more cleanly.
+- Report prompts now tell the model not to use markdown horizontal rules, fenced code blocks, or ASCII-art diagrams.
+- Report sections now use plainer labels such as `Where AI Looks Useful First`, `Quick Read`, `What I Would Build Around`, and `Build Order`.
+- Ranked opportunity sections now require proof from the Venture DNA for why each opportunity deserves its rank.
 - Report prompts now include Darren's opportunity-selection rule: do not default to email automation; first look for where the owner, highest-value person, or most expensive person is losing valuable time.
 - Report prompts now push AI opportunity ranking toward repeated high-value work such as pitch decks, presentations, proposals, onboarding material, client paperwork, project summaries, quote preparation, compliance documents, weekly planning, buyer readiness, SOP capture, sales prep, social media planning, and decision prep.
 - Report prompts now tell the model to use plainer Darren-style language such as "Here is what I am seeing", "That is probably the real pinch point", and "I would not automate this yet."

@@ -236,6 +236,76 @@ function scanReportPrivacy(markdown) {
   };
 }
 
+const REPORT_COMPLETION_HEADINGS = {
+  free: ['## 7. Bridge To AI Note'],
+  detailed: ['## 11. Final Advisor Note'],
+  roadmap: ['## 19. Final Implementation Recommendation'],
+  btai: ['## 10. Needs Confirmation Before Build']
+};
+
+function reportQualityWarnings(markdown, tier) {
+  const text = String(markdown || '').trim();
+  const warnings = [];
+  const requiredHeadings = REPORT_COMPLETION_HEADINGS[tier] || [];
+  requiredHeadings.forEach(heading => {
+    if (!text.includes(heading)) warnings.push(`missing_expected_final_section:${heading.replace(/^#+\s*/, '')}`);
+  });
+
+  const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+  const lastMeaningfulLine = [...lines].reverse().find(line =>
+    !/^[-*_]{3,}$/.test(line) &&
+    !/^#+\s/.test(line) &&
+    !/^\|/.test(line) &&
+    !/^<\/?\w/.test(line)
+  ) || '';
+  const stripped = lastMeaningfulLine.replace(/[*_`>#-]/g, '').trim();
+  const wordCount = stripped.split(/\s+/).filter(Boolean).length;
+  if (wordCount > 0 && wordCount < 6) warnings.push('last_line_too_short_possible_cutoff');
+  if (/\b(of|for|to|with|and|or|the|a|an|in|on|at|from|by|about|front of)$/i.test(stripped)) {
+    warnings.push('last_line_ends_mid_thought');
+  }
+  if (!/[.!?)"]$/.test(stripped) && wordCount > 6) warnings.push('last_line_missing_sentence_punctuation');
+
+  const repeatedPhrases = [
+    'Here is what I am seeing',
+    'That is not a criticism',
+    'That is the real pinch point',
+    'Here is the interesting part'
+  ];
+  repeatedPhrases.forEach(phrase => {
+    const count = (text.match(new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')) || []).length;
+    if (count > 2) warnings.push(`overused_voice_phrase:${phrase}`);
+  });
+
+  const aiishPatterns = [
+    ['generic_ai_phrase:genuinely_strong', /\bgenuinely strong\b/i],
+    ['generic_ai_phrase:emotionally_resonant', /\bemotionally resonant\b/i],
+    ['generic_ai_phrase:well_positioned', /\bwell positioned\b/i],
+    ['generic_ai_phrase:significant_opportunity', /\bsignificant opportunity\b/i],
+    ['generic_ai_phrase:implementation_strategy', /\bimplementation strategy\b/i],
+    ['generic_ai_phrase:the_intake_indicates', /\bthe intake indicates\b/i]
+  ];
+  aiishPatterns.forEach(([warning, pattern]) => {
+    if (pattern.test(text)) warnings.push(warning);
+  });
+
+  return warnings;
+}
+
+function validateReportCompletion(markdown, tier) {
+  const warnings = reportQualityWarnings(markdown, tier);
+  const blockingWarnings = warnings.filter(warning =>
+    warning.startsWith('missing_expected_final_section:') ||
+    warning === 'last_line_too_short_possible_cutoff' ||
+    warning === 'last_line_ends_mid_thought'
+  );
+  return {
+    completed: blockingWarnings.length === 0,
+    warnings,
+    blockingWarnings
+  };
+}
+
 function sharedRules() {
   return `SOURCE OF TRUTH RULES:
 - Use only the supplied Venture DNA markdown as source material.
@@ -262,6 +332,7 @@ DARREN'S VOICE AND TONE:
 - The goal is to help the owner see the real pinch point, understand what can be fixed, and feel less overwhelmed.
 - Use short paragraphs. Usually 2-4 sentences.
 - Prefer natural transitions: "Here is the interesting part", "I am starting to notice", "That is probably the real pinch point", "Let's work backwards", "Here is the part I would be careful with".
+- Do not repeat the same Darren-style phrase more than twice in a report. If you use "Here is what I am seeing", "real pinch point", "not a criticism", or "interesting part", vary the next transitions.
 - Use "you told us" or "you described" when grounding a point in the intake.
 - Make time concrete. Time is the most valuable win because it is a non-replenishable asset.
 - Use the owner-language distinction between working inside the business and working on the business when it fits the evidence.
@@ -280,6 +351,7 @@ DARREN'S AI OPPORTUNITY SELECTION RULE:
 - Ask: where does automation save the most valuable time, reduce the most rework, or help the owner get back in front of customers?
 - Saving five hours from a high-value person may matter more than saving fifteen minutes from a generic admin task.
 - If the best opportunity is email, say why it is actually the best opportunity for this business. Do not recommend it because it is easy.
+- For every ranked opportunity, prove why it belongs where it is ranked using evidence from the Venture DNA. If the proof is weak, lower the priority or mark it Needs Confirmation.
 
 DO NOT WRITE LIKE GENERIC AI:
 - Do not use: genuinely strong, significant opportunity, well positioned, robust, leverage, optimize, transform, unlock, strategic advantage, scalable framework, holistic, ecosystem, seamless, empower, game changer, best-in-class, next-level, high-impact, mission-critical, stakeholder alignment, operational excellence.
@@ -289,6 +361,8 @@ DO NOT WRITE LIKE GENERIC AI:
 - Do not write "Bridge To AI recommends" over and over. Write like Darren: "I would start here", "I would be careful with this", "I would not automate this yet", "Here is where I would look first".
 - Do not flatter. Useful truth beats polished reassurance.
 - Do not make the report sound like it was written by a generic AI model.
+- Do not use markdown horizontal rules (---). The HTML template already separates sections.
+- Do not use fenced code blocks or ASCII-art diagrams. Use a plain bullet list or table instead.
 
 VOICE REWRITE CHECK BEFORE FINAL ANSWER:
 - Before returning the report, rewrite any paragraph that sounds like a polished AI consultant.
@@ -301,7 +375,12 @@ VOICE REWRITE CHECK BEFORE FINAL ANSWER:
 - Replace broad claims like "reduce administrative burden" with the actual repeated work from the Venture DNA.
 - Replace "customer communication automation" with the specific communication job unless the intake proves that broad category is the real issue.
 - Replace "strong foundation" with the exact thing that is working, such as repeat customers, a high close rate, a clear niche, a known customer problem, or a repeatable delivery process.
+- Rewrite table row labels so they sound like plain observations, not consultant scorecard categories.
+- Bad table labels: "Clear, emotionally resonant client outcome", "A structured, deliberate sales process", "A defined, repeatable post-sale delivery flow", "A brand voice that is genuinely distinct", "Self-awareness about the real constraint", "Strong execution track record".
+- Better table labels: "You already know the real result", "Your sales process has a smart pause in it", "Delivery is already repeatable", "Your client voice is already clear", "You already named the real bottleneck", "You actually follow through".
+- Table labels should feel like something Darren would say out loud, not like a consulting framework heading.
 - If a paragraph could appear in any business report, rewrite it until it clearly belongs to this client.
+- Before final output, check that the final client-facing section is complete and does not end mid-sentence. Never stop on an unfinished phrase.
 
 WRITE LIKE THIS KIND OF PATTERN:
 - "Here is what I am seeing."
@@ -342,7 +421,7 @@ Required structure:
 Write this as 5-8 short plain-English paragraphs. Start with "Here is what I am seeing." Avoid "The intake indicates". Name the real pinch point in simple language.
 ## 2. What Is Already Working
 Use a table: Strength | Why It Matters
-## 3. Top 3 AI Opportunities
+## 3. Where AI Looks Useful First
 Use a table: Priority | Opportunity | Why It Matters | First Step
 ## 4. One Growth Leak To Fix First
 ## 5. First Recommended Move
@@ -365,13 +444,13 @@ Opportunity rule: rank opportunities by valuable time saved, rework reduced, rev
 
 Required structure:
 # [Business Name] - Detailed AI Readiness & Opportunity Report
-## 1. Executive Summary
+## 1. Quick Read
 ## 2. Business Positioning
 ## 3. Current Revenue And Growth Model
 Use a table: Revenue Stream | Current State | Growth Opportunity | AI Relevance
 ## 4. Main Growth Leaks
 Use a table: Growth Leak | What Is Happening | Business Impact | Recommended Fix
-## 5. AI Opportunity Portfolio
+## 5. Where AI Looks Useful First
 Use a ranked table: Rank | AI Opportunity | Problem Solved | Impact | Feasibility | Priority | Notes
 ## 6. Recommended First 5 AI Projects
 Use a table: Priority | Project | Business Problem Solved | Client Benefit | Complexity | Suggested Timing
@@ -434,13 +513,13 @@ Opportunity rule: build the implementation path around the most valuable repeate
 
 Required structure:
 # [Business Name] - Preliminary AI Action Plan
-## 1. Implementation Thesis
+## 1. What I Would Build Around
 ## 2. Context Snapshot
 Use a table: Category | Detail
 ## 3. Missing Answers From Updated Intake Questions
 ## 4. Target Operating Model
 Use a simple adapted flow.
-## 5. Priority Build Roadmap
+## 5. Build Order
 Use a ranked table: Rank | System / Workflow | Problem Solved | Why Now | Business Impact | Owner/Team Relief | Complexity | Dependencies | Recommended Tool Stack | First Deliverable
 ## 6. Build 1: Highest-Priority Workflow
 ## 7. Build 2: Second-Priority Workflow
@@ -480,8 +559,23 @@ async function generateOne(clientDraftId, tier) {
     startedAt: new Date(startedAt).toISOString()
   }));
   const generatedMarkdown = await callClaude(promptForTier(tier, dnaContent), spec.maxTokens);
+  const completion = validateReportCompletion(generatedMarkdown, tier);
+  if (!completion.completed) {
+    await logReportEvent(clientDraftId, 'report_generation_quality_gate_failed', 'failed', privacyProofDefaults({
+      partner: meta?.sourceMeta?.partner || 'BTAI',
+      campaign: meta?.sourceMeta?.campaign || 'general_intake',
+      reportTier: tier,
+      reportOutputType: spec.htmlOutputType,
+      payloadType: 'generated_report_markdown',
+      qualityGateWarnings: completion.warnings,
+      blockingWarnings: completion.blockingWarnings,
+      generationMs: Date.now() - startedAt
+    }));
+    throw new Error(`Report quality gate failed for ${tier}: ${completion.blockingWarnings.join(', ')}`);
+  }
   const markdown = decorateReportMarkdown(generatedMarkdown, tier);
   const validation = validateDnaOutput(markdown, { requireEvidenceLabels: false });
+  validation.warnings = [...(validation.warnings || []), ...completion.warnings];
   const privacyScan = scanReportPrivacy(markdown);
   const htmlReport = createReportHtml(markdown, {
     title: `${businessName} - ${spec.title}`,
