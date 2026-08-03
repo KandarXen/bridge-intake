@@ -1,6 +1,8 @@
 {
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/", "destination": "/index.html" }
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/btai-records-console", "destination": "/btai-records-console.html" },
+    { "source": "/btai-records-console.html", "destination": "/btai-records-console.html" }
   ]
 }

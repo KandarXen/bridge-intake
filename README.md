@@ -1,11 +1,18 @@
-# Bridge To AI Intake App - v1.62 Partner Aggregate Intelligence
+# Bridge To AI Intake App - v1.62.3 Records Console Route Hotfix
 
-This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, and HTML-first client reports. v1.62 adds a privacy-safe partner aggregate intelligence report for AFPA-style programs.
+This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, and privacy-safe partner aggregate intelligence reports. v1.62.3 adds explicit Vercel routing for the private records console.
 
 ## What Changed
 
 - Privacy Policy version is now `2026-07-25-v1.56.1`.
-- Header version is now `v1.62`.
+- Header version is now `v1.62.3`.
+- `vercel.json` now explicitly rewrites `/btai-records-console` to `/btai-records-console.html`.
+- The private records console file is now `btai-records-console.html`.
+- With Vercel `cleanUrls`, use `/btai-records-console` instead of `/admin` or `/admin.html`.
+- The obvious `admin.html` file is no longer included in the deploy package.
+- This is reduced visibility, not the security boundary. The real protection remains `BTAI_ADMIN_SECRET` plus server-side authorization on the admin APIs.
+- Partner aggregate reports now exclude completion-page test records and obvious test Record IDs by default.
+- Partner aggregate reports now disclose how many test/demo records were excluded.
 - Admin now includes a **Partner Aggregate Intelligence** section.
 - New `/api/partner-aggregate` endpoint creates AFPA-style aggregate reports from `intake_kpi_events` only.
 - Partner aggregate reports can be downloaded as polished HTML or editable Markdown.
@@ -87,8 +94,8 @@ This build keeps the trust-first, controlled industry-adaptive intake, live-inte
 - Secure processing events are saved in Supabase instead of Google Drive.
 - Adaptive AI probes are constrained by approved question types, forbidden sensitive-topic checks, repetition checks, and a maximum probe count.
 - Email is notification-only by default.
-- Private admin retrieval is available through `admin.html` and `/api/admin-output`.
-- Admin-only three-report generation is available through `admin.html` and `/api/report-pack`.
+- Private admin retrieval is available through `btai-records-console.html` and `/api/admin-output`.
+- Admin-only three-report generation is available through `btai-records-console.html` and `/api/report-pack`.
 - Report pack ZIP download includes three client-facing DOCX reports, one internal BTAI Advisor Brief DOCX, and a validation summary. The higher-tier reports are positioned as opportunity/action planning from first-intake data, not as validated ROI or final implementation scope.
 - The raw Venture DNA markdown stays secure and is not included in the report pack ZIP.
 - Plaintext Google Drive saving is no longer part of the normal completion path.
@@ -165,7 +172,7 @@ The email must match the email stored on that secure intake session. This mode d
 After a completed intake, use:
 
 ```text
-/admin.html
+/btai-records-console
 ```
 
 Paste the notification email's Record ID and the private `BTAI_ADMIN_SECRET` to download the decrypted `.md` file.
@@ -189,7 +196,7 @@ The internal BTAI Advisor Brief is for Bridge To AI only. It summarizes what to 
 
 ## Privacy Proof Export
 
-Use `/admin.html`, paste the Record ID and `BTAI_ADMIN_SECRET`, then click **Download Privacy Proof JSON**.
+Use `/btai-records-console`, paste the Record ID and `BTAI_ADMIN_SECRET`, then click **Download Privacy Proof JSON**.
 
 The export is designed for AFPA/client trust review. It includes sanitized event proof such as:
 

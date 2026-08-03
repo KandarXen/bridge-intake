@@ -62,6 +62,32 @@ function groupByRecord(events) {
   return map;
 }
 
+function isTestRecord(clientDraftId, recordEvents) {
+  const id = String(clientDraftId || '').toLowerCase();
+  if (id.includes('test') || id.includes('demo_test') || id.startsWith('completion_test_')) return true;
+  return recordEvents.some(event => {
+    const type = String(event.event_type || '').toLowerCase();
+    const status = String(event.status || '').toLowerCase();
+    const metaText = JSON.stringify(event.metadata || {}).toLowerCase();
+    return type.includes('test_mode') ||
+      type.includes('completion_page_test') ||
+      status.includes('test') ||
+      metaText.includes('completion page test mode') ||
+      metaText.includes('test mode: no report email sent');
+  });
+}
+
+function excludeTestEvents(events) {
+  const excludedIds = new Set();
+  for (const [clientDraftId, recordEvents] of groupByRecord(events).entries()) {
+    if (isTestRecord(clientDraftId, recordEvents)) excludedIds.add(clientDraftId);
+  }
+  return {
+    events: events.filter(event => !excludedIds.has(String(event.client_draft_id || '').trim())),
+    excludedRecordCount: excludedIds.size
+  };
+}
+
 function latestValue(events, key) {
   for (const event of events) {
     const value = event[key];
@@ -119,7 +145,7 @@ function educationRecommendations(summary) {
   return lines.join('\n');
 }
 
-function aggregateReportMarkdown({ partner, campaign, days, events }) {
+function aggregateReportMarkdown({ partner, campaign, days, events, excludedRecordCount = 0 }) {
   const records = recordSummaries(events);
   const completed = records.filter(record => record.completed);
   const totalRecords = records.length;
@@ -148,7 +174,8 @@ The purpose is to help ${partner} understand what members appear to need from pr
 
 | Metric | Count | Rate |
 | --- | ---: | ---: |
-| Unique intake records observed | ${totalRecords} | 100% |
+| Unique intake records observed, after test-data exclusion | ${totalRecords} | 100% |
+| Test/demo records excluded | ${excludedRecordCount} | Not included |
 | Started interview | ${startedCount} | ${pct(startedCount, totalRecords)} |
 | Completed interview | ${completedCount} | ${pct(completedCount, totalRecords)} |
 | Free report delivery logged | ${freeSentCount} | ${pct(freeSentCount, completedCount)} |
@@ -208,6 +235,8 @@ ${educationRecommendations(summary)}
 ## 8. Notes And Limitations
 
 This report is directional. It reflects only members who used the tagged intake link and only the privacy-safe KPI/event fields captured by the system. It should not be treated as a full market study, legal opinion, or complete member-needs analysis.
+
+Test and completion-page demo records are excluded by default so partner reporting reflects real intake activity as closely as possible.
 `;
 }
 
@@ -221,8 +250,10 @@ export default async function handler(req, res) {
   const format = String(req.body?.format || 'markdown').toLowerCase();
 
   try {
-    const events = await getPartnerKpiEvents({ partner, campaign, days });
-    const markdown = aggregateReportMarkdown({ partner, campaign, days, events });
+    const rawEvents = await getPartnerKpiEvents({ partner, campaign, days });
+    const filtered = excludeTestEvents(rawEvents);
+    const events = filtered.events;
+    const markdown = aggregateReportMarkdown({ partner, campaign, days, events, excludedRecordCount: filtered.excludedRecordCount });
     const generatedAt = new Date().toISOString();
     if (format === 'html') {
       const html = createReportHtml(markdown, {
@@ -236,14 +267,16 @@ export default async function handler(req, res) {
         filename: `${partner}_${campaign}_Aggregate_AI_Intake_Report.html`.replace(/[^a-zA-Z0-9_.-]+/g, '_'),
         content: html,
         contentType: 'text/html',
-        eventCount: events.length
+        eventCount: events.length,
+        excludedTestRecordCount: filtered.excludedRecordCount
       });
     }
     return res.status(200).json({
       success: true,
       filename: `${partner}_${campaign}_Aggregate_AI_Intake_Report.md`.replace(/[^a-zA-Z0-9_.-]+/g, '_'),
       markdown,
-      eventCount: events.length
+      eventCount: events.length,
+      excludedTestRecordCount: filtered.excludedRecordCount
     });
   } catch (err) {
     console.error('partner-aggregate error:', err);

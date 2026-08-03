@@ -50,7 +50,7 @@ For live purchases, `BTAI_LEVEL2_PAYMENT_URL` and `BTAI_LEVEL3_PAYMENT_URL` shou
 
 `BTAI_STORE_RECORD_LABELS=false` keeps client and business names out of plaintext Supabase metadata. The names remain inside encrypted payloads.
 
-`BTAI_ADMIN_SECRET` protects the private admin retrieval page at `/admin.html`.
+`BTAI_ADMIN_SECRET` protects the private admin retrieval page at `/btai-records-console`.
 
 ## 4. Upload Files
 
@@ -62,7 +62,7 @@ privacy.html
 vercel.json
 api/
 lib/
-admin.html
+btai-records-console.html
 SUPABASE_SETUP.sql
 SECURE_DEPLOY_CHECKLIST.md
 README.md
@@ -96,7 +96,7 @@ validate-output.js
 
 1. Open the Vercel preview URL.
 2. Open `/privacy.html` and confirm the Privacy Policy loads and shows version `2026-07-25-v1.56.1`.
-3. Open `/admin.html` and confirm the page includes **Generate Full Report Pack** and **Download Privacy Proof JSON**.
+3. Open `/btai-records-console` and confirm the page includes **Generate Full Report Pack** and **Download Privacy Proof JSON**.
 4. Open `/?testComplete=1` and confirm the completion page appears without taking an interview.
 5. Open `/?partner=AFPA&campaign=demo&testComplete=1` and confirm the AFPA completion copy appears.
 6. Confirm the completion page primary button says **Email my free report**, not **Save preference**.
@@ -106,7 +106,7 @@ validate-output.js
    - second Voice & Standards prompt shows as step 2 of 44;
    - first business question shows as step 3 of 44;
    - Back from the first business question returns to the second Voice & Standards prompt.
-9. Open `/admin.html`, paste a real completed Record ID and `BTAI_ADMIN_SECRET`, then click **Send/Resend Free Report Email**.
+9. Open `/btai-records-console`, paste a real completed Record ID and `BTAI_ADMIN_SECRET`, then click **Send/Resend Free Report Email**.
 10. Confirm:
    - the interviewee receives the free report email with DOCX attached;
    - `INTAKE_BCC_RECIPIENT` receives a copy with the report attached;
@@ -135,8 +135,8 @@ validate-output.js
    - one `venture_dna_markdown` row in `intake_outputs`
    - Secure processing events in `intake_events`
    - KPI rows visible through the `intake_kpi_events` view
-17. Open `/admin.html` and retrieve the test DNA using the Record ID and `BTAI_ADMIN_SECRET`.
-18. On `/admin.html`, click **Download Privacy Proof JSON** and confirm:
+17. Open `/btai-records-console` and retrieve the test DNA using the Record ID and `BTAI_ADMIN_SECRET`.
+18. On `/btai-records-console`, click **Download Privacy Proof JSON** and confirm:
     - `encryptedRecordsConfirmed` is `true`
     - `anonymizedAiAnalysisConfirmed` is `true`
     - `privacyConsentConfirmed` is `true`
@@ -146,7 +146,7 @@ validate-output.js
     - `rawDataSharedWithPartner` is `false`
     - `rawDnaIncludedInReportZip` is `false`
     - the export contains proof events but no raw interview answers
-19. On `/admin.html`, generate the reports one at a time if needed:
+19. On `/btai-records-console`, generate the reports one at a time if needed:
     - Free Snapshot
     - Detailed Opportunity Report
     - Preliminary Action Plan
