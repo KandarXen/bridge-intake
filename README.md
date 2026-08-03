@@ -1,11 +1,17 @@
-# Bridge To AI Intake App - v1.62.8 Report Quality Gate
+# Bridge To AI Intake App - v1.62.9 Perceived Value Polish
 
-This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the admin interview index, the regenerate report checkbox, and the tightened Darren voice report prompt. v1.62.8 adds report quality gates, better HTML cleanup, and stronger plain-language report section rules.
+This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the admin interview index, the regenerate report checkbox, report quality gates, and the tightened Darren voice report prompt. v1.62.9 improves perceived value in the free report and paid-report handoff.
 
 ## What Changed
 
 - Privacy Policy version is now `2026-07-25-v1.56.1`.
-- Header version is now `v1.62.8`.
+- Header version is now `v1.62.9`.
+- Client reports now normalize em dashes, curly quotes, and common mojibake sequences before storage to reduce broken copied/emailed characters such as `â€”`.
+- HTML report attachments now declare `text/html; charset=utf-8`.
+- The client-facing privacy section is now shorter, plainer, and easier to trust at the end of a report.
+- The paid-report handoff section is now titled `If You Want The Next Layer` and explains that the free report is meant to provide real value, not hold the value hostage.
+- The upgrade copy now sells the next layer as deeper diagnosis, clearer ranking, and a build sequence, instead of sounding like a bolted-on sales block.
+- The report polish layer now replaces known AI-ish table labels and phrases before storing HTML/DOCX outputs.
 - Report generation now runs a completion quality gate before storing report files.
 - Reports that appear cut off, miss the required final section, or end mid-thought are logged as failed and are not stored as deliverable client reports.
 - Report validation now flags overused Darren-style phrases so the report does not sound artificially prompted.

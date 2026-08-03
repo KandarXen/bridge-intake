@@ -176,9 +176,11 @@ function paymentConfig() {
 }
 
 function reportPrivacyStatement() {
-  return `## Privacy And Secure Handling
+  return `## How This Was Handled Privately
 
-This report was prepared through the BTAI Secure Intelligence Layer. Before AI analysis, direct identifiers are removed or replaced where practical. The secure record and private re-identification map are encrypted at rest using AES-256-GCM. Raw interview responses are not shared with partner organizations, and partner reporting is limited to anonymized aggregate insights where applicable. The raw Venture DNA file is not included in client report packages. This privacy process is designed to support Alberta and Canadian private-sector privacy principles, including consent, limited collection, safeguards, limited disclosure, and accountability.`;
+Your raw interview was not attached to this report. The working record is stored securely, direct identifiers are removed or replaced where practical before AI analysis, and the private re-identification map is encrypted at rest using AES-256-GCM.
+
+If this intake was completed through a partner program, the partner does not receive your raw answers. Partner reporting is limited to anonymized aggregate themes where applicable. The purpose of this process is simple: use your answers to give you a useful report, while keeping the underlying interview record protected.`;
 }
 
 function clientUpgradeSection(tier) {
@@ -187,26 +189,58 @@ function clientUpgradeSection(tier) {
   if (tier === 'roadmap') {
     return `## Bridge To AI Implementation Support
 
-This action plan is still preliminary. If you want Bridge To AI to help turn it into a working AI system or workbench, book a scoping conversation here:
+This action plan gives the build direction, but the actual build still needs private scoping. That is where we confirm tools, data access, workflow details, privacy requirements, and what should be built first.
+
+If you want Bridge To AI to help turn this into a working AI system or workbench, book a scoping conversation here:
 
 ${consultUrl || 'Reply to the Bridge To AI email thread to request implementation scoping.'}
 
 A workbench is a private operating dashboard built around your business so repeated workflows can run from one place instead of being scattered across notes, spreadsheets, prompts, files, and tools.`;
   }
-  return `## Want To Go Deeper?
+  return `## If You Want The Next Layer
 
-The free snapshot gives you the first layer. The deeper reports look at implementation order, what should wait, what could save time first, and which workflows could become part of a private Bridge To AI workbench.
+This free snapshot is meant to give you one useful first read, not hold the value hostage.
 
-- Detailed AI Opportunity Report - ${level2Price}: A deeper diagnosis of readiness gaps, ranked opportunities, and practical first projects. ${level2Url || 'Payment link coming soon.'}
-- Preliminary AI Action Plan - ${level3Price}: A more complete implementation sequence with workflow priorities, risk controls, and scoping questions. ${level3Url || 'Payment link coming soon.'}
-- Talk with Bridge To AI about implementation or a custom workbench: ${consultUrl || 'Reply to the Bridge To AI email thread to request a conversation.'}`;
+The next layer goes deeper on the pieces we can only touch lightly here: which opportunities deserve priority, what should wait, what needs cleanup first, and how this could become a private Bridge To AI workbench.
+
+- Detailed AI Opportunity Report - ${level2Price}: More diagnosis, clearer ranking, and practical first projects. ${level2Url || 'Payment link coming soon.'}
+- Preliminary AI Action Plan - ${level3Price}: A build sequence with workflow priorities, risk controls, and scoping questions. ${level3Url || 'Payment link coming soon.'}
+- Talk with Bridge To AI about implementation or a custom workbench: ${consultUrl || 'Reply to the Bridge To AI email thread to request a conversation.'}
+
+A workbench is a private operating dashboard built around your business so repeated workflows can run from one place instead of being scattered across notes, spreadsheets, prompts, files, and tools.`;
 }
 
 function decorateReportMarkdown(markdown, tier) {
-  const sections = [String(markdown || '').trim()];
+  const sections = [polishReportMarkdown(String(markdown || '').trim())];
   if (tier !== 'btai') sections.push(clientUpgradeSection(tier));
   sections.push(reportPrivacyStatement());
   return sections.filter(Boolean).join('\n\n');
+}
+
+function polishReportMarkdown(markdown) {
+  return String(markdown || '')
+    .replace(/\u2014/g, ' - ')
+    .replace(/\u2013/g, ' - ')
+    .replace(/\u2018|\u2019/g, "'")
+    .replace(/\u201c|\u201d/g, '"')
+    .replace(/\u00d7/g, 'x')
+    .replace(/â€”|â€“/g, ' - ')
+    .replace(/â€™/g, "'")
+    .replace(/â€œ|â€/g, '"')
+    .replace(/Clear, emotionally resonant client outcome/g, 'You already know the real result')
+    .replace(/A structured, deliberate sales process/g, 'Your sales process has a smart pause in it')
+    .replace(/A defined, repeatable post-sale delivery flow/g, 'Delivery is already repeatable')
+    .replace(/A brand voice that is genuinely distinct/g, 'Your client voice is already clear')
+    .replace(/Self-awareness about the real constraint/g, 'You already named the real bottleneck')
+    .replace(/Strong execution track record/g, 'You actually follow through')
+    .replace(/\bgenuinely strong\b/gi, 'strong')
+    .replace(/\bgenuinely differentiated\b/gi, 'clear and different')
+    .replace(/\bemotionally resonant\b/gi, 'human and specific')
+    .replace(/\bstrong foundation\b/gi, 'good starting point')
+    .replace(/\bimplementation strategy\b/gi, 'build sequence')
+    .replace(/^\s*---+\s*$/gm, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 function scanReportPrivacy(markdown) {
@@ -363,6 +397,7 @@ DO NOT WRITE LIKE GENERIC AI:
 - Do not make the report sound like it was written by a generic AI model.
 - Do not use markdown horizontal rules (---). The HTML template already separates sections.
 - Do not use fenced code blocks or ASCII-art diagrams. Use a plain bullet list or table instead.
+- Do not use em dashes or special typography. Use commas, periods, colons, or simple hyphens so emailed and copied reports do not show broken characters.
 
 VOICE REWRITE CHECK BEFORE FINAL ANSWER:
 - Before returning the report, rewrite any paragraph that sounds like a polished AI consultant.
@@ -633,7 +668,7 @@ async function generateOne(clientDraftId, tier) {
       businessName,
       filename: `${businessName}_${spec.filename}.html`,
       contentBase64: Buffer.from(htmlReport, 'utf8').toString('base64'),
-      contentType: 'text/html',
+      contentType: 'text/html; charset=utf-8',
       validation,
       privacyScan
     })
@@ -713,7 +748,7 @@ async function ensureHtmlReport(clientDraftId, tier) {
     businessName,
     filename: `${businessName}_${spec.filename}.html`,
     contentBase64: Buffer.from(htmlReport, 'utf8').toString('base64'),
-    contentType: 'text/html',
+    contentType: 'text/html; charset=utf-8',
     validation: markdownRecord.validation || null,
     privacyScan: markdownRecord.privacyScan || null,
     convertedFromMarkdown: true
@@ -827,13 +862,13 @@ async function sendFreeReportEmail({ clientDraftId, clientEmail, clientName, bus
         <p style="font-size:15px;line-height:1.6;">Thank you for completing the intake. Your free AI Opportunity Snapshot is attached as a clean HTML report you can read in your browser or print.</p>
         <p style="font-size:15px;line-height:1.6;">This first report is intentionally practical and directional. It avoids private financials, recipes, customer lists, supplier contracts, payroll details, invoices, and confidential formulas.</p>
         <div style="background:#e8f4f1;border:1px solid #b8ddd7;border-radius:10px;padding:14px 16px;color:#0d6e5e;font-size:14px;line-height:1.5;margin-bottom:16px;">
-          <strong>Next step:</strong> Review the snapshot first. If you want to go deeper, Bridge To AI can prepare a more detailed report or discuss a custom AI workbench.
+          <strong>Next step:</strong> Review the snapshot first. It should give you one useful place to start without buying anything. If it feels accurate, the deeper reports turn the same intake into a clearer build order and a better implementation plan.
         </div>
         <div style="border:1px solid #e4e2dd;border-radius:10px;padding:16px 18px;background:#ffffff;font-size:14px;line-height:1.55;">
           <strong style="display:block;margin-bottom:8px;color:#111827;">What this snapshot does not fully cover</strong>
           <div style="margin-bottom:10px;">The free report gives you the first layer. The deeper reports look at implementation order, what should wait, what could save time first, and which workflows could become part of a private Bridge To AI workbench.</div>
-          ${ctaLineHtml(`Detailed AI Opportunity Report - ${level2Price}`, level2Url, 'A deeper diagnosis of readiness gaps, ranked opportunities, and first practical projects.')}
-          ${ctaLineHtml(`Preliminary AI Action Plan - ${level3Price}`, level3Url, 'A more complete implementation sequence with workflow priorities, risk controls, and scoping questions.')}
+          ${ctaLineHtml(`Detailed AI Opportunity Report - ${level2Price}`, level2Url, 'More diagnosis, clearer ranking, and practical first projects.')}
+          ${ctaLineHtml(`Preliminary AI Action Plan - ${level3Price}`, level3Url, 'A build sequence with workflow priorities, risk controls, and scoping questions.')}
           ${ctaLineHtml('Talk with Bridge To AI about implementation or a custom workbench', consultUrl, 'A workbench is a private operating dashboard built around your business so repeated workflows can run from one place.')}
         </div>
         <p style="font-size:13px;color:#6b7280;line-height:1.5;margin-bottom:0;margin-top:18px;">Record ID: <code>${escapeHtml(clientDraftId)}</code></p>
@@ -850,7 +885,7 @@ async function sendFreeReportEmail({ clientDraftId, clientEmail, clientName, bus
     attachments: [{
       filename: reportFile.filename || 'Bridge_To_AI_Free_AI_Opportunity_Snapshot.html',
       content: reportFile.contentBase64,
-      content_type: reportFile.contentType || 'text/html'
+      content_type: reportFile.contentType || 'text/html; charset=utf-8'
     }]
   };
 
