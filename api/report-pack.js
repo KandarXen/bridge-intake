@@ -272,7 +272,7 @@ function scanReportPrivacy(markdown) {
 
 const REPORT_COMPLETION_RULES = {
   free: [{
-    expected: '7. Bridge To AI Note',
+    expected: '8. Bridge To AI Note',
     variants: ['bridge to ai note', 'bridge to ai advisor note', 'note from bridge to ai']
   }],
   detailed: [{
@@ -487,6 +487,10 @@ Purpose: useful no-cost report that proves Bridge To AI understood the business.
 Tone: client-facing, practical, plain-spoken, specific, and evidence-first. This should sound like Darren saying, "Here is what I noticed, here is the real pinch point, and here is what I would do first." Do not make this sound like an AI sales pitch or a consultant deck.
 Important: the free report must give real value. Do not make it thin or teaser-only. Give the client one useful, specific next move they could act on without buying anything.
 Opportunity rule: do not make email automation the default first opportunity. Look first for where the owner or highest-value person is losing time on repeated work. Only recommend email if the Venture DNA proves it is the real bottleneck.
+Required free value moment: include one section called "Try This This Week". It must give the client a copy/paste-ready AI prompt they can use in ChatGPT, Claude, or another AI tool using only non-sensitive information. The prompt must be based on the client's own words from the Venture DNA and should create a useful result in less than one hour.
+The prompt must quietly contain expert-level context for their industry, customer type, and business situation without saying "act as a top expert" or similar gimmicky role language. Encode the expertise through the instructions: who the audience is, what they care about, what outcome matters, what tone to use, what to avoid, what format to produce, and what a good answer should feel like.
+The "Try This This Week" prompt must explicitly tell the client not to paste private financials, customer names, supplier names, recipes, payroll, invoices, contracts, confidential formulas, or other sensitive details into public AI tools.
+After the prompt, explain what to look for in the AI output and why this small exercise matters. It should teach them one practical AI habit, not just give them a task.
 
 Required structure:
 # [Business Name] - Free AI Opportunity Snapshot
@@ -498,8 +502,10 @@ Use a table: Strength | Why It Matters
 Use a table: Priority | Opportunity | Why It Matters | First Step
 ## 4. One Growth Leak To Fix First
 ## 5. First Recommended Move
-## 6. What To Avoid For Now
-## 7. Bridge To AI Note
+## 6. Try This This Week
+Give one copy/paste-ready AI prompt with expert-level context embedded in plain language. Make it safe, specific, and useful this week.
+## 7. What To Avoid For Now
+## 8. Bridge To AI Note
 
 VENTURE DNA:
 ${dna}`;

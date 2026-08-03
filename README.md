@@ -1,11 +1,16 @@
-# Bridge To AI Intake App - v1.64.1 Admin Layout + ZIP Resilience
+# Bridge To AI Intake App - v1.65.0 Free Report Prompt Win + Admin Control Board
 
-This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the admin interview index, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, and the clearer core-question/follow-up progress language. v1.64.1 fixes report quality-gate brittleness, improves the completion/processing screen layout, makes the records console feel more like an admin dashboard, and makes ZIP downloads more resilient when optional backup formats are missing.
+This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the admin interview index, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, and the clearer core-question/follow-up progress language. v1.65.0 adds a required high-value "Try This This Week" AI prompt to every free report and refines the records console into a clearer control-board layout.
 
 ## What Changed
 
 - Privacy Policy version is now `2026-07-25-v1.56.1`.
-- Header version is now `v1.64.1`.
+- Header version is now `v1.65.0`.
+- Free Snapshot reports now require a `Try This This Week` section with one copy/paste-ready AI prompt that creates a useful, safe win in under an hour.
+- The free-report prompt must use the client's own words and quietly encode expert-level industry/customer context without gimmicky "act as a top expert" language.
+- The free-report prompt must tell clients not to paste private financials, customer names, supplier names, recipes, payroll, invoices, contracts, formulas, or other sensitive information into public AI tools.
+- The free-report quality gate now expects `## 8. Bridge To AI Note` because `Try This This Week` is section 6.
+- Admin Report Actions are now grouped as Pack, Single Reports, Utilities, and Status inside a dominant full-width control block.
 - Admin records console now displays its own visible version number.
 - Admin records console now uses a wide top credential strip, warning strip, three action panels, interview index, and console output layout.
 - The regenerate checkbox is now positioned inside the main Report Actions panel so it is much harder to miss.
