@@ -62,6 +62,19 @@
       padding: 12px 13px;
       font-size: 1rem;
     }
+    .inline-option {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin-top: 14px;
+      color: #374151;
+      font-size: .9rem;
+      line-height: 1.35;
+    }
+    .inline-option input {
+      width: auto;
+      accent-color: var(--green);
+    }
     .grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -259,6 +272,10 @@
     <div class="panel">
       <h2>Report Pack</h2>
       <p>Generate the full report pack in one orchestration run. The individual buttons remain available only as recovery tools. Each file is created from the encrypted Venture DNA record and stored back into the secure session before download. The raw Venture DNA markdown is not included in the ZIP.</p>
+      <label class="inline-option" for="force-regenerate">
+        <input id="force-regenerate" type="checkbox">
+        Regenerate existing report files instead of reusing stored versions.
+      </label>
       <div class="button-row">
         <button id="generate-all-btn" type="button">Generate Full Report Pack</button>
         <button data-tier="free" type="button">Generate Free Snapshot</button>
@@ -365,6 +382,10 @@
         return null;
       }
       return values;
+    }
+
+    function forceRegenerate() {
+      return !!document.getElementById('force-regenerate')?.checked;
     }
 
     function setBusy(isBusy, message) {
@@ -663,13 +684,15 @@
     document.getElementById('generate-all-btn').addEventListener('click', async () => {
       const values = requireBasics();
       if (!values) return;
-      setBusy(true, 'Generating the full report pack...\nThis runs the four report jobs together, then builds the ZIP. Keep this page open until the status updates.');
+      const force = forceRegenerate();
+      setBusy(true, `${force ? 'Regenerating' : 'Generating'} the full report pack...\nThis runs the four report jobs together, then builds the ZIP. Keep this page open until the status updates.`);
       try {
         const data = await postJson('/api/report-pack', {
           action: 'generate-all',
-          clientDraftId: values.clientDraftId
+          clientDraftId: values.clientDraftId,
+          forceRegenerate: force
         }, values.adminSecret);
-        statusEl.textContent = `Full report pack ready.\nZIP output: ${data.zip?.outputId || 'created'}\nReports: ${(data.results || []).map(r => `${r.tier}${r.generated ? ' generated' : ' already ready'}`).join(', ')}`;
+        statusEl.textContent = `Full report pack ready.\nMode: ${force ? 'regenerated from current prompt' : 'reused existing where available'}\nZIP output: ${data.zip?.outputId || 'created'}\nReports: ${(data.results || []).map(r => `${r.tier}${r.generated ? ' generated' : r.convertedHtml ? ' converted to HTML' : ' already ready'}`).join(', ')}`;
         await refreshReportStatus(true);
       } catch (err) {
         statusEl.textContent = `Error: ${err.message}`;
@@ -683,14 +706,16 @@
         const values = requireBasics();
         if (!values) return;
         const tier = button.getAttribute('data-tier');
-        setBusy(true, `Generating ${button.textContent}...\nThis can take a minute. Keep this page open until the status updates.`);
+        const force = forceRegenerate();
+        setBusy(true, `${force ? 'Regenerating' : 'Generating'} ${button.textContent}...\nThis can take a minute. Keep this page open until the status updates.`);
         try {
           const data = await postJson('/api/report-pack', {
             action: 'generate-one',
             clientDraftId: values.clientDraftId,
-            tier
+            tier,
+            forceRegenerate: force
           }, values.adminSecret);
-          statusEl.textContent = `Generated ${data.tier} report.\nMarkdown output: ${data.markdownOutputId}\nDOCX output: ${data.docxOutputId}\nWarnings: ${(data.warnings || []).join('; ') || 'none'}`;
+          statusEl.textContent = `${data.generated ? 'Generated' : 'Already ready'} ${data.tier} report.\nMode: ${force ? 'regenerated from current prompt' : 'reused existing if available'}\nMarkdown output: ${data.markdownOutputId || 'existing'}\nHTML output: ${data.htmlOutputId || 'existing'}\nDOCX output: ${data.docxOutputId || 'existing'}\nWarnings: ${(data.warnings || []).join('; ') || 'none'}`;
           await refreshReportStatus(true);
         } catch (err) {
           statusEl.textContent = `Error: ${err.message}`;

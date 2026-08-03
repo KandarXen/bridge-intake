@@ -536,7 +536,8 @@ async function generateOne(clientDraftId, tier) {
   };
 }
 
-async function getOrGenerateOne(clientDraftId, tier) {
+async function getOrGenerateOne(clientDraftId, tier, forceRegenerate = false) {
+  if (forceRegenerate) return generateOne(clientDraftId, tier);
   const existingHtml = await loadGenerated(clientDraftId, tier, 'html');
   const existingDocx = await loadGenerated(clientDraftId, tier, 'docx');
   if (existingHtml?.contentBase64 && existingDocx?.contentBase64) {
@@ -673,15 +674,16 @@ async function buildZip(clientDraftId) {
   };
 }
 
-async function generateAll(clientDraftId) {
+async function generateAll(clientDraftId, forceRegenerate = false) {
   const tiers = ['free', 'detailed', 'roadmap', 'btai'];
-  await logReportEvent(clientDraftId, 'report_pack_batch_started', 'success', privacyProofDefaults({ tiers, payloadType: 'encrypted_venture_dna_record' }));
-  const results = await Promise.all(tiers.map(tier => getOrGenerateOne(clientDraftId, tier)));
+  await logReportEvent(clientDraftId, 'report_pack_batch_started', 'success', privacyProofDefaults({ tiers, forceRegenerate, payloadType: 'encrypted_venture_dna_record' }));
+  const results = await Promise.all(tiers.map(tier => getOrGenerateOne(clientDraftId, tier, forceRegenerate)));
   const zip = await buildZip(clientDraftId);
   await logReportEvent(clientDraftId, 'report_pack_batch_complete', 'success', privacyProofDefaults({
     tiers,
     zipOutputId: zip.outputId || '',
-    generatedCount: results.filter(r => r.generated).length
+    generatedCount: results.filter(r => r.generated).length,
+    forceRegenerate
   }));
   return { ready: true, results, zip };
 }
@@ -1083,8 +1085,12 @@ export default async function handler(req, res) {
       return res.status(200).json(await generateFreeAndEmail(clientDraftId, req.body?.clientEmail || ''));
     }
     if (!authorized(req)) return res.status(401).json({ error: 'Unauthorized' });
-    if (action === 'generate-one') return res.status(200).json(await generateOne(clientDraftId, String(req.body?.tier || '').trim()));
-    if (action === 'generate-all') return res.status(200).json(await generateAll(clientDraftId));
+    if (action === 'generate-one') {
+      const tier = String(req.body?.tier || '').trim();
+      const forceRegenerate = !!req.body?.forceRegenerate;
+      return res.status(200).json(forceRegenerate ? await generateOne(clientDraftId, tier) : await getOrGenerateOne(clientDraftId, tier, false));
+    }
+    if (action === 'generate-all') return res.status(200).json(await generateAll(clientDraftId, !!req.body?.forceRegenerate));
     if (action === 'build-zip') return res.status(200).json(await buildZip(clientDraftId));
     if (action === 'download-zip') return res.status(200).json(await downloadZip(clientDraftId));
     if (action === 'status') return res.status(200).json({ status: await status(clientDraftId) });
