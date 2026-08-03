@@ -1,11 +1,16 @@
-# Bridge To AI Intake App - v1.67.0 Compact Admin Dashboard
+# Bridge To AI Intake App - v1.68.0 Executive Admin Dashboard
 
-This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the admin interview index, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, the required high-value "Try This This Week" prompt in the free report, selectable report export formats, and the clearer core-question/follow-up progress language. v1.67.0 rebuilds the records console as a compact executive-style dashboard so report actions, privacy proof, partner intelligence, interview index, and console output can sit in one working view.
+This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the admin interview index, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, the required high-value "Try This This Week" prompt in the free report, selectable report export formats, and the clearer core-question/follow-up progress language. v1.68.0 tightens the records console into a more executive-grade operating dashboard with less dead space, clearer status chips, and useful empty states.
 
 ## What Changed
 
 - Privacy Policy version is now `2026-07-25-v1.56.1`.
-- Header version is now `v1.67.0`.
+- Header version is now `v1.68.0`.
+- Report action controls now sit directly under the format selector instead of being pushed toward the bottom of the panel.
+- Report status now uses compact status chips for faster scanning.
+- Interview Index now shows a useful empty state before records are loaded.
+- Console Output now starts with a clear ready state instead of an empty box.
+- Desktop dashboard alignment now avoids stretching panels just to fill unused space.
 - BTAI Records Console has been redesigned as a compact dashboard instead of a long scrolling form.
 - Admin fields are now constrained to practical widths instead of stretching across the page.
 - Report buttons are smaller and grouped in a dense left-side control rail.

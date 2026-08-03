@@ -25,21 +25,21 @@
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       color: var(--ink);
       background: var(--paper);
-      padding: 8px;
+      padding: 4px;
       overflow: hidden;
     }
     main {
       width: min(1580px, 100%);
-      height: calc(100vh - 16px);
+      height: calc(100vh - 8px);
       margin: 0 auto;
       background: #fff;
       border: 1px solid var(--line);
       border-radius: 8px;
-      padding: 12px;
+      padding: 8px;
       box-shadow: 0 10px 30px rgba(0,0,0,.05);
       display: grid;
       grid-template-rows: auto auto auto minmax(0, 1fr);
-      gap: 8px;
+      gap: 6px;
       overflow: hidden;
     }
     .admin-header {
@@ -52,7 +52,7 @@
     .admin-header p {
       max-width: 760px;
       margin-bottom: 0;
-      font-size: .82rem;
+      font-size: .76rem;
     }
     .version-pill {
       flex: 0 0 auto;
@@ -67,8 +67,8 @@
       white-space: nowrap;
     }
     h1 {
-      margin: 0 0 3px;
-      font-size: 1.18rem;
+      margin: 0 0 2px;
+      font-size: 1.08rem;
       letter-spacing: 0;
     }
     h2 {
@@ -77,10 +77,10 @@
       letter-spacing: .01em;
     }
     p {
-      margin: 0 0 9px;
+      margin: 0 0 6px;
       color: var(--muted);
-      line-height: 1.35;
-      font-size: .78rem;
+      line-height: 1.3;
+      font-size: .74rem;
     }
     label {
       display: block;
@@ -93,10 +93,10 @@
       width: 100%;
       border: 1px solid var(--line);
       border-radius: 6px;
-      padding: 8px 9px;
-      font-size: .82rem;
+      padding: 6px 8px;
+      font-size: .78rem;
       background: #fff;
-      min-height: 34px;
+      min-height: 30px;
     }
     .inline-option {
       display: flex;
@@ -114,24 +114,25 @@
     .grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
+      gap: 8px;
     }
     .record-strip {
       display: grid;
       grid-template-columns: minmax(350px, 1fr) 220px 230px;
-      gap: 8px;
+      gap: 6px;
       margin: 0;
     }
     .console-grid {
       display: grid;
       grid-template-columns: minmax(330px, .86fr) minmax(420px, 1.1fr) minmax(410px, 1.05fr);
       grid-template-rows: minmax(0, 1fr);
-      gap: 8px;
+      gap: 6px;
       min-height: 0;
+      align-items: start;
     }
     .column-stack {
       display: grid;
-      gap: 8px;
+      gap: 6px;
       min-height: 0;
       align-content: start;
     }
@@ -146,7 +147,7 @@
       padding: 6px 8px;
       font-weight: 700;
       cursor: pointer;
-      min-height: 29px;
+      min-height: 27px;
       font-size: .7rem;
       line-height: 1.15;
     }
@@ -173,9 +174,10 @@
       border: 1px solid var(--line);
       background: var(--soft);
       border-radius: 8px;
-      padding: 10px;
+      padding: 8px;
       margin-top: 0;
       min-width: 0;
+      box-shadow: 0 1px 0 rgba(255,255,255,.65) inset;
     }
     .panel h2:first-child {
       margin-top: 0;
@@ -186,9 +188,7 @@
     .report-actions {
       background: #fff;
       border-color: #cfe2dc;
-      display: grid;
-      grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
-      min-height: 0;
+      display: block;
     }
     .report-actions h2 {
       text-align: left;
@@ -217,7 +217,7 @@
       align-items: start;
       margin-top: 4px;
       min-height: 0;
-      overflow: auto;
+      overflow: visible;
       padding-right: 2px;
     }
     .action-stack {
@@ -243,18 +243,17 @@
     }
     .status-card {
       background: #fff;
-      display: grid;
-      grid-template-rows: auto minmax(0, 1fr);
-      min-height: 0;
+      min-height: 190px;
     }
     .status-card .status {
       margin-top: 0;
       min-height: 0;
-      padding: 9px;
+      padding: 8px;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: #fbfbfa;
       overflow: auto;
+      min-height: 150px;
     }
     .notice {
       margin-top: 0;
@@ -262,8 +261,8 @@
       background: #fff8e6;
       color: var(--warn);
       border-radius: 6px;
-      padding: 7px 10px;
-      font-size: .76rem;
+      padding: 6px 10px;
+      font-size: .72rem;
     }
     .notice.admin-warning {
       font-weight: 800;
@@ -275,29 +274,53 @@
       margin-top: 0;
       white-space: pre-wrap;
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: .75rem;
+      font-size: .72rem;
       color: #27313b;
       line-height: 1.4;
     }
     .checklist {
       display: grid;
-      gap: 5px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 4px;
       margin-top: 0;
       color: var(--muted);
-      font-size: .76rem;
+      font-size: .7rem;
+    }
+    .status-chip {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      border: 1px solid #e4e0d8;
+      background: #fbfbfa;
+      border-radius: 6px;
+      padding: 4px 6px;
+    }
+    .status-chip span:first-child {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .status-chip span:last-child {
+      flex: 0 0 auto;
+      font-weight: 800;
+      color: #7b7f85;
+    }
+    .status-chip.ready span:last-child {
+      color: var(--ok);
     }
     .ready {
       color: var(--ok);
       font-weight: 700;
     }
     .timer-panel {
-      margin-top: 8px;
+      margin-top: 6px;
       border: 1px solid #cfe2dc;
       background: #f1faf7;
       color: var(--green-dark);
       border-radius: 8px;
-      padding: 8px 10px;
-      font-size: .76rem;
+      padding: 6px 8px;
+      font-size: .72rem;
       line-height: 1.45;
       display: none;
     }
@@ -309,14 +332,14 @@
       font-weight: 800;
     }
     .table-scroll {
-      margin-top: 8px;
+      margin-top: 6px;
       overflow-x: auto;
       overflow-y: auto;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: #fff;
       display: none;
-      max-height: 190px;
+      max-height: 215px;
     }
     .table-scroll.active {
       display: block;
@@ -347,7 +370,29 @@
     .compact-index {
       display: grid;
       grid-template-columns: 90px 1fr;
-      gap: 8px;
+      gap: 6px;
+    }
+    .empty-state {
+      margin-top: 6px;
+      border: 1px dashed #cfcac0;
+      background: #fbfaf7;
+      border-radius: 8px;
+      padding: 10px;
+      min-height: 110px;
+      color: var(--muted);
+      display: grid;
+      place-items: center;
+      text-align: center;
+      font-size: .74rem;
+      line-height: 1.35;
+    }
+    .empty-state strong {
+      display: block;
+      color: var(--ink);
+      margin-bottom: 4px;
+    }
+    .record-strip .panel {
+      padding: 7px 9px;
     }
     @media (max-width: 1050px) {
       body { overflow: auto; }
@@ -370,7 +415,7 @@
         <h1>BTAI Records Console</h1>
         <p>Retrieve secure intake records, generate reports, download privacy proof, and review partner aggregate intelligence from one admin-only dashboard.</p>
       </div>
-      <div class="version-pill">v1.67.0</div>
+      <div class="version-pill">v1.68.0</div>
     </div>
 
     <div class="record-strip">
@@ -437,11 +482,11 @@
           <div class="action-stack">
             <div class="action-stack-title">Status</div>
             <div id="report-status" class="checklist">
-              <div>Free Snapshot: unknown</div>
-              <div>Detailed Opportunity Report: unknown</div>
-              <div>Preliminary Action Plan: unknown</div>
-              <div>BTAI Advisor Brief: unknown</div>
-              <div>ZIP: unknown</div>
+              <div class="status-chip"><span>Free Snapshot</span><span>unknown</span></div>
+              <div class="status-chip"><span>Detailed Report</span><span>unknown</span></div>
+              <div class="status-chip"><span>Action Plan</span><span>unknown</span></div>
+              <div class="status-chip"><span>Advisor Brief</span><span>unknown</span></div>
+              <div class="status-chip"><span>ZIP</span><span>unknown</span></div>
             </div>
           </div>
         </div>
@@ -479,6 +524,12 @@
             <button id="load-record-index-btn" class="secondary" type="button">Load Index</button>
             <button id="refresh-record-index-btn" type="button">Refresh</button>
             <button id="download-record-index-csv-btn" class="secondary" type="button">CSV</button>
+          </div>
+          <div id="record-index-empty" class="empty-state">
+            <div>
+              <strong>No index loaded yet.</strong>
+              Load recent records, then click any row to fill the Record ID automatically.
+            </div>
           </div>
           <div id="record-index-wrap" class="table-scroll">
             <table>
@@ -524,7 +575,7 @@
 
         <section class="panel status-card">
           <h2>Console Output</h2>
-          <div id="status" class="status"></div>
+          <div id="status" class="status">Ready. Choose a Record ID, confirm the admin secret, then run an action.</div>
         </section>
       </div>
     </div>
@@ -538,6 +589,7 @@
     const timerValue = document.getElementById('timer-value');
     const buttons = Array.from(document.querySelectorAll('button'));
     const recordIndexWrap = document.getElementById('record-index-wrap');
+    const recordIndexEmpty = document.getElementById('record-index-empty');
     const recordIndexBody = document.getElementById('record-index-body');
     let timerStartedAt = 0;
     let timerHandle = null;
@@ -693,7 +745,7 @@
     function friendlyAdminError(message = '') {
       const text = String(message || '').trim();
       if (/Report quality gate failed/i.test(text) && /missing_expected_final_section/i.test(text)) {
-        return `${text}\n\nMeaning: the report generated, but the completion validator did not find the required final section. In v1.67.0 the validator accepts close heading variants, so retry this report after deploying the current build.`;
+        return `${text}\n\nMeaning: the report generated, but the completion validator did not find the required final section. In v1.68.0 the validator accepts close heading variants, so retry this report after deploying the current build.`;
       }
       if (/No client email found/i.test(text)) {
         return `${text}\n\nMeaning: the secure intake session does not contain a client email address, so the free report cannot be emailed automatically.`;
@@ -718,9 +770,9 @@
         }, values.adminSecret);
         const s = data.status || {};
         const t = s.timings || {};
-      const f = s.formats || {};
-      const formatNote = (tier) => {
-        const formats = f[tier] || {};
+        const f = s.formats || {};
+        const formatNote = (tier) => {
+          const formats = f[tier] || {};
           const ready = [];
           if (formats.html) ready.push('HTML');
           if (formats.docx) ready.push('DOCX');
@@ -728,12 +780,18 @@
           if (ready.length) return ` - ${ready.join(' + ')}`;
           return '';
         };
+        const statusChip = (label, ready, note, timing) => `
+          <div class="status-chip ${ready ? 'ready' : ''}">
+            <span>${label}</span>
+            <span>${ready ? `ready${note}${timing ? ` / ${formatMs(timing)}` : ''}` : 'missing'}</span>
+          </div>
+        `;
         reportStatusEl.innerHTML = `
-          <div class="${s.free ? 'ready' : ''}">Free Snapshot: ${s.free ? 'ready' : 'not generated'}${formatNote('free')}${t.free?.generationMs ? ` - ${formatMs(t.free.generationMs)}` : ''}</div>
-          <div class="${s.detailed ? 'ready' : ''}">Detailed Opportunity Report: ${s.detailed ? 'ready' : 'not generated'}${formatNote('detailed')}${t.detailed?.generationMs ? ` - ${formatMs(t.detailed.generationMs)}` : ''}</div>
-          <div class="${s.roadmap ? 'ready' : ''}">Preliminary Action Plan: ${s.roadmap ? 'ready' : 'not generated'}${formatNote('roadmap')}${t.roadmap?.generationMs ? ` - ${formatMs(t.roadmap.generationMs)}` : ''}</div>
-          <div class="${s.btai ? 'ready' : ''}">BTAI Advisor Brief: ${s.btai ? 'ready' : 'not generated'}${formatNote('btai')}${t.btai?.generationMs ? ` - ${formatMs(t.btai.generationMs)}` : ''}</div>
-          <div class="${s.zip ? 'ready' : ''}">ZIP: ${s.zip ? 'ready' : 'not built yet'}</div>
+          ${statusChip('Free Snapshot', s.free, formatNote('free'), t.free?.generationMs)}
+          ${statusChip('Detailed Report', s.detailed, formatNote('detailed'), t.detailed?.generationMs)}
+          ${statusChip('Action Plan', s.roadmap, formatNote('roadmap'), t.roadmap?.generationMs)}
+          ${statusChip('Advisor Brief', s.btai, formatNote('btai'), t.btai?.generationMs)}
+          ${statusChip('ZIP', s.zip, '', null)}
         `;
         if (!silent) statusEl.textContent = 'Report status updated.';
       } catch (err) {
@@ -793,6 +851,7 @@
           </tr>
         `).join('');
         recordIndexWrap.classList.toggle('active', recordIndexRows.length > 0);
+        recordIndexEmpty.style.display = recordIndexRows.length > 0 ? 'none' : 'grid';
         statusEl.textContent = `Loaded ${recordIndexRows.length} intake records.\nClick any row to copy its Record ID into the retrieval field.`;
       } catch (err) {
         statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;
