@@ -1,11 +1,16 @@
-# Bridge To AI Intake App - v1.62.6 Report Regeneration Control
+# Bridge To AI Intake App - v1.62.7 Darren Voice Calibration
 
-This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the admin interview index, and the tightened Darren voice report prompt. v1.62.6 adds a regenerate checkbox for report files.
+This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the admin interview index, the regenerate report checkbox, and the tightened Darren voice report prompt. v1.62.7 adds a stronger Darren voice calibration layer for client reports.
 
 ## What Changed
 
 - Privacy Policy version is now `2026-07-25-v1.56.1`.
-- Header version is now `v1.62.6`.
+- Header version is now `v1.62.7`.
+- Report prompts now include Darren's opportunity-selection rule: do not default to email automation; first look for where the owner, highest-value person, or most expensive person is losing valuable time.
+- Report prompts now push AI opportunity ranking toward repeated high-value work such as pitch decks, presentations, proposals, onboarding material, client paperwork, project summaries, quote preparation, compliance documents, weekly planning, buyer readiness, SOP capture, sales prep, social media planning, and decision prep.
+- Report prompts now tell the model to use plainer Darren-style language such as "Here is what I am seeing", "That is probably the real pinch point", and "I would not automate this yet."
+- Report prompts now warn against confident bad advice when the underlying data is not worth trusting.
+- Free reports now explicitly require one useful, specific next move the client could act on without buying anything.
 - The records console now includes a **Regenerate existing report files** checkbox.
 - When unchecked, single report and full-pack buttons reuse stored reports where available.
 - When checked, single report buttons regenerate only that selected tier from the current report prompt.
