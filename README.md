@@ -1,17 +1,19 @@
-# Bridge To AI Intake App - v1.64.0 Admin Dashboard + Report Gate Fix
+# Bridge To AI Intake App - v1.64.1 Admin Layout + ZIP Resilience
 
-This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the admin interview index, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, and the clearer core-question/follow-up progress language. v1.64.0 fixes the report quality gate brittleness, improves the completion/processing screen layout, and turns the admin console into a wider dashboard-style control surface.
+This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the admin interview index, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, and the clearer core-question/follow-up progress language. v1.64.1 fixes report quality-gate brittleness, improves the completion/processing screen layout, makes the records console feel more like an admin dashboard, and makes ZIP downloads more resilient when optional backup formats are missing.
 
 ## What Changed
 
 - Privacy Policy version is now `2026-07-25-v1.56.1`.
-- Header version is now `v1.64.0`.
+- Header version is now `v1.64.1`.
 - Admin records console now displays its own visible version number.
-- Admin records console is now laid out as a dashboard with selected record, report actions, report status/timer, privacy proof, partner aggregate intelligence, and interview index zones.
+- Admin records console now uses a wide top credential strip, warning strip, three action panels, interview index, and console output layout.
 - The regenerate checkbox is now positioned inside the main Report Actions panel so it is much harder to miss.
 - Pasted Record IDs are trimmed visibly before admin actions run.
 - Report quality gate now accepts reasonable final-heading variants for the BTAI Advisor Brief and Preliminary Action Plan instead of failing only because the final heading wording varies.
 - Admin console report errors now include a plainer explanation when the quality gate, secure email, or storage layer fails.
+- ZIP building now includes available report formats and lists missing optional backup formats in `validation-summary.json` instead of failing the whole ZIP when one backup format is missing.
+- Admin ZIP download now validates returned ZIP content and decodes large ZIP files in chunks.
 - Processing screen spacing now prevents status text and timer overlap.
 - Completed processing steps now render a proper checkmark instead of a question-mark placeholder.
 - Completion page now uses a two-column layout on desktop: free snapshot and email action on the left, paid report and implementation options on the right.

@@ -114,6 +114,21 @@
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 18px;
     }
+    .record-strip {
+      display: grid;
+      grid-template-columns: minmax(280px, 1.1fr) minmax(240px, .9fr) minmax(260px, 1fr);
+      gap: 12px;
+      margin: 14px 0 12px;
+      padding-top: 14px;
+      border-top: 1px solid #d7e5df;
+    }
+    .module-grid {
+      display: grid;
+      grid-template-columns: minmax(230px, .85fr) minmax(260px, 1fr) minmax(300px, 1.05fr);
+      gap: 12px;
+      align-items: start;
+      margin-top: 14px;
+    }
     .span-2 {
       grid-column: 1 / -1;
     }
@@ -150,7 +165,7 @@
       border: 1px solid var(--line);
       background: var(--soft);
       border-radius: 8px;
-      padding: 18px;
+      padding: 16px;
       margin-top: 18px;
     }
     .dashboard-grid > .panel,
@@ -158,6 +173,13 @@
       margin-top: 0;
     }
     .panel h2:first-child {
+      margin-top: 0;
+    }
+    .record-strip .panel,
+    .module-grid .panel {
+      margin-top: 0;
+    }
+    .record-strip label {
       margin-top: 0;
     }
     .report-actions {
@@ -176,13 +198,19 @@
       background: #fbfbfa;
     }
     .notice {
-      margin-top: 20px;
+      margin-top: 12px;
       border: 1px solid #ecd596;
       background: #fff8e6;
       color: var(--warn);
       border-radius: 6px;
       padding: 12px 14px;
       font-size: .9rem;
+    }
+    .notice.admin-warning {
+      font-weight: 800;
+      letter-spacing: .03em;
+      text-align: center;
+      text-transform: none;
     }
     .status {
       margin-top: 18px;
@@ -260,7 +288,9 @@
       main { padding: 20px; }
       .grid,
       .dashboard-grid,
-      .dashboard-main { grid-template-columns: 1fr; }
+      .dashboard-main,
+      .record-strip,
+      .module-grid { grid-template-columns: 1fr; }
       .admin-header { flex-direction: column; }
       button { width: 100%; }
     }
@@ -273,132 +303,129 @@
         <h1>BTAI Records Console</h1>
         <p>Retrieve secure intake records, generate reports, download privacy proof, and review partner aggregate intelligence from one admin-only dashboard.</p>
       </div>
-      <div class="version-pill">v1.64.0</div>
+      <div class="version-pill">v1.64.1</div>
     </div>
 
-    <div class="dashboard-grid">
+    <div class="record-strip">
       <section class="panel">
-        <h2>Selected Record</h2>
         <label for="record-id">Record ID / clientDraftId</label>
         <input id="record-id" autocomplete="off" placeholder="Paste the Record ID from the notification email">
+      </section>
 
+      <section class="panel">
         <label for="admin-secret">Admin secret</label>
         <input id="admin-secret" type="password" autocomplete="current-password" placeholder="Paste BTAI_ADMIN_SECRET">
+      </section>
 
+      <section class="panel">
         <label for="filename">Filename label for MD download (optional)</label>
         <input id="filename" autocomplete="off" placeholder="Example_Client_Name">
+      </section>
+    </div>
 
+    <div class="notice admin-warning">Do not share this page or admin secret. Files are decrypted only after the server verifies the admin secret.</div>
+
+    <div class="module-grid">
+      <section class="panel report-actions">
+        <h2>Report Actions</h2>
+        <p>Generate reports from the encrypted Venture DNA record. The raw Venture DNA markdown is not included in the ZIP.</p>
+        <label class="inline-option" for="force-regenerate">
+          <input id="force-regenerate" type="checkbox">
+          Regenerate existing report files instead of reusing stored versions.
+        </label>
         <div class="button-row">
-          <button id="download-md-btn" type="button">Download Venture DNA .md</button>
+          <button id="generate-all-btn" type="button">Generate Full Report Pack</button>
+          <button id="download-zip-btn" class="secondary" type="button">Download Report Pack ZIP</button>
+          <button data-tier="free" class="secondary" type="button">Generate Free Snapshot</button>
+          <button data-tier="detailed" class="secondary" type="button">Generate Detailed Report</button>
+          <button data-tier="roadmap" class="secondary" type="button">Generate Action Plan</button>
+          <button data-tier="btai" class="secondary" type="button">Generate Advisor Brief</button>
+          <button id="download-md-btn" class="secondary" type="button">Download Venture DNA .md</button>
           <button id="refresh-status-btn" class="secondary" type="button">Check Report Status</button>
           <button id="send-free-report-btn" class="secondary" type="button">Send/Resend Free Report Email</button>
         </div>
+        <div id="report-status" class="checklist">
+          <div>Free Snapshot: unknown</div>
+          <div>Detailed Opportunity Report: unknown</div>
+          <div>Preliminary Action Plan: unknown</div>
+          <div>BTAI Advisor Brief: unknown</div>
+          <div>ZIP: unknown</div>
+        </div>
+        <div id="timer-panel" class="timer-panel">
+          <div id="timer-message">Working...</div>
+          <div>Elapsed: <span id="timer-value" class="timer-value">0s</span></div>
+        </div>
       </section>
 
-      <div class="dashboard-main">
-        <section class="panel report-actions">
-          <h2>Report Actions</h2>
-          <p>Generate reports from the encrypted Venture DNA record. The raw Venture DNA markdown is not included in the ZIP.</p>
-          <label class="inline-option" for="force-regenerate">
-            <input id="force-regenerate" type="checkbox">
-            Regenerate existing report files instead of reusing stored versions.
-          </label>
-          <div class="button-row">
-            <button id="generate-all-btn" type="button">Generate Full Report Pack</button>
-            <button id="download-zip-btn" class="secondary" type="button">Download Report Pack ZIP</button>
-            <button data-tier="free" class="secondary" type="button">Generate Free Snapshot</button>
-            <button data-tier="detailed" class="secondary" type="button">Generate Detailed Report</button>
-            <button data-tier="roadmap" class="secondary" type="button">Generate Action Plan</button>
-            <button data-tier="btai" class="secondary" type="button">Generate Advisor Brief</button>
-          </div>
-        </section>
+      <section class="panel">
+        <h2>Privacy Proof</h2>
+        <p>Download privacy proof and client-friendly certificates from sanitized event logs.</p>
+        <div class="button-row">
+          <button id="privacy-proof-btn" class="secondary" type="button">Download Privacy Proof JSON</button>
+          <button id="privacy-brief-btn" class="secondary" type="button">Brief Privacy Certificate</button>
+          <button id="privacy-detailed-btn" class="secondary" type="button">Detailed Privacy Attestation</button>
+        </div>
+      </section>
 
-        <section class="panel status-card">
-          <h2>Report Status</h2>
-          <div id="report-status" class="checklist">
-            <div>Free Snapshot: unknown</div>
-            <div>Detailed Opportunity Report: unknown</div>
-            <div>Preliminary Action Plan: unknown</div>
-            <div>BTAI Advisor Brief: unknown</div>
-            <div>ZIP: unknown</div>
+      <section class="panel">
+        <h2>Partner Aggregate Intelligence</h2>
+        <p>Download privacy-safe partner reports from KPI/event metadata only. No raw interviews, member names, emails, or individual answers.</p>
+        <div class="grid">
+          <div>
+            <label for="partner-code">Partner code</label>
+            <input id="partner-code" autocomplete="off" value="AFPA">
           </div>
-          <div id="timer-panel" class="timer-panel">
-            <div id="timer-message">Working...</div>
-            <div>Elapsed: <span id="timer-value" class="timer-value">0s</span></div>
+          <div>
+            <label for="campaign-code">Campaign</label>
+            <input id="campaign-code" autocomplete="off" value="all" placeholder="all, demo, december-course">
           </div>
-        </section>
-
-        <section class="panel">
-          <h2>Privacy Proof</h2>
-          <p>Download privacy proof and client-friendly certificates from sanitized event logs.</p>
-          <div class="button-row">
-            <button id="privacy-proof-btn" class="secondary" type="button">Download Privacy Proof JSON</button>
-            <button id="privacy-brief-btn" class="secondary" type="button">Brief Privacy Certificate</button>
-            <button id="privacy-detailed-btn" class="secondary" type="button">Detailed Privacy Attestation</button>
-          </div>
-        </section>
-
-        <section class="panel">
-          <h2>Partner Aggregate Intelligence</h2>
-          <p>Download privacy-safe partner reports from KPI/event metadata only. No raw interviews, member names, emails, or individual answers.</p>
-          <div class="grid">
-            <div>
-              <label for="partner-code">Partner code</label>
-              <input id="partner-code" autocomplete="off" value="AFPA">
-            </div>
-            <div>
-              <label for="campaign-code">Campaign</label>
-              <input id="campaign-code" autocomplete="off" value="all" placeholder="all, demo, december-course">
-            </div>
-          </div>
-          <label for="aggregate-days">Lookback days</label>
-          <input id="aggregate-days" type="number" min="1" max="1095" value="120">
-          <div class="button-row">
-            <button id="download-aggregate-html-btn" type="button">Download Partner HTML Report</button>
-            <button id="download-aggregate-md-btn" class="secondary" type="button">Download Partner Markdown Report</button>
-          </div>
-        </section>
-
-        <section class="panel span-2">
-          <h2>Interview Index</h2>
-          <p>Load recent intake records, select a row to copy its Record ID into the field, then generate or retrieve reports.</p>
-          <div class="grid">
-            <div>
-              <label for="index-days">Lookback days</label>
-              <input id="index-days" type="number" min="1" max="1095" value="120">
-            </div>
-            <div>
-              <label for="index-status">Status</label>
-              <input id="index-status" autocomplete="off" value="all" placeholder="all, complete, draft">
-            </div>
-          </div>
-          <div class="button-row">
-            <button id="load-record-index-btn" class="secondary" type="button">Load Interview Index</button>
-            <button id="refresh-record-index-btn" type="button">Refresh Interview Index</button>
-            <button id="download-record-index-csv-btn" class="secondary" type="button">Download Index CSV</button>
-          </div>
-          <div id="record-index-wrap" class="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>Business</th>
-                  <th>Client</th>
-                  <th>Email</th>
-                  <th>Category</th>
-                  <th>Status</th>
-                  <th>Partner</th>
-                  <th>Record ID</th>
-                  <th>Updated</th>
-                </tr>
-              </thead>
-              <tbody id="record-index-body"></tbody>
-            </table>
-          </div>
-        </section>
-      </div>
+        </div>
+        <label for="aggregate-days">Lookback days</label>
+        <input id="aggregate-days" type="number" min="1" max="1095" value="120">
+        <div class="button-row">
+          <button id="download-aggregate-html-btn" type="button">Download Partner HTML Report</button>
+          <button id="download-aggregate-md-btn" class="secondary" type="button">Download Partner Markdown Report</button>
+        </div>
+      </section>
     </div>
 
-    <div class="notice">Do not share this page or admin secret. Files are decrypted only after the server verifies the admin secret.</div>
+    <section class="panel">
+      <h2>Interview Index</h2>
+      <p>Load recent intake records, select a row to copy its Record ID into the field, then generate or retrieve reports.</p>
+      <div class="grid">
+        <div>
+          <label for="index-days">Lookback days</label>
+          <input id="index-days" type="number" min="1" max="1095" value="120">
+        </div>
+        <div>
+          <label for="index-status">Status</label>
+          <input id="index-status" autocomplete="off" value="all" placeholder="all, complete, draft">
+        </div>
+      </div>
+      <div class="button-row">
+        <button id="load-record-index-btn" class="secondary" type="button">Load Interview Index</button>
+        <button id="refresh-record-index-btn" type="button">Refresh Interview Index</button>
+        <button id="download-record-index-csv-btn" class="secondary" type="button">Download Index CSV</button>
+      </div>
+      <div id="record-index-wrap" class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Business</th>
+              <th>Client</th>
+              <th>Email</th>
+              <th>Category</th>
+              <th>Status</th>
+              <th>Partner</th>
+              <th>Record ID</th>
+              <th>Updated</th>
+            </tr>
+          </thead>
+          <tbody id="record-index-body"></tbody>
+        </table>
+      </div>
+    </section>
+
     <section class="panel status-card">
       <h2>Console Output</h2>
       <div id="status" class="status"></div>
@@ -514,8 +541,20 @@
     }
 
     function downloadZip(filename, contentBase64) {
-      const bytes = Uint8Array.from(atob(contentBase64), char => char.charCodeAt(0));
-      downloadBlob(filename, new Blob([bytes], { type: 'application/zip' }));
+      if (!contentBase64) throw new Error('ZIP content was not returned by the server.');
+      try {
+        const binary = atob(contentBase64);
+        const chunks = [];
+        for (let offset = 0; offset < binary.length; offset += 32768) {
+          const slice = binary.slice(offset, offset + 32768);
+          const bytes = new Uint8Array(slice.length);
+          for (let i = 0; i < slice.length; i += 1) bytes[i] = slice.charCodeAt(i);
+          chunks.push(bytes);
+        }
+        downloadBlob(filename || 'BTAI_Report_Pack.zip', new Blob(chunks, { type: 'application/zip' }));
+      } catch (err) {
+        throw new Error(`Could not decode ZIP download: ${err.message}`);
+      }
     }
 
     function downloadBlob(filename, blob) {
@@ -555,7 +594,7 @@
     function friendlyAdminError(message = '') {
       const text = String(message || '').trim();
       if (/Report quality gate failed/i.test(text) && /missing_expected_final_section/i.test(text)) {
-        return `${text}\n\nMeaning: the report generated, but the completion validator did not find the required final section. In v1.64.0 the validator accepts close heading variants, so retry this report after deploying the current build.`;
+        return `${text}\n\nMeaning: the report generated, but the completion validator did not find the required final section. In v1.64.1 the validator accepts close heading variants, so retry this report after deploying the current build.`;
       }
       if (/No client email found/i.test(text)) {
         return `${text}\n\nMeaning: the secure intake session does not contain a client email address, so the free report cannot be emailed automatically.`;

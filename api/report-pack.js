@@ -809,24 +809,30 @@ async function buildZip(clientDraftId) {
   const { dnaContent, meta } = await getDna(clientDraftId);
   const businessName = businessNameFromDna(dnaContent);
   const files = [];
+  const missingFiles = [];
 
   for (const tier of ['free', 'detailed', 'roadmap', 'btai']) {
     const htmlDoc = await ensureHtmlReport(clientDraftId, tier);
     const doc = await loadGenerated(clientDraftId, tier, 'docx');
-    if (!htmlDoc?.contentBase64) {
-      throw new Error(`Missing generated HTML for tier: ${tier}. Generate that report first, then download the ZIP.`);
+    if (htmlDoc?.contentBase64) {
+      files.push({
+        name: `HTML_Reports/${htmlDoc.filename || `${businessName}_${REPORTS[tier].filename}.html`}`,
+        content: Buffer.from(htmlDoc.contentBase64, 'base64')
+      });
+    } else {
+      missingFiles.push(`${tier}: HTML report`);
     }
-    if (!doc?.contentBase64) {
-      throw new Error(`Missing generated DOCX for tier: ${tier}. Generate that report first, then download the ZIP.`);
+    if (doc?.contentBase64) {
+      files.push({
+        name: `DOCX_Backup/${doc.filename || `${businessName}_${REPORTS[tier].filename}.docx`}`,
+        content: Buffer.from(doc.contentBase64, 'base64')
+      });
+    } else {
+      missingFiles.push(`${tier}: DOCX backup`);
     }
-    files.push({
-      name: `HTML_Reports/${htmlDoc.filename || `${businessName}_${REPORTS[tier].filename}.html`}`,
-      content: Buffer.from(htmlDoc.contentBase64, 'base64')
-    });
-    files.push({
-      name: `DOCX_Backup/${doc.filename || `${businessName}_${REPORTS[tier].filename}.docx`}`,
-      content: Buffer.from(doc.contentBase64, 'base64')
-    });
+    if (!htmlDoc?.contentBase64 && !doc?.contentBase64) {
+      throw new Error(`Missing generated report files for tier: ${tier}. Generate that report first, then download the ZIP.`);
+    }
   }
 
   const validationSummary = {
@@ -838,7 +844,10 @@ async function buildZip(clientDraftId) {
     partnerRawAccess: false,
     encryptedSourceRecord: true,
     privacyProof: true,
-    note: 'Reports were generated from the encrypted Venture DNA record and stored encrypted before ZIP retrieval. HTML reports are the primary client-readable format. DOCX files are included as editable backups. The raw Venture DNA markdown is intentionally not included in this ZIP.'
+    missingFiles,
+    note: missingFiles.length
+      ? 'Reports were generated from the encrypted Venture DNA record and stored encrypted before ZIP retrieval. HTML reports are the primary client-readable format. Some backup formats were unavailable and are listed in missingFiles. The raw Venture DNA markdown is intentionally not included in this ZIP.'
+      : 'Reports were generated from the encrypted Venture DNA record and stored encrypted before ZIP retrieval. HTML reports are the primary client-readable format. DOCX files are included as editable backups. The raw Venture DNA markdown is intentionally not included in this ZIP.'
   };
   files.push({ name: 'BTAI_Report_Pack_Summary.md', content: reportPackSummaryMarkdown({ clientDraftId, businessName, files }) });
   files.push({ name: 'validation-summary.json', content: JSON.stringify(validationSummary, null, 2) });
