@@ -1,11 +1,16 @@
-# Bridge To AI Intake App - v1.66.0 Selectable Report Formats
+# Bridge To AI Intake App - v1.67.0 Compact Admin Dashboard
 
-This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the admin interview index, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, the required high-value "Try This This Week" prompt in the free report, the admin control-board layout, and the clearer core-question/follow-up progress language. v1.66.0 adds selectable report export formats so the admin console can request HTML, Markdown, DOCX, or combinations instead of always receiving DOCX backup files.
+This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the admin interview index, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, the required high-value "Try This This Week" prompt in the free report, selectable report export formats, and the clearer core-question/follow-up progress language. v1.67.0 rebuilds the records console as a compact executive-style dashboard so report actions, privacy proof, partner intelligence, interview index, and console output can sit in one working view.
 
 ## What Changed
 
 - Privacy Policy version is now `2026-07-25-v1.56.1`.
-- Header version is now `v1.66.0`.
+- Header version is now `v1.67.0`.
+- BTAI Records Console has been redesigned as a compact dashboard instead of a long scrolling form.
+- Admin fields are now constrained to practical widths instead of stretching across the page.
+- Report buttons are smaller and grouped in a dense left-side control rail.
+- Privacy proof, interview index, partner aggregate intelligence, and console output now sit in adjacent dashboard panels.
+- Interview index and console output use internal scroll areas so the page itself stays stable on desktop.
 - Admin report generation now has a **Report output format** selector.
 - HTML-only is now the default report-pack format for the cleanest ZIP and fastest non-DOCX workflow.
 - Markdown-only, DOCX-only, HTML + Markdown, HTML + DOCX, and HTML + DOCX + Markdown are available when needed.

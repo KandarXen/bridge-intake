@@ -10,40 +10,49 @@
       --green-dark: #095a4d;
       --ink: #171717;
       --muted: #6f7378;
-      --line: #dedbd4;
-      --paper: #fafaf8;
+      --line: #d9d6cf;
+      --paper: #f6f5f1;
       --warn: #8a5b00;
-      --soft: #f3f1ec;
+      --soft: #f1efe9;
       --ok: #127c45;
+      --white: #fff;
     }
     * { box-sizing: border-box; }
+    html { height: 100%; }
     body {
       margin: 0;
-      min-height: 100vh;
+      height: 100%;
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       color: var(--ink);
       background: var(--paper);
-      padding: 18px;
+      padding: 8px;
+      overflow: hidden;
     }
     main {
-      width: min(1280px, 100%);
+      width: min(1580px, 100%);
+      height: calc(100vh - 16px);
       margin: 0 auto;
       background: #fff;
       border: 1px solid var(--line);
       border-radius: 8px;
-      padding: 24px;
-      box-shadow: 0 16px 42px rgba(0,0,0,.06);
+      padding: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.05);
+      display: grid;
+      grid-template-rows: auto auto auto minmax(0, 1fr);
+      gap: 8px;
+      overflow: hidden;
     }
     .admin-header {
       display: flex;
       justify-content: space-between;
-      gap: 18px;
+      gap: 14px;
       align-items: flex-start;
-      margin-bottom: 18px;
+      margin-bottom: 0;
     }
     .admin-header p {
       max-width: 760px;
       margin-bottom: 0;
+      font-size: .82rem;
     }
     .version-pill {
       flex: 0 0 auto;
@@ -51,49 +60,51 @@
       background: #f1faf7;
       color: var(--green-dark);
       border-radius: 999px;
-      padding: 7px 11px;
-      font-size: .78rem;
+      padding: 5px 10px;
+      font-size: .72rem;
       font-weight: 800;
       letter-spacing: .02em;
       white-space: nowrap;
     }
     h1 {
-      margin: 0 0 8px;
-      font-size: 1.35rem;
+      margin: 0 0 3px;
+      font-size: 1.18rem;
       letter-spacing: 0;
     }
     h2 {
-      margin: 28px 0 10px;
-      font-size: 1rem;
-      letter-spacing: .02em;
+      margin: 0 0 6px;
+      font-size: .86rem;
+      letter-spacing: .01em;
     }
     p {
-      margin: 0 0 18px;
+      margin: 0 0 9px;
       color: var(--muted);
-      line-height: 1.55;
+      line-height: 1.35;
+      font-size: .78rem;
     }
     label {
       display: block;
       font-weight: 650;
-      margin: 18px 0 7px;
-      font-size: .9rem;
+      margin: 7px 0 4px;
+      font-size: .74rem;
     }
     input,
     select {
       width: 100%;
       border: 1px solid var(--line);
       border-radius: 6px;
-      padding: 12px 13px;
-      font-size: 1rem;
+      padding: 8px 9px;
+      font-size: .82rem;
       background: #fff;
+      min-height: 34px;
     }
     .inline-option {
       display: flex;
       align-items: center;
       gap: 9px;
-      margin-top: 14px;
+      margin-top: 8px;
       color: #374151;
-      font-size: .9rem;
+      font-size: .76rem;
       line-height: 1.35;
     }
     .inline-option input {
@@ -103,49 +114,41 @@
     .grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 18px;
-    }
-    .dashboard-grid {
-      display: grid;
-      grid-template-columns: minmax(340px, .9fr) minmax(0, 1.25fr);
-      gap: 18px;
-      align-items: start;
-    }
-    .dashboard-main {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 18px;
+      gap: 10px;
     }
     .record-strip {
       display: grid;
-      grid-template-columns: minmax(280px, 1.1fr) minmax(240px, .9fr) minmax(260px, 1fr);
-      gap: 12px;
-      margin: 14px 0 12px;
-      padding-top: 14px;
-      border-top: 1px solid #d7e5df;
+      grid-template-columns: minmax(350px, 1fr) 220px 230px;
+      gap: 8px;
+      margin: 0;
     }
-    .module-grid {
+    .console-grid {
       display: grid;
-      grid-template-columns: minmax(280px, 1fr) minmax(320px, 1.1fr);
-      gap: 12px;
-      align-items: start;
-      margin-top: 14px;
+      grid-template-columns: minmax(330px, .86fr) minmax(420px, 1.1fr) minmax(410px, 1.05fr);
+      grid-template-rows: minmax(0, 1fr);
+      gap: 8px;
+      min-height: 0;
     }
-    .module-grid .report-actions {
-      grid-column: 1 / -1;
+    .column-stack {
+      display: grid;
+      gap: 8px;
+      min-height: 0;
+      align-content: start;
     }
-    .span-2 {
-      grid-column: 1 / -1;
+    .column-stack.fill {
+      grid-template-rows: auto minmax(0, 1fr);
     }
     button {
       background: var(--green);
       color: #fff;
       border: 0;
       border-radius: 6px;
-      padding: 12px 16px;
+      padding: 6px 8px;
       font-weight: 700;
       cursor: pointer;
-      min-height: 44px;
+      min-height: 29px;
+      font-size: .7rem;
+      line-height: 1.15;
     }
     button:hover { background: var(--green-dark); }
     button:disabled {
@@ -155,8 +158,8 @@
     .button-row {
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 16px;
+      gap: 6px;
+      margin-top: 8px;
     }
     .secondary {
       background: #fff;
@@ -170,18 +173,11 @@
       border: 1px solid var(--line);
       background: var(--soft);
       border-radius: 8px;
-      padding: 16px;
-      margin-top: 18px;
-    }
-    .dashboard-grid > .panel,
-    .dashboard-main > .panel {
+      padding: 10px;
       margin-top: 0;
+      min-width: 0;
     }
     .panel h2:first-child {
-      margin-top: 0;
-    }
-    .record-strip .panel,
-    .module-grid .panel {
       margin-top: 0;
     }
     .record-strip label {
@@ -190,60 +186,84 @@
     .report-actions {
       background: #fff;
       border-color: #cfe2dc;
+      display: grid;
+      grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
+      min-height: 0;
     }
     .report-actions h2 {
-      text-align: center;
-      font-size: 1.15rem;
-      letter-spacing: .03em;
+      text-align: left;
+      font-size: .94rem;
+      letter-spacing: .01em;
     }
     .report-actions > p {
-      text-align: center;
-      max-width: 760px;
-      margin-left: auto;
-      margin-right: auto;
+      text-align: left;
+      max-width: none;
+      margin-bottom: 6px;
+    }
+    .report-actions .inline-option {
+      align-items: flex-start;
+      gap: 7px;
+      margin-top: 7px;
+      margin-bottom: 8px;
+      font-size: .7rem;
+    }
+    .report-actions .inline-option input {
+      margin-top: 2px;
     }
     .report-action-layout {
       display: grid;
-      grid-template-columns: minmax(190px, .75fr) minmax(260px, 1fr) minmax(260px, 1fr) minmax(250px, .95fr);
-      gap: 16px;
+      grid-template-columns: 1fr;
+      gap: 6px;
       align-items: start;
-      margin-top: 14px;
+      margin-top: 4px;
+      min-height: 0;
+      overflow: auto;
+      padding-right: 2px;
     }
     .action-stack {
       display: grid;
-      gap: 10px;
+      gap: 4px;
+      border-top: 1px solid #e6e3dc;
+      padding-top: 6px;
     }
     .action-stack-title {
-      font-size: .75rem;
+      font-size: .68rem;
       font-weight: 850;
       color: var(--green-dark);
-      letter-spacing: .08em;
+      letter-spacing: .07em;
       text-transform: uppercase;
     }
     .action-stack .button-row {
-      display: grid;
-      gap: 9px;
+      display: flex;
+      gap: 5px;
       margin-top: 0;
+    }
+    .action-stack .button-row button {
+      flex: 1 1 112px;
     }
     .status-card {
       background: #fff;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      min-height: 0;
     }
     .status-card .status {
-      margin-top: 8px;
-      min-height: 96px;
-      padding: 12px;
+      margin-top: 0;
+      min-height: 0;
+      padding: 9px;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: #fbfbfa;
+      overflow: auto;
     }
     .notice {
-      margin-top: 12px;
+      margin-top: 0;
       border: 1px solid #ecd596;
       background: #fff8e6;
       color: var(--warn);
       border-radius: 6px;
-      padding: 12px 14px;
-      font-size: .9rem;
+      padding: 7px 10px;
+      font-size: .76rem;
     }
     .notice.admin-warning {
       font-weight: 800;
@@ -252,32 +272,32 @@
       text-transform: none;
     }
     .status {
-      margin-top: 18px;
+      margin-top: 0;
       white-space: pre-wrap;
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: .86rem;
-      color: #374151;
-      line-height: 1.5;
+      font-size: .75rem;
+      color: #27313b;
+      line-height: 1.4;
     }
     .checklist {
       display: grid;
-      gap: 8px;
-      margin-top: 10px;
+      gap: 5px;
+      margin-top: 0;
       color: var(--muted);
-      font-size: .92rem;
+      font-size: .76rem;
     }
     .ready {
       color: var(--ok);
       font-weight: 700;
     }
     .timer-panel {
-      margin-top: 14px;
+      margin-top: 8px;
       border: 1px solid #cfe2dc;
       background: #f1faf7;
       color: var(--green-dark);
       border-radius: 8px;
-      padding: 12px 14px;
-      font-size: .9rem;
+      padding: 8px 10px;
+      font-size: .76rem;
       line-height: 1.45;
       display: none;
     }
@@ -289,12 +309,14 @@
       font-weight: 800;
     }
     .table-scroll {
-      margin-top: 14px;
+      margin-top: 8px;
       overflow-x: auto;
+      overflow-y: auto;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: #fff;
       display: none;
+      max-height: 190px;
     }
     .table-scroll.active {
       display: block;
@@ -303,10 +325,10 @@
       width: 100%;
       min-width: 980px;
       border-collapse: collapse;
-      font-size: .84rem;
+      font-size: .72rem;
     }
     th, td {
-      padding: 9px 10px;
+      padding: 6px 7px;
       border-bottom: 1px solid var(--line);
       text-align: left;
       vertical-align: top;
@@ -320,19 +342,24 @@
     }
     code {
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: .8rem;
+      font-size: .72rem;
     }
-    @media (max-width: 720px) {
-      body { padding: 14px; }
-      main { padding: 20px; }
+    .compact-index {
+      display: grid;
+      grid-template-columns: 90px 1fr;
+      gap: 8px;
+    }
+    @media (max-width: 1050px) {
+      body { overflow: auto; }
+      main { height: auto; overflow: visible; }
       .grid,
-      .dashboard-grid,
-      .dashboard-main,
       .record-strip,
-      .module-grid,
+      .console-grid,
       .report-action-layout { grid-template-columns: 1fr; }
       .admin-header { flex-direction: column; }
       button { width: 100%; }
+      .status-card .status,
+      .table-scroll { max-height: none; }
     }
   </style>
 </head>
@@ -343,7 +370,7 @@
         <h1>BTAI Records Console</h1>
         <p>Retrieve secure intake records, generate reports, download privacy proof, and review partner aggregate intelligence from one admin-only dashboard.</p>
       </div>
-      <div class="version-pill">v1.66.0</div>
+      <div class="version-pill">v1.67.0</div>
     </div>
 
     <div class="record-strip">
@@ -365,7 +392,7 @@
 
     <div class="notice admin-warning">Do not share this page or admin secret. Files are decrypted only after the server verifies the admin secret.</div>
 
-    <div class="module-grid">
+    <div class="console-grid">
       <section class="panel report-actions">
         <h2>Report Actions</h2>
         <p>Generate reports from the encrypted Venture DNA record. The raw Venture DNA markdown is not included in the ZIP.</p>
@@ -380,31 +407,31 @@
         </select>
         <label class="inline-option" for="force-regenerate">
           <input id="force-regenerate" type="checkbox">
-          Regenerate existing report files instead of reusing stored versions.
+          Regenerate instead of reusing stored reports.
         </label>
         <div class="report-action-layout">
           <div class="action-stack">
             <div class="action-stack-title">Pack</div>
             <div class="button-row">
-              <button id="generate-all-btn" type="button">Generate Full Report Pack</button>
-              <button id="download-zip-btn" class="secondary" type="button">Download Report Pack ZIP</button>
+              <button id="generate-all-btn" type="button">Generate Pack</button>
+              <button id="download-zip-btn" class="secondary" type="button">Download ZIP</button>
             </div>
           </div>
           <div class="action-stack">
             <div class="action-stack-title">Single Reports</div>
             <div class="button-row">
-              <button data-tier="free" class="secondary" type="button">Generate Free Snapshot</button>
-              <button data-tier="detailed" class="secondary" type="button">Generate Detailed Report</button>
-              <button data-tier="roadmap" class="secondary" type="button">Generate Action Plan</button>
-              <button data-tier="btai" class="secondary" type="button">Generate Advisor Brief</button>
+              <button data-tier="free" class="secondary" type="button">Free Snapshot</button>
+              <button data-tier="detailed" class="secondary" type="button">Detailed Report</button>
+              <button data-tier="roadmap" class="secondary" type="button">Action Plan</button>
+              <button data-tier="btai" class="secondary" type="button">Advisor Brief</button>
             </div>
           </div>
           <div class="action-stack">
             <div class="action-stack-title">Utilities</div>
             <div class="button-row">
-              <button id="download-md-btn" class="secondary" type="button">Download Venture DNA .md</button>
-              <button id="refresh-status-btn" class="secondary" type="button">Check Report Status</button>
-              <button id="send-free-report-btn" class="secondary" type="button">Send/Resend Free Report Email</button>
+              <button id="download-md-btn" class="secondary" type="button">Venture DNA .md</button>
+              <button id="refresh-status-btn" class="secondary" type="button">Report Status</button>
+              <button id="send-free-report-btn" class="secondary" type="button">Send Free Email</button>
             </div>
           </div>
           <div class="action-stack">
@@ -424,79 +451,83 @@
         </div>
       </section>
 
-      <section class="panel">
-        <h2>Privacy Proof</h2>
-        <p>Download privacy proof and client-friendly certificates from sanitized event logs.</p>
-        <div class="button-row">
-          <button id="privacy-proof-btn" class="secondary" type="button">Download Privacy Proof JSON</button>
-          <button id="privacy-brief-btn" class="secondary" type="button">Brief Privacy Certificate</button>
-          <button id="privacy-detailed-btn" class="secondary" type="button">Detailed Privacy Attestation</button>
-        </div>
-      </section>
+      <div class="column-stack fill">
+        <section class="panel">
+          <h2>Privacy Proof</h2>
+          <p>Download privacy proof and client-friendly certificates from sanitized event logs.</p>
+          <div class="button-row">
+            <button id="privacy-proof-btn" class="secondary" type="button">Privacy Proof JSON</button>
+            <button id="privacy-brief-btn" class="secondary" type="button">Brief Certificate</button>
+            <button id="privacy-detailed-btn" class="secondary" type="button">Detailed Attestation</button>
+          </div>
+        </section>
 
-      <section class="panel">
-        <h2>Partner Aggregate Intelligence</h2>
-        <p>Download privacy-safe partner reports from KPI/event metadata only. No raw interviews, member names, emails, or individual answers.</p>
-        <div class="grid">
-          <div>
-            <label for="partner-code">Partner code</label>
-            <input id="partner-code" autocomplete="off" value="AFPA">
+        <section class="panel">
+          <h2>Interview Index</h2>
+          <p>Load recent records. Click a row to copy the Record ID into the retrieval field.</p>
+          <div class="compact-index">
+            <div>
+              <label for="index-days">Days</label>
+              <input id="index-days" type="number" min="1" max="1095" value="120">
+            </div>
+            <div>
+              <label for="index-status">Status</label>
+              <input id="index-status" autocomplete="off" value="all" placeholder="all, complete, draft">
+            </div>
           </div>
-          <div>
-            <label for="campaign-code">Campaign</label>
-            <input id="campaign-code" autocomplete="off" value="all" placeholder="all, demo, december-course">
+          <div class="button-row">
+            <button id="load-record-index-btn" class="secondary" type="button">Load Index</button>
+            <button id="refresh-record-index-btn" type="button">Refresh</button>
+            <button id="download-record-index-csv-btn" class="secondary" type="button">CSV</button>
           </div>
-        </div>
-        <label for="aggregate-days">Lookback days</label>
-        <input id="aggregate-days" type="number" min="1" max="1095" value="120">
-        <div class="button-row">
-          <button id="download-aggregate-html-btn" type="button">Download Partner HTML Report</button>
-          <button id="download-aggregate-md-btn" class="secondary" type="button">Download Partner Markdown Report</button>
-        </div>
-      </section>
+          <div id="record-index-wrap" class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Business</th>
+                  <th>Client</th>
+                  <th>Email</th>
+                  <th>Category</th>
+                  <th>Status</th>
+                  <th>Partner</th>
+                  <th>Record ID</th>
+                  <th>Updated</th>
+                </tr>
+              </thead>
+              <tbody id="record-index-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <div class="column-stack fill">
+        <section class="panel">
+          <h2>Partner Aggregate Intelligence</h2>
+          <p>Privacy-safe partner reports from KPI/event metadata only. No raw interviews, names, emails, or individual answers.</p>
+          <div class="grid">
+            <div>
+              <label for="partner-code">Partner</label>
+              <input id="partner-code" autocomplete="off" value="AFPA">
+            </div>
+            <div>
+              <label for="campaign-code">Campaign</label>
+              <input id="campaign-code" autocomplete="off" value="all" placeholder="all, demo, december-course">
+            </div>
+          </div>
+          <label for="aggregate-days">Lookback days</label>
+          <input id="aggregate-days" type="number" min="1" max="1095" value="120">
+          <div class="button-row">
+            <button id="download-aggregate-html-btn" type="button">Partner HTML</button>
+            <button id="download-aggregate-md-btn" class="secondary" type="button">Partner Markdown</button>
+          </div>
+        </section>
+
+        <section class="panel status-card">
+          <h2>Console Output</h2>
+          <div id="status" class="status"></div>
+        </section>
+      </div>
     </div>
-
-    <section class="panel">
-      <h2>Interview Index</h2>
-      <p>Load recent intake records, select a row to copy its Record ID into the field, then generate or retrieve reports.</p>
-      <div class="grid">
-        <div>
-          <label for="index-days">Lookback days</label>
-          <input id="index-days" type="number" min="1" max="1095" value="120">
-        </div>
-        <div>
-          <label for="index-status">Status</label>
-          <input id="index-status" autocomplete="off" value="all" placeholder="all, complete, draft">
-        </div>
-      </div>
-      <div class="button-row">
-        <button id="load-record-index-btn" class="secondary" type="button">Load Interview Index</button>
-        <button id="refresh-record-index-btn" type="button">Refresh Interview Index</button>
-        <button id="download-record-index-csv-btn" class="secondary" type="button">Download Index CSV</button>
-      </div>
-      <div id="record-index-wrap" class="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>Business</th>
-              <th>Client</th>
-              <th>Email</th>
-              <th>Category</th>
-              <th>Status</th>
-              <th>Partner</th>
-              <th>Record ID</th>
-              <th>Updated</th>
-            </tr>
-          </thead>
-          <tbody id="record-index-body"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <section class="panel status-card">
-      <h2>Console Output</h2>
-      <div id="status" class="status"></div>
-    </section>
   </main>
 
   <script>
@@ -662,7 +693,7 @@
     function friendlyAdminError(message = '') {
       const text = String(message || '').trim();
       if (/Report quality gate failed/i.test(text) && /missing_expected_final_section/i.test(text)) {
-        return `${text}\n\nMeaning: the report generated, but the completion validator did not find the required final section. In v1.66.0 the validator accepts close heading variants, so retry this report after deploying the current build.`;
+        return `${text}\n\nMeaning: the report generated, but the completion validator did not find the required final section. In v1.67.0 the validator accepts close heading variants, so retry this report after deploying the current build.`;
       }
       if (/No client email found/i.test(text)) {
         return `${text}\n\nMeaning: the secure intake session does not contain a client email address, so the free report cannot be emailed automatically.`;
