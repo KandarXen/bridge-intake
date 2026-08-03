@@ -680,6 +680,7 @@
     align-items: center;
     text-align: center;
     padding: 3rem 1rem;
+    gap: 0.85rem;
   }
 
   .spinner {
@@ -689,7 +690,7 @@
     border-top-color: var(--bridge-teal);
     border-radius: 50%;
     animation: spin 0.9s linear infinite;
-    margin-bottom: 1.5rem;
+    margin-bottom: 0.75rem;
   }
 
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -698,21 +699,30 @@
     font-family: 'DM Serif Display', serif;
     font-size: 1.5rem;
     color: var(--ink);
-    margin-bottom: 0.75rem;
+    margin-bottom: 0;
   }
 
   .processing-body {
     font-size: 0.92rem;
     color: var(--ink-mid);
-    line-height: 1.7;
-    max-width: 420px;
+    line-height: 1.55;
+    max-width: 500px;
+    margin: 0;
+  }
+
+  .processing-timer {
+    font-size: 0.86rem;
+    color: var(--ink-soft);
+    line-height: 1.45;
+    max-width: 500px;
+    margin: 0;
   }
 
   .processing-steps {
-    margin-top: 2rem;
+    margin-top: 1.45rem;
     text-align: left;
     width: 100%;
-    max-width: 360px;
+    max-width: 420px;
   }
 
   .p-step {
@@ -961,7 +971,7 @@
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag" id="header-tag">Business Discovery Session</span>
-      <span class="header-version">v1.63.2</span>
+      <span class="header-version">v1.64.0</span>
   </div>
 </header>
 
@@ -1176,7 +1186,7 @@
       <p class="processing-body" id="processing-body">
         Your answers are being turned into a secure business profile. The free report is prepared after your secure record is saved, and deeper reports are generated only when requested.
       </p>
-      <p class="processing-body" id="processing-timer" style="font-size:0.86rem;color:var(--ink-soft);margin-top:-1rem;">
+      <p class="processing-timer" id="processing-timer">
         Working for 0:00. Please keep this tab open until you see the confirmation screen.
       </p>
       <div class="processing-steps">
@@ -1216,18 +1226,26 @@
       <div class="completion-layout">
         <section class="completion-column" aria-labelledby="free-report-title">
           <div class="next-steps">
-            <div class="next-steps-title">Your free snapshot</div>
+            <div class="next-steps-title">What happens next</div>
 
             <div class="next-step-card">
               <div class="next-step-num">1</div>
               <div class="next-step-content">
-                <div class="next-step-title" id="free-report-title">Send your AI Opportunity Snapshot</div>
-                <div class="next-step-desc" id="next-desc-1">Bridge To AI prepares a private first-layer report from your completed intake. Use the button below to email it to the address you provided.</div>
+                <div class="next-step-title" id="free-report-title">Your free snapshot is prepared</div>
+                <div class="next-step-desc" id="next-desc-1">Bridge To AI creates a private AI Opportunity Snapshot from your completed intake and sends it to the email address you provided.</div>
               </div>
             </div>
 
             <div class="next-step-card">
               <div class="next-step-num">2</div>
+              <div class="next-step-content">
+                <div class="next-step-title" id="next-title-2">You choose whether to go deeper</div>
+                <div class="next-step-desc" id="next-desc-2">The free snapshot is directional. If you want more detail, Bridge To AI can prepare a paid opportunity report or implementation roadmap from the same secure record.</div>
+              </div>
+            </div>
+
+            <div class="next-step-card">
+              <div class="next-step-num">3</div>
               <div class="next-step-content">
                 <div class="next-step-title" id="next-title-3">Your raw intake stays secure</div>
                 <div class="next-step-desc" id="next-desc-3">Your raw interview is stored securely. Partners receive only anonymized aggregate insights where applicable, not your individual answers.</div>
@@ -3025,6 +3043,7 @@ async function submitInterview() {
     } catch (e) { /* ignore */ }
     const card = document.getElementById('resume-card');
     if (card) card.style.display = 'none';
+    if (window.processingTimer) clearInterval(window.processingTimer);
     showScreen('screen-complete');
     document.getElementById('complete-message').textContent =
       activePartnerProfile()?.completion || `Thank you, ${clientName}. Your business profile has been encrypted and securely saved. It will be used only to prepare your custom AI plan - never shared, never sold, never made public.`;
@@ -3033,6 +3052,7 @@ async function submitInterview() {
   } catch (err) {
     console.error('Submission error:', err);
     logHermesEvent('submission_failed', 'failed', { emailDelivered: false, error: err.message || 'Submission failed', ...interviewKpiSummary() });
+    if (window.processingTimer) clearInterval(window.processingTimer);
     showScreen('screen-complete');
     document.getElementById('complete-message').textContent =
       `Thank you, ${clientName}. Your interview is complete. We could not confirm automatic report delivery, so use the button below to send your free report. If it still does not confirm, contact team@bridgetoai.ca and we can recover it from the secure record.`;
@@ -3072,7 +3092,7 @@ function animateProcessingSteps() {
     if (nextStep !== activeStep) {
       document.getElementById(steps[activeStep]).classList.remove('active');
       document.getElementById(steps[activeStep]).classList.add('done');
-      document.getElementById(steps[activeStep]).querySelector('.p-icon').textContent = '?';
+      document.getElementById(steps[activeStep]).querySelector('.p-icon').textContent = '\u2713';
       activeStep = nextStep;
       document.getElementById(steps[activeStep]).classList.add('active');
     }

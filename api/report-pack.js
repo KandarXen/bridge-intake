@@ -270,19 +270,57 @@ function scanReportPrivacy(markdown) {
   };
 }
 
-const REPORT_COMPLETION_HEADINGS = {
-  free: ['## 7. Bridge To AI Note'],
-  detailed: ['## 11. Final Advisor Note'],
-  roadmap: ['## 19. Final Implementation Recommendation'],
-  btai: ['## 10. Needs Confirmation Before Build']
+const REPORT_COMPLETION_RULES = {
+  free: [{
+    expected: '7. Bridge To AI Note',
+    variants: ['bridge to ai note', 'bridge to ai advisor note', 'note from bridge to ai']
+  }],
+  detailed: [{
+    expected: '11. Final Advisor Note',
+    variants: ['final advisor note', 'advisor note', 'final bridge to ai note']
+  }],
+  roadmap: [{
+    expected: '19. Final Implementation Recommendation',
+    variants: ['final implementation recommendation', 'implementation recommendation', 'final recommendation', 'recommended implementation path']
+  }],
+  btai: [{
+    expected: '10. Needs Confirmation Before Build',
+    variants: ['needs confirmation before build', 'needs confirmation', 'confirm before build', 'questions before build', 'what needs confirmation before build']
+  }]
 };
+
+function normalizeHeadingText(value = '') {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/&amp;/g, 'and')
+    .replace(/[`*_>#|[\](){}:;,.!?'"-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function hasCompletionAnchor(markdown, tier, rule) {
+  const text = String(markdown || '');
+  if (text.includes(`## ${rule.expected}`)) return { found: true, exact: true };
+  const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+  const normalizedLines = lines.map(normalizeHeadingText);
+  const tailStart = Math.max(0, Math.floor(normalizedLines.length * 0.65));
+  const searchableLines = normalizedLines.slice(tailStart);
+  const variants = [rule.expected, ...(rule.variants || [])].map(normalizeHeadingText).filter(Boolean);
+  const foundVariant = variants.find(variant =>
+    searchableLines.some(line => line.includes(variant)) ||
+    normalizedLines.some(line => /^#+\s?/.test(lines[normalizedLines.indexOf(line)] || '') && line.includes(variant))
+  );
+  return { found: !!foundVariant, exact: false, variant: foundVariant || '' };
+}
 
 function reportQualityWarnings(markdown, tier) {
   const text = String(markdown || '').trim();
   const warnings = [];
-  const requiredHeadings = REPORT_COMPLETION_HEADINGS[tier] || [];
-  requiredHeadings.forEach(heading => {
-    if (!text.includes(heading)) warnings.push(`missing_expected_final_section:${heading.replace(/^#+\s*/, '')}`);
+  const requiredRules = REPORT_COMPLETION_RULES[tier] || [];
+  requiredRules.forEach(rule => {
+    const anchor = hasCompletionAnchor(text, tier, rule);
+    if (!anchor.found) warnings.push(`missing_expected_final_section:${rule.expected}`);
+    else if (!anchor.exact) warnings.push(`final_section_heading_variant:${rule.expected}`);
   });
 
   const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);

@@ -23,16 +23,39 @@
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       color: var(--ink);
       background: var(--paper);
-      padding: 24px;
+      padding: 18px;
     }
     main {
-      width: min(920px, 100%);
+      width: min(1280px, 100%);
       margin: 0 auto;
       background: #fff;
       border: 1px solid var(--line);
       border-radius: 8px;
-      padding: 28px;
+      padding: 24px;
       box-shadow: 0 16px 42px rgba(0,0,0,.06);
+    }
+    .admin-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: flex-start;
+      margin-bottom: 18px;
+    }
+    .admin-header p {
+      max-width: 760px;
+      margin-bottom: 0;
+    }
+    .version-pill {
+      flex: 0 0 auto;
+      border: 1px solid #cfe2dc;
+      background: #f1faf7;
+      color: var(--green-dark);
+      border-radius: 999px;
+      padding: 7px 11px;
+      font-size: .78rem;
+      font-weight: 800;
+      letter-spacing: .02em;
+      white-space: nowrap;
     }
     h1 {
       margin: 0 0 8px;
@@ -80,6 +103,20 @@
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 18px;
     }
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: minmax(340px, .9fr) minmax(0, 1.25fr);
+      gap: 18px;
+      align-items: start;
+    }
+    .dashboard-main {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+    .span-2 {
+      grid-column: 1 / -1;
+    }
     button {
       background: var(--green);
       color: #fff;
@@ -115,6 +152,28 @@
       border-radius: 8px;
       padding: 18px;
       margin-top: 18px;
+    }
+    .dashboard-grid > .panel,
+    .dashboard-main > .panel {
+      margin-top: 0;
+    }
+    .panel h2:first-child {
+      margin-top: 0;
+    }
+    .report-actions {
+      background: #fff;
+      border-color: #cfe2dc;
+    }
+    .status-card {
+      background: #fff;
+    }
+    .status-card .status {
+      margin-top: 8px;
+      min-height: 96px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfbfa;
     }
     .notice {
       margin-top: 20px;
@@ -199,127 +258,151 @@
     @media (max-width: 720px) {
       body { padding: 14px; }
       main { padding: 20px; }
-      .grid { grid-template-columns: 1fr; }
+      .grid,
+      .dashboard-grid,
+      .dashboard-main { grid-template-columns: 1fr; }
+      .admin-header { flex-direction: column; }
       button { width: 100%; }
     }
   </style>
 </head>
 <body>
   <main>
-    <h1>BTAI Admin Retrieval And Reports</h1>
-    <p>Use the Record ID from the intake notification email to retrieve the encrypted Venture DNA file, then generate the client reports and the internal BTAI advisor brief.</p>
-
-    <div class="grid">
+    <div class="admin-header">
       <div>
+        <h1>BTAI Records Console</h1>
+        <p>Retrieve secure intake records, generate reports, download privacy proof, and review partner aggregate intelligence from one admin-only dashboard.</p>
+      </div>
+      <div class="version-pill">v1.64.0</div>
+    </div>
+
+    <div class="dashboard-grid">
+      <section class="panel">
+        <h2>Selected Record</h2>
         <label for="record-id">Record ID / clientDraftId</label>
         <input id="record-id" autocomplete="off" placeholder="Paste the Record ID from the notification email">
-      </div>
-      <div>
+
         <label for="admin-secret">Admin secret</label>
         <input id="admin-secret" type="password" autocomplete="current-password" placeholder="Paste BTAI_ADMIN_SECRET">
-      </div>
-    </div>
 
-    <label for="filename">Filename label for MD download (optional)</label>
-    <input id="filename" autocomplete="off" placeholder="Example_Client_Name">
+        <label for="filename">Filename label for MD download (optional)</label>
+        <input id="filename" autocomplete="off" placeholder="Example_Client_Name">
 
-    <div class="button-row">
-      <button id="load-record-index-btn" class="secondary" type="button">Load Interview Index</button>
-      <button id="download-md-btn" type="button">Download Venture DNA .md</button>
-      <button id="refresh-status-btn" class="secondary" type="button">Check Report Status</button>
-      <button id="send-free-report-btn" class="secondary" type="button">Send/Resend Free Report Email</button>
-      <button id="privacy-proof-btn" class="secondary" type="button">Download Privacy Proof JSON</button>
-      <button id="privacy-brief-btn" class="secondary" type="button">Download Brief Privacy Certificate</button>
-      <button id="privacy-detailed-btn" class="secondary" type="button">Download Detailed Privacy Attestation</button>
-    </div>
-
-    <div class="panel">
-      <h2>Interview Index</h2>
-      <p>Load recent intake records so you can find a business, copy its Record ID, then download the Venture DNA or generate reports. This is private admin-only data and should not be shared with partners.</p>
-      <div class="grid">
-        <div>
-          <label for="index-days">Lookback days</label>
-          <input id="index-days" type="number" min="1" max="1095" value="120">
+        <div class="button-row">
+          <button id="download-md-btn" type="button">Download Venture DNA .md</button>
+          <button id="refresh-status-btn" class="secondary" type="button">Check Report Status</button>
+          <button id="send-free-report-btn" class="secondary" type="button">Send/Resend Free Report Email</button>
         </div>
-        <div>
-          <label for="index-status">Status</label>
-          <input id="index-status" autocomplete="off" value="all" placeholder="all, complete, draft">
-        </div>
-      </div>
-      <div class="button-row">
-        <button id="refresh-record-index-btn" type="button">Refresh Interview Index</button>
-        <button id="download-record-index-csv-btn" class="secondary" type="button">Download Index CSV</button>
-      </div>
-      <div id="record-index-wrap" class="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>Business</th>
-              <th>Client</th>
-              <th>Email</th>
-              <th>Category</th>
-              <th>Status</th>
-              <th>Partner</th>
-              <th>Record ID</th>
-              <th>Updated</th>
-            </tr>
-          </thead>
-          <tbody id="record-index-body"></tbody>
-        </table>
-      </div>
-    </div>
+      </section>
 
-    <div class="panel">
-      <h2>Report Pack</h2>
-      <p>Generate the full report pack in one orchestration run. The individual buttons remain available only as recovery tools. Each file is created from the encrypted Venture DNA record and stored back into the secure session before download. The raw Venture DNA markdown is not included in the ZIP.</p>
-      <label class="inline-option" for="force-regenerate">
-        <input id="force-regenerate" type="checkbox">
-        Regenerate existing report files instead of reusing stored versions.
-      </label>
-      <div class="button-row">
-        <button id="generate-all-btn" type="button">Generate Full Report Pack</button>
-        <button data-tier="free" type="button">Generate Free Snapshot</button>
-        <button data-tier="detailed" type="button">Generate Detailed Opportunity Report</button>
-        <button data-tier="roadmap" type="button">Generate Preliminary Action Plan</button>
-        <button data-tier="btai" type="button">Generate BTAI Advisor Brief</button>
-        <button id="download-zip-btn" class="secondary" type="button">Download Report Pack ZIP</button>
-      </div>
-      <div id="report-status" class="checklist">
-        <div>Free Snapshot: unknown</div>
-        <div>Detailed Opportunity Report: unknown</div>
-        <div>Preliminary Action Plan: unknown</div>
-        <div>BTAI Advisor Brief: unknown</div>
-        <div>ZIP: unknown</div>
-      </div>
-      <div id="timer-panel" class="timer-panel">
-        <div id="timer-message">Working...</div>
-        <div>Elapsed: <span id="timer-value" class="timer-value">0s</span></div>
-      </div>
-    </div>
+      <div class="dashboard-main">
+        <section class="panel report-actions">
+          <h2>Report Actions</h2>
+          <p>Generate reports from the encrypted Venture DNA record. The raw Venture DNA markdown is not included in the ZIP.</p>
+          <label class="inline-option" for="force-regenerate">
+            <input id="force-regenerate" type="checkbox">
+            Regenerate existing report files instead of reusing stored versions.
+          </label>
+          <div class="button-row">
+            <button id="generate-all-btn" type="button">Generate Full Report Pack</button>
+            <button id="download-zip-btn" class="secondary" type="button">Download Report Pack ZIP</button>
+            <button data-tier="free" class="secondary" type="button">Generate Free Snapshot</button>
+            <button data-tier="detailed" class="secondary" type="button">Generate Detailed Report</button>
+            <button data-tier="roadmap" class="secondary" type="button">Generate Action Plan</button>
+            <button data-tier="btai" class="secondary" type="button">Generate Advisor Brief</button>
+          </div>
+        </section>
 
-    <div class="panel">
-      <h2>Partner Aggregate Intelligence</h2>
-      <p>Download a privacy-safe partner report from KPI/event metadata only. This does not decrypt raw interviews, include member names, include emails, or expose individual answers.</p>
-      <div class="grid">
-        <div>
-          <label for="partner-code">Partner code</label>
-          <input id="partner-code" autocomplete="off" value="AFPA">
-        </div>
-        <div>
-          <label for="campaign-code">Campaign</label>
-          <input id="campaign-code" autocomplete="off" value="all" placeholder="all, demo, december-course">
-        </div>
-      </div>
-      <label for="aggregate-days">Lookback days</label>
-      <input id="aggregate-days" type="number" min="1" max="1095" value="120">
-      <div class="button-row">
-        <button id="download-aggregate-html-btn" type="button">Download Partner HTML Report</button>
-        <button id="download-aggregate-md-btn" class="secondary" type="button">Download Partner Markdown Report</button>
+        <section class="panel status-card">
+          <h2>Report Status</h2>
+          <div id="report-status" class="checklist">
+            <div>Free Snapshot: unknown</div>
+            <div>Detailed Opportunity Report: unknown</div>
+            <div>Preliminary Action Plan: unknown</div>
+            <div>BTAI Advisor Brief: unknown</div>
+            <div>ZIP: unknown</div>
+          </div>
+          <div id="timer-panel" class="timer-panel">
+            <div id="timer-message">Working...</div>
+            <div>Elapsed: <span id="timer-value" class="timer-value">0s</span></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Privacy Proof</h2>
+          <p>Download privacy proof and client-friendly certificates from sanitized event logs.</p>
+          <div class="button-row">
+            <button id="privacy-proof-btn" class="secondary" type="button">Download Privacy Proof JSON</button>
+            <button id="privacy-brief-btn" class="secondary" type="button">Brief Privacy Certificate</button>
+            <button id="privacy-detailed-btn" class="secondary" type="button">Detailed Privacy Attestation</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Partner Aggregate Intelligence</h2>
+          <p>Download privacy-safe partner reports from KPI/event metadata only. No raw interviews, member names, emails, or individual answers.</p>
+          <div class="grid">
+            <div>
+              <label for="partner-code">Partner code</label>
+              <input id="partner-code" autocomplete="off" value="AFPA">
+            </div>
+            <div>
+              <label for="campaign-code">Campaign</label>
+              <input id="campaign-code" autocomplete="off" value="all" placeholder="all, demo, december-course">
+            </div>
+          </div>
+          <label for="aggregate-days">Lookback days</label>
+          <input id="aggregate-days" type="number" min="1" max="1095" value="120">
+          <div class="button-row">
+            <button id="download-aggregate-html-btn" type="button">Download Partner HTML Report</button>
+            <button id="download-aggregate-md-btn" class="secondary" type="button">Download Partner Markdown Report</button>
+          </div>
+        </section>
+
+        <section class="panel span-2">
+          <h2>Interview Index</h2>
+          <p>Load recent intake records, select a row to copy its Record ID into the field, then generate or retrieve reports.</p>
+          <div class="grid">
+            <div>
+              <label for="index-days">Lookback days</label>
+              <input id="index-days" type="number" min="1" max="1095" value="120">
+            </div>
+            <div>
+              <label for="index-status">Status</label>
+              <input id="index-status" autocomplete="off" value="all" placeholder="all, complete, draft">
+            </div>
+          </div>
+          <div class="button-row">
+            <button id="load-record-index-btn" class="secondary" type="button">Load Interview Index</button>
+            <button id="refresh-record-index-btn" type="button">Refresh Interview Index</button>
+            <button id="download-record-index-csv-btn" class="secondary" type="button">Download Index CSV</button>
+          </div>
+          <div id="record-index-wrap" class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Business</th>
+                  <th>Client</th>
+                  <th>Email</th>
+                  <th>Category</th>
+                  <th>Status</th>
+                  <th>Partner</th>
+                  <th>Record ID</th>
+                  <th>Updated</th>
+                </tr>
+              </thead>
+              <tbody id="record-index-body"></tbody>
+            </table>
+          </div>
+        </section>
       </div>
     </div>
 
     <div class="notice">Do not share this page or admin secret. Files are decrypted only after the server verifies the admin secret.</div>
-    <div id="status" class="status"></div>
+    <section class="panel status-card">
+      <h2>Console Output</h2>
+      <div id="status" class="status"></div>
+    </section>
   </main>
 
   <script>
@@ -368,8 +451,11 @@
     }
 
     function formValues() {
+      const recordInput = document.getElementById('record-id');
+      const cleanRecordId = recordInput.value.trim();
+      if (recordInput.value !== cleanRecordId) recordInput.value = cleanRecordId;
       return {
-        clientDraftId: document.getElementById('record-id').value.trim(),
+        clientDraftId: cleanRecordId,
         adminSecret: document.getElementById('admin-secret').value,
         filename: document.getElementById('filename').value.trim()
       };
@@ -466,6 +552,23 @@
       return data;
     }
 
+    function friendlyAdminError(message = '') {
+      const text = String(message || '').trim();
+      if (/Report quality gate failed/i.test(text) && /missing_expected_final_section/i.test(text)) {
+        return `${text}\n\nMeaning: the report generated, but the completion validator did not find the required final section. In v1.64.0 the validator accepts close heading variants, so retry this report after deploying the current build.`;
+      }
+      if (/No client email found/i.test(text)) {
+        return `${text}\n\nMeaning: the secure intake session does not contain a client email address, so the free report cannot be emailed automatically.`;
+      }
+      if (/Client email does not match/i.test(text)) {
+        return `${text}\n\nMeaning: the browser/request email does not match the email stored inside the secure intake session.`;
+      }
+      if (/Supabase/i.test(text)) {
+        return `${text}\n\nMeaning: the secure storage layer did not respond as expected. Check Vercel environment variables and Supabase availability.`;
+      }
+      return text || 'Unknown admin console error.';
+    }
+
     async function refreshReportStatus(silent) {
       const values = requireBasics();
       if (!values) return;
@@ -494,7 +597,7 @@
         `;
         if (!silent) statusEl.textContent = 'Report status updated.';
       } catch (err) {
-        statusEl.textContent = `Error: ${err.message}`;
+        statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;
       } finally {
         if (!silent) setBusy(false);
       }
@@ -512,7 +615,7 @@
         downloadText(data.filename, data.dnaContent);
         statusEl.textContent = `Downloaded ${data.filename}\nOutput ID: ${data.outputId}\nCreated: ${data.createdAt}`;
       } catch (err) {
-        statusEl.textContent = `Error: ${err.message}`;
+        statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;
       } finally {
         setBusy(false);
       }
@@ -552,7 +655,7 @@
         recordIndexWrap.classList.toggle('active', recordIndexRows.length > 0);
         statusEl.textContent = `Loaded ${recordIndexRows.length} intake records.\nClick any row to copy its Record ID into the retrieval field.`;
       } catch (err) {
-        statusEl.textContent = `Error: ${err.message}`;
+        statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;
       } finally {
         setBusy(false);
       }
@@ -592,7 +695,7 @@
         downloadText(filename, JSON.stringify(data.privacyProof, null, 2));
         statusEl.textContent = `Downloaded ${filename}\nProof events: ${data.privacyProof?.proofEventCount || 0}\nEncrypted records confirmed: ${data.privacyProof?.encryptedRecordsConfirmed ? 'yes' : 'not yet'}\nAnonymized AI analysis confirmed: ${data.privacyProof?.anonymizedAiAnalysisConfirmed ? 'yes' : 'not yet'}\nRaw data shared with partner: ${data.privacyProof?.rawDataSharedWithPartner ? 'yes' : 'no'}`;
       } catch (err) {
-        statusEl.textContent = `Error: ${err.message}`;
+        statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;
       } finally {
         setBusy(false);
       }
@@ -611,7 +714,7 @@
         downloadText(data.filename || filename, data.markdown || '');
         statusEl.textContent = `Downloaded ${data.filename || filename}\nCertificate type: ${data.certificateType || suffix}`;
       } catch (err) {
-        statusEl.textContent = `Error: ${err.message}`;
+        statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;
       } finally {
         setBusy(false);
       }
@@ -649,7 +752,7 @@
         }
         statusEl.textContent = `Downloaded ${data.filename}\nPartner: ${partner}\nCampaign: ${campaign}\nKPI events included: ${data.eventCount || 0}\nTest/demo records excluded: ${data.excludedTestRecordCount || 0}\nRaw interviews decrypted: no\nMember names/emails included: no`;
       } catch (err) {
-        statusEl.textContent = `Error: ${err.message}`;
+        statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;
       } finally {
         setBusy(false);
       }
@@ -675,7 +778,7 @@
         statusEl.textContent = `Free report email sent.\nRecipient: ${data.recipient || 'session email'}\nResend ID: ${data.id || 'not returned'}`;
         await refreshReportStatus(true);
       } catch (err) {
-        statusEl.textContent = `Error: ${err.message}`;
+        statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;
       } finally {
         setBusy(false);
       }
@@ -695,7 +798,7 @@
         statusEl.textContent = `Full report pack ready.\nMode: ${force ? 'regenerated from current prompt' : 'reused existing where available'}\nZIP output: ${data.zip?.outputId || 'created'}\nReports: ${(data.results || []).map(r => `${r.tier}${r.generated ? ' generated' : r.convertedHtml ? ' converted to HTML' : ' already ready'}`).join(', ')}`;
         await refreshReportStatus(true);
       } catch (err) {
-        statusEl.textContent = `Error: ${err.message}`;
+        statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;
       } finally {
         setBusy(false);
       }
@@ -718,7 +821,7 @@
           statusEl.textContent = `${data.generated ? 'Generated' : 'Already ready'} ${data.tier} report.\nMode: ${force ? 'regenerated from current prompt' : 'reused existing if available'}\nMarkdown output: ${data.markdownOutputId || 'existing'}\nHTML output: ${data.htmlOutputId || 'existing'}\nDOCX output: ${data.docxOutputId || 'existing'}\nWarnings: ${(data.warnings || []).join('; ') || 'none'}`;
           await refreshReportStatus(true);
         } catch (err) {
-          statusEl.textContent = `Error: ${err.message}`;
+          statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;
         } finally {
           setBusy(false);
         }
@@ -738,7 +841,7 @@
         statusEl.textContent = `Downloaded ${data.filename}\nZIP output: ${data.outputId || 'created now'}`;
         await refreshReportStatus(true);
       } catch (err) {
-        statusEl.textContent = `Error: ${err.message}`;
+        statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;
       } finally {
         setBusy(false);
       }

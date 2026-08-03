@@ -1,11 +1,19 @@
-# Bridge To AI Intake App - v1.63.2 Completion Page UX + Delivery Diagnostics
+# Bridge To AI Intake App - v1.64.0 Admin Dashboard + Report Gate Fix
 
-This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the admin interview index, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, and the clearer core-question/follow-up progress language. v1.63.2 improves the completion page so the free-report action and paid-report options are visible together instead of buried in a long stacked page, and adds clearer report-delivery failure diagnostics.
+This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the admin interview index, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, and the clearer core-question/follow-up progress language. v1.64.0 fixes the report quality gate brittleness, improves the completion/processing screen layout, and turns the admin console into a wider dashboard-style control surface.
 
 ## What Changed
 
 - Privacy Policy version is now `2026-07-25-v1.56.1`.
-- Header version is now `v1.63.2`.
+- Header version is now `v1.64.0`.
+- Admin records console now displays its own visible version number.
+- Admin records console is now laid out as a dashboard with selected record, report actions, report status/timer, privacy proof, partner aggregate intelligence, and interview index zones.
+- The regenerate checkbox is now positioned inside the main Report Actions panel so it is much harder to miss.
+- Pasted Record IDs are trimmed visibly before admin actions run.
+- Report quality gate now accepts reasonable final-heading variants for the BTAI Advisor Brief and Preliminary Action Plan instead of failing only because the final heading wording varies.
+- Admin console report errors now include a plainer explanation when the quality gate, secure email, or storage layer fails.
+- Processing screen spacing now prevents status text and timer overlap.
+- Completed processing steps now render a proper checkmark instead of a question-mark placeholder.
 - Completion page now uses a two-column layout on desktop: free snapshot and email action on the left, paid report and implementation options on the right.
 - The free snapshot card now tells the user to use the button below to send the report, instead of implying the report was already sent before the button appears.
 - The automatic-delivery failure message now points users to the visible **Email my free report** button and only asks them to contact Bridge To AI if that manual send does not confirm.
