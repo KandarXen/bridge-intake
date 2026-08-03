@@ -1,11 +1,20 @@
-# Bridge To AI Intake App - v1.62.9 Perceived Value Polish
+# Bridge To AI Intake App - v1.63.2 Completion Page UX + Delivery Diagnostics
 
-This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the admin interview index, the regenerate report checkbox, report quality gates, and the tightened Darren voice report prompt. v1.62.9 improves perceived value in the free report and paid-report handoff.
+This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the admin interview index, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, and the clearer core-question/follow-up progress language. v1.63.2 improves the completion page so the free-report action and paid-report options are visible together instead of buried in a long stacked page, and adds clearer report-delivery failure diagnostics.
 
 ## What Changed
 
 - Privacy Policy version is now `2026-07-25-v1.56.1`.
-- Header version is now `v1.62.9`.
+- Header version is now `v1.63.2`.
+- Completion page now uses a two-column layout on desktop: free snapshot and email action on the left, paid report and implementation options on the right.
+- The free snapshot card now tells the user to use the button below to send the report, instead of implying the report was already sent before the button appears.
+- The automatic-delivery failure message now points users to the visible **Email my free report** button and only asks them to contact Bridge To AI if that manual send does not confirm.
+- The manual report-send button now shows a more specific failure reason for missing secure-session email, email mismatch, storage failure, email-service failure, report quality-gate failure, or network failure.
+- Failed free-report delivery attempts are now logged server-side as `free_report_delivery_failed` events where possible.
+- Welcome copy now clearly explains that the intake includes core questions and may add short follow-up questions when an answer needs more context.
+- The AFPA welcome copy now includes the same core-question/follow-up transparency.
+- The live progress counter now labels fixed prompts as `core step X of Y`.
+- Adaptive probes and mastery follow-ups now display as `Follow-up after core step X of Y` instead of pretending to be part of the fixed question count.
 - Client reports now normalize em dashes, curly quotes, and common mojibake sequences before storage to reduce broken copied/emailed characters such as `â€”`.
 - HTML report attachments now declare `text/html; charset=utf-8`.
 - The client-facing privacy section is now shorter, plainer, and easier to trust at the end of a report.

@@ -1278,7 +1278,20 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Unknown report-pack action' });
   } catch (err) {
     console.error('report-pack error:', err);
-    return res.status(500).json({ error: 'Server error', message: err.message });
+    if (action === 'generate-free-email' && clientDraftId) {
+      try {
+        await logReportEvent(clientDraftId, 'free_report_delivery_failed', 'failed', privacyProofDefaults({
+          reportTier: 'free',
+          clientReportOnly: true,
+          payloadType: 'encrypted_venture_dna_record',
+          error: err.message || 'Free report delivery failed',
+          proofStatus: 'free_report_delivery_failed'
+        }));
+      } catch (logErr) {
+        console.error('free report failure logging failed:', logErr);
+      }
+    }
+    return res.status(500).json({ error: 'Server error', message: err.message || 'Report-pack request failed' });
   }
 }
 

@@ -778,8 +778,53 @@
     font-size: 1rem;
     color: var(--ink-mid);
     line-height: 1.7;
-    max-width: 480px;
-    margin-bottom: 2.5rem;
+    max-width: 620px;
+    margin-bottom: 2rem;
+  }
+
+  .completion-layout {
+    width: min(100%, 980px);
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+    gap: 1.15rem;
+    align-items: start;
+    text-align: left;
+  }
+
+  .completion-column {
+    min-width: 0;
+  }
+
+  .completion-column .next-steps {
+    max-width: none;
+  }
+
+  .completion-send-box {
+    width: 100%;
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface-raised);
+  }
+
+  .completion-send-box .name-field {
+    margin-bottom: 0;
+  }
+
+  .completion-send-copy {
+    margin: -0.25rem 0 0.85rem;
+    color: var(--ink-mid);
+    font-size: 0.88rem;
+    line-height: 1.55;
+  }
+
+  .completion-action-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-top: 0.85rem;
   }
 
   .next-steps {
@@ -882,6 +927,10 @@
   }
 
   @media (max-width: 900px) {
+    .completion-layout {
+      grid-template-columns: 1fr;
+    }
+
     #screen-welcome {
       max-width: 640px;
     }
@@ -912,7 +961,7 @@
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag" id="header-tag">Business Discovery Session</span>
-      <span class="header-version">v1.62.9</span>
+      <span class="header-version">v1.63.2</span>
   </div>
 </header>
 
@@ -930,13 +979,13 @@
         <div class="welcome-eyebrow" id="welcome-eyebrow">Confidential - for your eyes only</div>
         <h1 class="welcome-headline" id="welcome-headline">Let's understand your business <em>before</em> we talk about AI.</h1>
         <p class="welcome-body" id="welcome-body">
-          This session takes about 20-30 minutes. There are no right or wrong answers.
+          This session usually takes about 20-30 minutes. There are no right or wrong answers.
           General ranges and directional examples are enough for this first report; please do not
           enter private financials, recipes, customer lists, supplier contracts, payroll details,
-          invoices, or confidential operating data. The interview adapts as you go: short answers
-          may get a quick clarifying follow-up, while more detailed answers usually help us move
-          faster. Your answers are encrypted, stored securely, and used only to prepare your
-          private AI opportunity report.
+          invoices, or confidential operating data. The interview includes core questions and may
+          add short follow-up questions when an answer needs more context. More detailed answers
+          usually help us move faster and reduce the need for follow-ups. Your answers are
+          encrypted, stored securely, and used only to prepare your private AI opportunity report.
         </p>
 
         <div class="evidence-first-box">
@@ -1164,76 +1213,77 @@
         something that actually fits how your business works.
       </p>
 
-      <div class="next-steps">
-        <div class="next-steps-title">What happens next</div>
+      <div class="completion-layout">
+        <section class="completion-column" aria-labelledby="free-report-title">
+          <div class="next-steps">
+            <div class="next-steps-title">Your free snapshot</div>
 
-        <div class="next-step-card">
-          <div class="next-step-num">1</div>
-          <div class="next-step-content">
-            <div class="next-step-title" id="next-title-1">Your free snapshot is prepared</div>
-            <div class="next-step-desc" id="next-desc-1">Bridge To AI creates a private AI Opportunity Snapshot from your completed intake and sends it to the email address you provided.</div>
+            <div class="next-step-card">
+              <div class="next-step-num">1</div>
+              <div class="next-step-content">
+                <div class="next-step-title" id="free-report-title">Send your AI Opportunity Snapshot</div>
+                <div class="next-step-desc" id="next-desc-1">Bridge To AI prepares a private first-layer report from your completed intake. Use the button below to email it to the address you provided.</div>
+              </div>
+            </div>
+
+            <div class="next-step-card">
+              <div class="next-step-num">2</div>
+              <div class="next-step-content">
+                <div class="next-step-title" id="next-title-3">Your raw intake stays secure</div>
+                <div class="next-step-desc" id="next-desc-3">Your raw interview is stored securely. Partners receive only anonymized aggregate insights where applicable, not your individual answers.</div>
+              </div>
+            </div>
           </div>
-        </div>
 
-        <div class="next-step-card">
-          <div class="next-step-num">2</div>
-          <div class="next-step-content">
-            <div class="next-step-title" id="next-title-2">You choose whether to go deeper</div>
-            <div class="next-step-desc" id="next-desc-2">The free snapshot is directional. If you want more detail, Bridge To AI can prepare a paid opportunity report or implementation roadmap from the same secure record.</div>
+          <div class="completion-send-box">
+            <div class="name-field">
+              <label>Where should we take things after sending your free report?</label>
+              <p class="completion-send-copy">Pick the follow-up level you are comfortable with. Either way, your free report is the next step.</p>
+              <div class="followup-options">
+                <label class="followup-option"><input type="radio" name="btai-followup" value="yes"><span>Send my free report and include a next-step conversation option.</span></label>
+                <label class="followup-option"><input type="radio" name="btai-followup" value="maybe" checked><span>Send my free report first. I may look at next steps later.</span></label>
+                <label class="followup-option"><input type="radio" name="btai-followup" value="no"><span>Just send my free report.</span></label>
+              </div>
+              <div class="partner-consent-note active" id="followup-privacy-note" style="display:block;">
+                Your choice only controls whether Bridge To AI follows up directly. A partner organization will not receive your individual answer unless you separately agree.
+              </div>
+              <div class="completion-action-row">
+                <button type="button" class="btn-primary" id="report-delivery-btn" onclick="handleReportDeliveryButton()">Email my free report</button>
+                <span id="followup-save-status" style="display:inline-block;color:var(--muted);font-size:0.9rem;"></span>
+              </div>
+            </div>
           </div>
-        </div>
+        </section>
 
-        <div class="next-step-card">
-          <div class="next-step-num">3</div>
-          <div class="next-step-content">
-            <div class="next-step-title" id="next-title-3">Your raw intake stays secure</div>
-            <div class="next-step-desc" id="next-desc-3">Your raw interview is stored securely. Partners receive only anonymized aggregate insights where applicable, not your individual answers.</div>
+        <aside class="completion-column" aria-labelledby="paid-reports-title">
+          <div class="next-steps">
+            <div class="next-steps-title" id="paid-reports-title">Want more than the free snapshot?</div>
+
+            <div class="next-step-card">
+              <div class="next-step-num">A</div>
+              <div class="next-step-content">
+                <div class="next-step-title">Detailed AI Opportunity Report</div>
+                <div class="next-step-desc">A deeper diagnosis of your highest-value AI opportunities, readiness gaps, and first practical projects. Suggested launch price: $147.</div>
+              </div>
+            </div>
+
+            <div class="next-step-card">
+              <div class="next-step-num">B</div>
+              <div class="next-step-content">
+                <div class="next-step-title">Preliminary AI Action Plan</div>
+                <div class="next-step-desc">A more complete planning document with prioritized workflows, implementation phases, risk controls, and questions to confirm before a build. Suggested launch price: $397.</div>
+              </div>
+            </div>
+
+            <div class="next-step-card">
+              <div class="next-step-num">C</div>
+              <div class="next-step-content">
+                <div class="next-step-title">Implementation support</div>
+                <div class="next-step-desc">A workbench is a private operating dashboard built around your business so repeated workflows can run from one place instead of scattered notes, files, prompts, and tools.</div>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-
-      <div class="name-field" style="width:100%;margin-top:1.5rem;text-align:left;">
-        <label>Where should we take things after sending your free report?</label>
-        <div class="followup-options">
-          <label class="followup-option"><input type="radio" name="btai-followup" value="yes"><span>Send my free report and include a next-step conversation option.</span></label>
-          <label class="followup-option"><input type="radio" name="btai-followup" value="maybe" checked><span>Send my free report first. I may look at next steps later.</span></label>
-          <label class="followup-option"><input type="radio" name="btai-followup" value="no"><span>Just send my free report.</span></label>
-        </div>
-        <div class="partner-consent-note active" id="followup-privacy-note" style="display:block;">
-          Your choice only controls whether Bridge To AI follows up directly. A partner organization will not receive your individual answer unless you separately agree.
-        </div>
-        <div style="margin-top:0.85rem;">
-          <button type="button" class="btn-primary" id="report-delivery-btn" onclick="handleReportDeliveryButton()">Email my free report</button>
-          <span id="followup-save-status" style="display:inline-block;margin-left:0.75rem;color:var(--muted);font-size:0.9rem;"></span>
-        </div>
-      </div>
-
-      <div class="next-steps" style="margin-top:1.5rem;">
-        <div class="next-steps-title">Want more than the free snapshot?</div>
-
-        <div class="next-step-card">
-          <div class="next-step-num">A</div>
-          <div class="next-step-content">
-            <div class="next-step-title">Detailed AI Opportunity Report</div>
-            <div class="next-step-desc">A deeper diagnosis of your highest-value AI opportunities, readiness gaps, and first practical projects. Suggested launch price: $147.</div>
-          </div>
-        </div>
-
-        <div class="next-step-card">
-          <div class="next-step-num">B</div>
-          <div class="next-step-content">
-            <div class="next-step-title">Preliminary AI Action Plan</div>
-            <div class="next-step-desc">A more complete planning document with prioritized workflows, implementation phases, risk controls, and questions to confirm before a build. Suggested launch price: $397.</div>
-          </div>
-        </div>
-
-        <div class="next-step-card">
-          <div class="next-step-num">C</div>
-          <div class="next-step-content">
-            <div class="next-step-title">Implementation support</div>
-            <div class="next-step-desc">A workbench is a private operating dashboard built around your business so repeated workflows can run from one place instead of scattered notes, files, prompts, and tools.</div>
-          </div>
-        </div>
+        </aside>
       </div>
 
       <p class="complete-footer">
@@ -1276,10 +1326,10 @@ const PARTNER_PROFILES = {
     pill: 'AFPA Member Program',
     eyebrow: 'Confidential AFPA member intake',
     headline: 'Help shape practical AI training for Alberta food processors.',
-    body: 'This session usually takes 20-30 minutes. Your answers help prepare your private AI opportunity report and help AFPA understand, in anonymized aggregate form, what members need most from upcoming AI education. General ranges and directional examples are enough; please avoid private financials, recipes, customer lists, supplier contracts, payroll details, invoices, or confidential operating data. The interview adapts as you go, and your answers are encrypted and stored securely.',
+    body: 'This session usually takes about 20-30 minutes. Your answers help prepare your private AI opportunity report and help AFPA understand, in anonymized aggregate form, what members need most from upcoming AI education. General ranges and directional examples are enough; please avoid private financials, recipes, customer lists, supplier contracts, payroll details, invoices, or confidential operating data. The interview includes core questions and may add short follow-up questions when an answer needs more context. More detailed answers usually help us move faster and reduce the need for follow-ups. Your answers are encrypted and stored securely.',
     banner: 'This co-branded intake is provided for AFPA members and powered by Bridge To AI. AFPA receives anonymized aggregate insights for education and program planning, not raw member interview files.',
     stepOne: 'You will move through practical business areas that help identify where AI education, workflow support, and safer implementation guidance may help AFPA members.',
-    stepFour: 'A few answers may trigger a quick follow-up so we can understand the real issue instead of guessing. Your progress is saved securely as you go, and you can resume if you need to come back later.',
+    stepFour: 'A few answers may trigger a quick follow-up when more context is needed. Your progress is saved securely as you go, and you can resume if you need to come back later.',
     completion: 'Your AFPA member AI readiness intake has been encrypted and securely saved. Bridge To AI will use it to prepare your private AI opportunity report. AFPA may receive anonymized aggregate insights to help shape member education, but your raw interview record is not shared with AFPA.',
     nextSteps: [
       ['Bridge To AI prepares your free snapshot', 'Your answers will be used to prepare a private AI Opportunity Snapshot focused on practical next steps for your business.'],
@@ -2442,8 +2492,15 @@ function renderQuestion() {
     document.getElementById('q-text').textContent = qText;
     document.getElementById('q-hint').textContent = qHint;
     document.getElementById('progress-label').textContent = domainLabel;
-    document.getElementById('progress-count').textContent =
-      countText ? `${countText} - ${displayStep} of ${totalSteps}` : `Question ${displayStep} of ${totalSteps}`;
+    let progressText = '';
+    if (subStep === 'followup' || (subStep === 'probe' && activeProbe)) {
+      progressText = `Follow-up after core step ${displayStep} of ${totalSteps}`;
+    } else if (countText) {
+      progressText = `${countText} - core step ${displayStep} of ${totalSteps}`;
+    } else {
+      progressText = `Core step ${displayStep} of ${totalSteps}`;
+    }
+    document.getElementById('progress-count').textContent = progressText;
 
     const isLastItem = (currentQ === total - 1);
     const lastQ = QUESTIONS[total - 1] || {};
@@ -2815,12 +2872,40 @@ function saveFollowupPreference(silent = false) {
 
 function handleReportDeliveryButton() {
   saveFollowupPreference(true);
+  if (!clientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail)) {
+    const status = document.getElementById('followup-save-status');
+    if (status) status.textContent = 'We need a valid email address from the intake before sending the report.';
+    return;
+  }
   if (completionTestMode) {
     const status = document.getElementById('followup-save-status');
     if (status) status.textContent = 'Test mode: no report email sent.';
     return;
   }
   triggerFreeReportDelivery({ manual: true });
+}
+
+function friendlyReportDeliveryError(message = '') {
+  const text = String(message || '').trim();
+  if (/No client email found/i.test(text)) {
+    return 'The secure record is missing the client email, so the report was not sent. Contact team@bridgetoai.ca with the Record ID.';
+  }
+  if (/Client email does not match/i.test(text)) {
+    return 'The email on this page does not match the secure intake record, so the report was not sent.';
+  }
+  if (/Supabase is not configured|Supabase request failed/i.test(text)) {
+    return 'Secure storage could not be reached, so the report was not sent. Please try again shortly.';
+  }
+  if (/Missing RESEND_API_KEY|Email service is not configured|Free report email failed|Email delivery failed|RESEND/i.test(text)) {
+    return 'The email service did not confirm delivery. Please try again shortly.';
+  }
+  if (/quality gate failed/i.test(text)) {
+    return 'The report did not pass the quality check, so it was not sent automatically.';
+  }
+  if (/fetch|network|Failed to fetch/i.test(text)) {
+    return 'The browser could not reach the report server. Please check the connection and try again.';
+  }
+  return text ? `Report delivery did not confirm: ${text}` : 'We could not confirm report delivery. Please try again or contact team@bridgetoai.ca.';
 }
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden' && draftAutosaveEnabled && clientDraftId) {
@@ -2950,7 +3035,7 @@ async function submitInterview() {
     logHermesEvent('submission_failed', 'failed', { emailDelivered: false, error: err.message || 'Submission failed', ...interviewKpiSummary() });
     showScreen('screen-complete');
     document.getElementById('complete-message').textContent =
-      `Thank you, ${clientName}. Your interview was completed, but automatic delivery did not confirm. Please contact team@bridgetoai.ca so we can recover or re-run the submission.`;
+      `Thank you, ${clientName}. Your interview is complete. We could not confirm automatic report delivery, so use the button below to send your free report. If it still does not confirm, contact team@bridgetoai.ca and we can recover it from the secure record.`;
   }
 }
 
@@ -3328,7 +3413,7 @@ function triggerFreeReportDelivery(options = {}) {
         button.textContent = 'Try sending my free report again';
         button.disabled = false;
       }
-      if (status) status.textContent = 'We could not confirm report delivery. Please try again or contact team@bridgetoai.ca.';
+      if (status) status.textContent = friendlyReportDeliveryError(err.message);
       console.error('Free report delivery failed:', err);
       logHermesEvent('free_report_delivery_result', 'failed', {
         error: err.message || 'Free report delivery failed',
