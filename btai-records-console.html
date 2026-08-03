@@ -149,6 +149,40 @@
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-weight: 800;
     }
+    .table-scroll {
+      margin-top: 14px;
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      display: none;
+    }
+    .table-scroll.active {
+      display: block;
+    }
+    table {
+      width: 100%;
+      min-width: 980px;
+      border-collapse: collapse;
+      font-size: .84rem;
+    }
+    th, td {
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #f8faf9;
+      color: var(--green-dark);
+      font-weight: 800;
+      position: sticky;
+      top: 0;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .8rem;
+    }
     @media (max-width: 720px) {
       body { padding: 14px; }
       main { padding: 20px; }
@@ -177,12 +211,49 @@
     <input id="filename" autocomplete="off" placeholder="Example_Client_Name">
 
     <div class="button-row">
+      <button id="load-record-index-btn" class="secondary" type="button">Load Interview Index</button>
       <button id="download-md-btn" type="button">Download Venture DNA .md</button>
       <button id="refresh-status-btn" class="secondary" type="button">Check Report Status</button>
       <button id="send-free-report-btn" class="secondary" type="button">Send/Resend Free Report Email</button>
       <button id="privacy-proof-btn" class="secondary" type="button">Download Privacy Proof JSON</button>
       <button id="privacy-brief-btn" class="secondary" type="button">Download Brief Privacy Certificate</button>
       <button id="privacy-detailed-btn" class="secondary" type="button">Download Detailed Privacy Attestation</button>
+    </div>
+
+    <div class="panel">
+      <h2>Interview Index</h2>
+      <p>Load recent intake records so you can find a business, copy its Record ID, then download the Venture DNA or generate reports. This is private admin-only data and should not be shared with partners.</p>
+      <div class="grid">
+        <div>
+          <label for="index-days">Lookback days</label>
+          <input id="index-days" type="number" min="1" max="1095" value="120">
+        </div>
+        <div>
+          <label for="index-status">Status</label>
+          <input id="index-status" autocomplete="off" value="all" placeholder="all, complete, draft">
+        </div>
+      </div>
+      <div class="button-row">
+        <button id="refresh-record-index-btn" type="button">Refresh Interview Index</button>
+        <button id="download-record-index-csv-btn" class="secondary" type="button">Download Index CSV</button>
+      </div>
+      <div id="record-index-wrap" class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Business</th>
+              <th>Client</th>
+              <th>Email</th>
+              <th>Category</th>
+              <th>Status</th>
+              <th>Partner</th>
+              <th>Record ID</th>
+              <th>Updated</th>
+            </tr>
+          </thead>
+          <tbody id="record-index-body"></tbody>
+        </table>
+      </div>
     </div>
 
     <div class="panel">
@@ -241,8 +312,11 @@
     const timerMessage = document.getElementById('timer-message');
     const timerValue = document.getElementById('timer-value');
     const buttons = Array.from(document.querySelectorAll('button'));
+    const recordIndexWrap = document.getElementById('record-index-wrap');
+    const recordIndexBody = document.getElementById('record-index-body');
     let timerStartedAt = 0;
     let timerHandle = null;
+    let recordIndexRows = [];
 
     function formatMs(ms) {
       const n = Number(ms);
@@ -310,6 +384,26 @@
     function downloadHtml(filename, html) {
       const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
       downloadBlob(filename, blob);
+    }
+
+    function csvEscape(value) {
+      const text = String(value ?? '');
+      return `"${text.replace(/"/g, '""')}"`;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function downloadCsv(filename, rows) {
+      const headers = ['businessName', 'clientName', 'clientEmail', 'businessCategory', 'businessNiche', 'status', 'partner', 'campaign', 'recordId', 'createdAt', 'updatedAt'];
+      const lines = [headers.join(',')].concat(rows.map(row => headers.map(header => csvEscape(row[header] || '')).join(',')));
+      downloadBlob(filename, new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' }));
     }
 
     function downloadZip(filename, contentBase64) {
@@ -404,6 +498,65 @@
     });
 
     document.getElementById('refresh-status-btn').addEventListener('click', () => refreshReportStatus(false));
+
+    async function loadRecordIndex() {
+      const values = formValues();
+      if (!values.adminSecret) {
+        statusEl.textContent = 'Admin secret is required to load the interview index.';
+        return;
+      }
+      const days = document.getElementById('index-days').value || '120';
+      const status = document.getElementById('index-status').value.trim() || 'all';
+      setBusy(true, 'Loading recent interview records...');
+      try {
+        const data = await postJson('/api/admin-output', {
+          action: 'list-records',
+          days,
+          status,
+          limit: 200
+        }, values.adminSecret);
+        recordIndexRows = data.records || [];
+        recordIndexBody.innerHTML = recordIndexRows.map((row, index) => `
+          <tr data-index="${index}" title="Click to use this Record ID">
+            <td>${escapeHtml(row.businessName)}</td>
+            <td>${escapeHtml(row.clientName)}</td>
+            <td>${escapeHtml(row.clientEmail)}</td>
+            <td>${escapeHtml(row.businessCategory)}${row.businessNiche && row.businessNiche !== 'Not captured' ? `<br><span style="color:#6f7378;">${escapeHtml(row.businessNiche)}</span>` : ''}</td>
+            <td>${escapeHtml(row.status)}</td>
+            <td>${escapeHtml(row.partner)}<br><span style="color:#6f7378;">${escapeHtml(row.campaign)}</span></td>
+            <td><code>${escapeHtml(row.recordId)}</code></td>
+            <td>${escapeHtml(row.updatedAt || row.createdAt)}</td>
+          </tr>
+        `).join('');
+        recordIndexWrap.classList.toggle('active', recordIndexRows.length > 0);
+        statusEl.textContent = `Loaded ${recordIndexRows.length} intake records.\nClick any row to copy its Record ID into the retrieval field.`;
+      } catch (err) {
+        statusEl.textContent = `Error: ${err.message}`;
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    recordIndexBody.addEventListener('click', event => {
+      const rowEl = event.target.closest('tr[data-index]');
+      if (!rowEl) return;
+      const row = recordIndexRows[Number(rowEl.getAttribute('data-index'))];
+      if (!row) return;
+      document.getElementById('record-id').value = row.recordId || '';
+      document.getElementById('filename').value = row.businessName && row.businessName !== 'Not captured' ? row.businessName : row.clientName || '';
+      statusEl.textContent = `Selected Record ID:\n${row.recordId}\nBusiness: ${row.businessName || 'Not captured'}`;
+    });
+
+    document.getElementById('load-record-index-btn').addEventListener('click', loadRecordIndex);
+    document.getElementById('refresh-record-index-btn').addEventListener('click', loadRecordIndex);
+    document.getElementById('download-record-index-csv-btn').addEventListener('click', () => {
+      if (!recordIndexRows.length) {
+        statusEl.textContent = 'Load the interview index before downloading CSV.';
+        return;
+      }
+      downloadCsv(`BTAI_Interview_Index_${new Date().toISOString().slice(0, 10)}.csv`, recordIndexRows);
+      statusEl.textContent = `Downloaded interview index CSV with ${recordIndexRows.length} records.`;
+    });
 
     document.getElementById('privacy-proof-btn').addEventListener('click', async () => {
       const values = requireBasics();

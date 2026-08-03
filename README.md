@@ -1,11 +1,16 @@
-# Bridge To AI Intake App - v1.62.3 Records Console Route Hotfix
+# Bridge To AI Intake App - v1.62.4 Admin Interview Index
 
-This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, and privacy-safe partner aggregate intelligence reports. v1.62.3 adds explicit Vercel routing for the private records console.
+This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, and the private records console route. v1.62.4 adds an admin-only interview index for finding Record IDs quickly.
 
 ## What Changed
 
 - Privacy Policy version is now `2026-07-25-v1.56.1`.
-- Header version is now `v1.62.3`.
+- Header version is now `v1.62.4`.
+- The records console now includes **Load Interview Index**.
+- The interview index shows recent Record IDs, business names, client names, client emails, category, partner/campaign, status, and updated date.
+- Clicking a row fills the Record ID and filename fields for faster Venture DNA retrieval or report generation.
+- The interview index can be downloaded as CSV for private BTAI admin use.
+- The index is protected by `BTAI_ADMIN_SECRET` and logs an admin access audit event.
 - `vercel.json` now explicitly rewrites `/btai-records-console` to `/btai-records-console.html`.
 - The private records console file is now `btai-records-console.html`.
 - With Vercel `cleanUrls`, use `/btai-records-console` instead of `/admin` or `/admin.html`.
