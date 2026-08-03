@@ -78,12 +78,14 @@
       margin: 18px 0 7px;
       font-size: .9rem;
     }
-    input {
+    input,
+    select {
       width: 100%;
       border: 1px solid var(--line);
       border-radius: 6px;
       padding: 12px 13px;
       font-size: 1rem;
+      background: #fff;
     }
     .inline-option {
       display: flex;
@@ -341,7 +343,7 @@
         <h1>BTAI Records Console</h1>
         <p>Retrieve secure intake records, generate reports, download privacy proof, and review partner aggregate intelligence from one admin-only dashboard.</p>
       </div>
-      <div class="version-pill">v1.65.0</div>
+      <div class="version-pill">v1.66.0</div>
     </div>
 
     <div class="record-strip">
@@ -367,6 +369,15 @@
       <section class="panel report-actions">
         <h2>Report Actions</h2>
         <p>Generate reports from the encrypted Venture DNA record. The raw Venture DNA markdown is not included in the ZIP.</p>
+        <label for="report-format">Report output format</label>
+        <select id="report-format">
+          <option value="html" selected>HTML only - fastest, cleanest ZIP</option>
+          <option value="md">Markdown only - editable text</option>
+          <option value="docx">DOCX only - Word files</option>
+          <option value="html,md">HTML + Markdown</option>
+          <option value="html,docx">HTML + DOCX</option>
+          <option value="html,docx,md">HTML + DOCX + Markdown</option>
+        </select>
         <label class="inline-option" for="force-regenerate">
           <input id="force-regenerate" type="checkbox">
           Regenerate existing report files instead of reusing stored versions.
@@ -540,7 +551,8 @@
       return {
         clientDraftId: cleanRecordId,
         adminSecret: document.getElementById('admin-secret').value,
-        filename: document.getElementById('filename').value.trim()
+        filename: document.getElementById('filename').value.trim(),
+        formats: document.getElementById('report-format')?.value || 'html'
       };
     }
 
@@ -650,7 +662,7 @@
     function friendlyAdminError(message = '') {
       const text = String(message || '').trim();
       if (/Report quality gate failed/i.test(text) && /missing_expected_final_section/i.test(text)) {
-        return `${text}\n\nMeaning: the report generated, but the completion validator did not find the required final section. In v1.65.0 the validator accepts close heading variants, so retry this report after deploying the current build.`;
+        return `${text}\n\nMeaning: the report generated, but the completion validator did not find the required final section. In v1.66.0 the validator accepts close heading variants, so retry this report after deploying the current build.`;
       }
       if (/No client email found/i.test(text)) {
         return `${text}\n\nMeaning: the secure intake session does not contain a client email address, so the free report cannot be emailed automatically.`;
@@ -675,12 +687,14 @@
         }, values.adminSecret);
         const s = data.status || {};
         const t = s.timings || {};
-        const f = s.formats || {};
-        const formatNote = (tier) => {
-          const formats = f[tier] || {};
-          if (formats.html && formats.docx) return ' - HTML + DOCX';
-          if (formats.html) return ' - HTML';
-          if (formats.docx) return ' - DOCX only';
+      const f = s.formats || {};
+      const formatNote = (tier) => {
+        const formats = f[tier] || {};
+          const ready = [];
+          if (formats.html) ready.push('HTML');
+          if (formats.docx) ready.push('DOCX');
+          if (formats.md) ready.push('MD');
+          if (ready.length) return ` - ${ready.join(' + ')}`;
           return '';
         };
         reportStatusEl.innerHTML = `
@@ -883,14 +897,15 @@
       const values = requireBasics();
       if (!values) return;
       const force = forceRegenerate();
-      setBusy(true, `${force ? 'Regenerating' : 'Generating'} the full report pack...\nThis runs the four report jobs together, then builds the ZIP. Keep this page open until the status updates.`);
+      setBusy(true, `${force ? 'Regenerating' : 'Generating'} the full report pack as ${values.formats.toUpperCase()}...\nThis runs the four report jobs together where needed, then builds the selected ZIP. Keep this page open until the status updates.`);
       try {
         const data = await postJson('/api/report-pack', {
           action: 'generate-all',
           clientDraftId: values.clientDraftId,
-          forceRegenerate: force
+          forceRegenerate: force,
+          formats: values.formats
         }, values.adminSecret);
-        statusEl.textContent = `Full report pack ready.\nMode: ${force ? 'regenerated from current prompt' : 'reused existing where available'}\nZIP output: ${data.zip?.outputId || 'created'}\nReports: ${(data.results || []).map(r => `${r.tier}${r.generated ? ' generated' : r.convertedHtml ? ' converted to HTML' : ' already ready'}`).join(', ')}`;
+        statusEl.textContent = `Full report pack ready.\nFormat: ${values.formats}\nMode: ${force ? 'regenerated from current prompt' : 'reused existing where available'}\nZIP output: ${data.zip?.outputId || 'created'}\nReports: ${(data.results || []).map(r => `${r.tier}${r.generated ? ' generated' : r.convertedHtml ? ' converted to HTML' : r.convertedDocx ? ' converted to DOCX' : ' already ready'}`).join(', ')}`;
         await refreshReportStatus(true);
       } catch (err) {
         statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;
@@ -905,15 +920,16 @@
         if (!values) return;
         const tier = button.getAttribute('data-tier');
         const force = forceRegenerate();
-        setBusy(true, `${force ? 'Regenerating' : 'Generating'} ${button.textContent}...\nThis can take a minute. Keep this page open until the status updates.`);
+        setBusy(true, `${force ? 'Regenerating' : 'Generating'} ${button.textContent} as ${values.formats.toUpperCase()}...\nThis can take a minute. Keep this page open until the status updates.`);
         try {
           const data = await postJson('/api/report-pack', {
             action: 'generate-one',
             clientDraftId: values.clientDraftId,
             tier,
-            forceRegenerate: force
+            forceRegenerate: force,
+            formats: values.formats
           }, values.adminSecret);
-          statusEl.textContent = `${data.generated ? 'Generated' : 'Already ready'} ${data.tier} report.\nMode: ${force ? 'regenerated from current prompt' : 'reused existing if available'}\nMarkdown output: ${data.markdownOutputId || 'existing'}\nHTML output: ${data.htmlOutputId || 'existing'}\nDOCX output: ${data.docxOutputId || 'existing'}\nWarnings: ${(data.warnings || []).join('; ') || 'none'}`;
+          statusEl.textContent = `${data.generated ? 'Generated' : data.convertedHtml ? 'Converted to HTML' : data.convertedDocx ? 'Converted to DOCX' : 'Already ready'} ${data.tier} report.\nFormat: ${values.formats}\nMode: ${force ? 'regenerated from current prompt' : 'reused existing if available'}\nMarkdown output: ${data.markdownOutputId || 'existing'}\nHTML output: ${data.htmlOutputId || 'existing'}\nDOCX output: ${data.docxOutputId || 'existing'}\nWarnings: ${(data.warnings || []).join('; ') || 'none'}`;
           await refreshReportStatus(true);
         } catch (err) {
           statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;
@@ -926,14 +942,15 @@
     document.getElementById('download-zip-btn').addEventListener('click', async () => {
       const values = requireBasics();
       if (!values) return;
-      setBusy(true, 'Building or retrieving the report pack ZIP...');
+      setBusy(true, `Building or retrieving the ${values.formats.toUpperCase()} report pack ZIP...`);
       try {
         const data = await postJson('/api/report-pack', {
           action: 'download-zip',
-          clientDraftId: values.clientDraftId
+          clientDraftId: values.clientDraftId,
+          formats: values.formats
         }, values.adminSecret);
         downloadZip(data.filename, data.contentBase64);
-        statusEl.textContent = `Downloaded ${data.filename}\nZIP output: ${data.outputId || 'created now'}`;
+        statusEl.textContent = `Downloaded ${data.filename}\nFormat: ${values.formats}\nZIP output: ${data.outputId || 'created now'}`;
         await refreshReportStatus(true);
       } catch (err) {
         statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;

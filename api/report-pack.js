@@ -622,9 +622,24 @@ VENTURE DNA:
 ${dna}`;
 }
 
-async function generateOne(clientDraftId, tier) {
+function normalizeReportFormats(value) {
+  const raw = Array.isArray(value) ? value : String(value || 'html').split(',');
+  const selected = raw.map(item => String(item || '').trim().toLowerCase()).filter(Boolean);
+  if (selected.includes('all')) return ['html', 'docx', 'md'];
+  const allowed = ['html', 'docx', 'md'];
+  const formats = Array.from(new Set(selected.filter(item => allowed.includes(item))));
+  return formats.length ? formats : ['html'];
+}
+
+function formatKey(formats) {
+  return normalizeReportFormats(formats).join(',');
+}
+
+async function generateOne(clientDraftId, tier, options = {}) {
   const spec = REPORTS[tier];
   if (!spec) throw new Error(`Unknown report tier: ${tier || 'blank'}`);
+  const formats = normalizeReportFormats(options.formats || 'html');
+  const includeDocx = formats.includes('docx');
 
   const startedAt = Date.now();
   const { dnaContent, meta } = await getDna(clientDraftId);
@@ -674,8 +689,6 @@ async function generateOne(clientDraftId, tier) {
     blockingFindings: privacyScan.blockingFindings,
     nonBlockingFindings: privacyScan.nonBlockingFindings
   }));
-  const docx = createDocxBuffer(markdown);
-
   const mdRow = await insertIntakeOutput({
     client_draft_id: clientDraftId,
     output_type: spec.outputType,
@@ -689,19 +702,23 @@ async function generateOne(clientDraftId, tier) {
     })
   });
 
-  const docxRow = await insertIntakeOutput({
-    client_draft_id: clientDraftId,
-    output_type: spec.docxOutputType,
-    encrypted_payload: encryptJson({
-      createdAt: new Date().toISOString(),
-      tier,
-      businessName,
-      filename: `${businessName}_${spec.filename}.docx`,
-      contentBase64: docx.toString('base64'),
-      validation,
-      privacyScan
-    })
-  });
+  let docxRow = null;
+  if (includeDocx) {
+    const docx = createDocxBuffer(markdown);
+    docxRow = await insertIntakeOutput({
+      client_draft_id: clientDraftId,
+      output_type: spec.docxOutputType,
+      encrypted_payload: encryptJson({
+        createdAt: new Date().toISOString(),
+        tier,
+        businessName,
+        filename: `${businessName}_${spec.filename}.docx`,
+        contentBase64: docx.toString('base64'),
+        validation,
+        privacyScan
+      })
+    });
+  }
 
   const htmlRow = await insertIntakeOutput({
     client_draft_id: clientDraftId,
@@ -724,7 +741,8 @@ async function generateOne(clientDraftId, tier) {
     reportTier: tier,
     reportOutputType: spec.htmlOutputType,
     warningCount: validation.warnings?.length || 0,
-    payloadType: 'client_report_html_and_docx',
+    payloadType: includeDocx ? 'client_report_html_docx_and_markdown' : 'client_report_html_and_markdown',
+    exportFormats: formats,
     generationMs: Date.now() - startedAt,
     completedAt: new Date().toISOString()
   }));
@@ -740,20 +758,48 @@ async function generateOne(clientDraftId, tier) {
   };
 }
 
-async function getOrGenerateOne(clientDraftId, tier, forceRegenerate = false) {
-  if (forceRegenerate) return generateOne(clientDraftId, tier);
-  const existingHtml = await loadGenerated(clientDraftId, tier, 'html');
-  const existingDocx = await loadGenerated(clientDraftId, tier, 'docx');
-  if (existingHtml?.contentBase64 && existingDocx?.contentBase64) {
-    return { generated: false, tier, businessName: existingHtml.businessName || existingDocx.businessName || '', warnings: existingHtml.validation?.warnings || existingDocx.validation?.warnings || [] };
+async function getOrGenerateOne(clientDraftId, tier, forceRegenerate = false, options = {}) {
+  const formats = normalizeReportFormats(options.formats || 'html');
+  const includeHtml = formats.includes('html');
+  const includeDocx = formats.includes('docx');
+  if (forceRegenerate) return generateOne(clientDraftId, tier, { formats });
+  const includeMd = formats.includes('md');
+  let existingHtml = await loadGenerated(clientDraftId, tier, 'html');
+  let existingDocx = await loadGenerated(clientDraftId, tier, 'docx');
+  const existingMd = await loadGeneratedMarkdown(clientDraftId, tier);
+  let convertedHtml = false;
+  let convertedDocx = false;
+
+  if (includeHtml && !existingHtml?.contentBase64 && existingMd?.markdown) {
+    existingHtml = await ensureHtmlReport(clientDraftId, tier);
+    convertedHtml = !!existingHtml?.contentBase64;
   }
-  if (!existingHtml?.contentBase64 && existingDocx?.contentBase64) {
-    const converted = await ensureHtmlReport(clientDraftId, tier);
-    if (converted?.contentBase64) {
-      return { generated: false, convertedHtml: true, tier, businessName: converted.businessName || existingDocx.businessName || '', warnings: converted.validation?.warnings || existingDocx.validation?.warnings || [] };
-    }
+
+  if (includeDocx && !existingDocx?.contentBase64 && existingMd?.markdown) {
+    existingDocx = await ensureDocxReport(clientDraftId, tier);
+    convertedDocx = !!existingDocx?.contentBase64;
   }
-  return generateOne(clientDraftId, tier);
+
+  const ready =
+    (!includeHtml || !!existingHtml?.contentBase64) &&
+    (!includeDocx || !!existingDocx?.contentBase64) &&
+    (!includeMd || !!existingMd?.markdown);
+
+  if (ready) {
+    return {
+      generated: false,
+      convertedHtml,
+      convertedDocx,
+      tier,
+      businessName: existingHtml?.businessName || existingDocx?.businessName || existingMd?.businessName || '',
+      markdownOutputId: existingMd ? 'existing' : '',
+      docxOutputId: existingDocx ? 'existing' : '',
+      htmlOutputId: existingHtml ? 'existing' : '',
+      warnings: existingHtml?.validation?.warnings || existingDocx?.validation?.warnings || existingMd?.validation?.warnings || []
+    };
+  }
+
+  return generateOne(clientDraftId, tier, { formats });
 }
 
 async function loadGenerated(clientDraftId, tier, format = 'docx') {
@@ -811,33 +857,87 @@ async function ensureHtmlReport(clientDraftId, tier) {
   return payload;
 }
 
-async function buildZip(clientDraftId) {
+async function ensureDocxReport(clientDraftId, tier) {
+  const existingDocx = await loadGenerated(clientDraftId, tier, 'docx');
+  if (existingDocx?.contentBase64) return existingDocx;
+  const spec = REPORTS[tier];
+  const markdownRecord = await loadGeneratedMarkdown(clientDraftId, tier);
+  if (!markdownRecord?.markdown) return null;
+  const businessName = markdownRecord.businessName || businessNameFromDna(markdownRecord.markdown);
+  const docx = createDocxBuffer(markdownRecord.markdown);
+  const payload = {
+    createdAt: new Date().toISOString(),
+    tier,
+    businessName,
+    filename: `${businessName}_${spec.filename}.docx`,
+    contentBase64: docx.toString('base64'),
+    validation: markdownRecord.validation || null,
+    privacyScan: markdownRecord.privacyScan || null,
+    convertedFromMarkdown: true
+  };
+  await insertIntakeOutput({
+    client_draft_id: clientDraftId,
+    output_type: spec.docxOutputType,
+    encrypted_payload: encryptJson(payload)
+  });
+  await logReportEvent(clientDraftId, 'report_docx_generated_from_markdown', 'success', privacyProofDefaults({
+    reportTier: tier,
+    reportOutputType: spec.docxOutputType,
+    payloadType: 'client_report_docx',
+    rawDnaIncluded: false
+  }));
+  return payload;
+}
+
+async function buildZip(clientDraftId, formatsInput = 'html') {
+  const formats = normalizeReportFormats(formatsInput);
+  const key = formatKey(formats);
+  const includeHtml = formats.includes('html');
+  const includeDocx = formats.includes('docx');
+  const includeMd = formats.includes('md');
   const { dnaContent, meta } = await getDna(clientDraftId);
   const businessName = businessNameFromDna(dnaContent);
   const files = [];
   const missingFiles = [];
 
   for (const tier of ['free', 'detailed', 'roadmap', 'btai']) {
-    const htmlDoc = await ensureHtmlReport(clientDraftId, tier);
-    const doc = await loadGenerated(clientDraftId, tier, 'docx');
-    if (htmlDoc?.contentBase64) {
+    const htmlDoc = includeHtml ? await ensureHtmlReport(clientDraftId, tier) : null;
+    const mdDoc = includeMd ? await loadGeneratedMarkdown(clientDraftId, tier) : null;
+    const doc = includeDocx ? await ensureDocxReport(clientDraftId, tier) : null;
+    let includedForTier = 0;
+
+    if (includeHtml && htmlDoc?.contentBase64) {
       files.push({
         name: `HTML_Reports/${htmlDoc.filename || `${businessName}_${REPORTS[tier].filename}.html`}`,
         content: Buffer.from(htmlDoc.contentBase64, 'base64')
       });
-    } else {
-      missingFiles.push(`${tier}: HTML report`);
+      includedForTier += 1;
+    } else if (includeHtml) {
+      missingFiles.push(`${tier}: HTML`);
     }
-    if (doc?.contentBase64) {
+
+    if (includeDocx && doc?.contentBase64) {
       files.push({
         name: `DOCX_Backup/${doc.filename || `${businessName}_${REPORTS[tier].filename}.docx`}`,
         content: Buffer.from(doc.contentBase64, 'base64')
       });
-    } else {
-      missingFiles.push(`${tier}: DOCX backup`);
+      includedForTier += 1;
+    } else if (includeDocx) {
+      missingFiles.push(`${tier}: DOCX`);
     }
-    if (!htmlDoc?.contentBase64 && !doc?.contentBase64) {
-      throw new Error(`Missing generated report files for tier: ${tier}. Generate that report first, then download the ZIP.`);
+
+    if (includeMd && mdDoc?.markdown) {
+      files.push({
+        name: `MD_Reports/${businessName}_${REPORTS[tier].filename}.md`,
+        content: mdDoc.markdown
+      });
+      includedForTier += 1;
+    } else if (includeMd) {
+      missingFiles.push(`${tier}: Markdown`);
+    }
+
+    if (includedForTier === 0) {
+      throw new Error(`Missing selected report files for tier: ${tier}. Generate that report first, then download the ZIP.`);
     }
   }
 
@@ -845,15 +945,15 @@ async function buildZip(clientDraftId) {
     createdAt: new Date().toISOString(),
     clientDraftId,
     businessName,
+    formats,
+    formatKey: key,
     includedFiles: files.map(f => f.name),
     rawDnaIncluded: false,
     partnerRawAccess: false,
     encryptedSourceRecord: true,
     privacyProof: true,
     missingFiles,
-    note: missingFiles.length
-      ? 'Reports were generated from the encrypted Venture DNA record and stored encrypted before ZIP retrieval. HTML reports are the primary client-readable format. Some backup formats were unavailable and are listed in missingFiles. The raw Venture DNA markdown is intentionally not included in this ZIP.'
-      : 'Reports were generated from the encrypted Venture DNA record and stored encrypted before ZIP retrieval. HTML reports are the primary client-readable format. DOCX files are included as editable backups. The raw Venture DNA markdown is intentionally not included in this ZIP.'
+    note: `Reports were retrieved or generated from the encrypted Venture DNA record and stored encrypted before ZIP retrieval. Selected export format(s): ${formats.join(', ')}. The raw Venture DNA markdown is intentionally not included in this ZIP.`
   };
   files.push({ name: 'BTAI_Report_Pack_Summary.md', content: reportPackSummaryMarkdown({ clientDraftId, businessName, files }) });
   files.push({ name: 'validation-summary.json', content: JSON.stringify(validationSummary, null, 2) });
@@ -866,6 +966,8 @@ async function buildZip(clientDraftId) {
       createdAt: new Date().toISOString(),
       filename: `${businessName}_BTAI_Report_Pack.zip`,
       contentBase64: zip.toString('base64'),
+      formats,
+      formatKey: key,
       validationSummary
     })
   });
@@ -874,6 +976,8 @@ async function buildZip(clientDraftId) {
     partner: meta?.sourceMeta?.partner || 'BTAI',
     campaign: meta?.sourceMeta?.campaign || 'general_intake',
     zipReady: true,
+    exportFormats: formats,
+    formatKey: key,
     includedFileCount: files.length,
     rawDnaIncluded: false,
     payloadType: 'client_report_zip'
@@ -887,15 +991,17 @@ async function buildZip(clientDraftId) {
   };
 }
 
-async function generateAll(clientDraftId, forceRegenerate = false) {
+async function generateAll(clientDraftId, forceRegenerate = false, formatsInput = 'html') {
+  const formats = normalizeReportFormats(formatsInput);
   const tiers = ['free', 'detailed', 'roadmap', 'btai'];
-  await logReportEvent(clientDraftId, 'report_pack_batch_started', 'success', privacyProofDefaults({ tiers, forceRegenerate, payloadType: 'encrypted_venture_dna_record' }));
-  const results = await Promise.all(tiers.map(tier => getOrGenerateOne(clientDraftId, tier, forceRegenerate)));
-  const zip = await buildZip(clientDraftId);
+  await logReportEvent(clientDraftId, 'report_pack_batch_started', 'success', privacyProofDefaults({ tiers, forceRegenerate, exportFormats: formats, payloadType: 'encrypted_venture_dna_record' }));
+  const results = await Promise.all(tiers.map(tier => getOrGenerateOne(clientDraftId, tier, forceRegenerate, { formats })));
+  const zip = await buildZip(clientDraftId, formats);
   await logReportEvent(clientDraftId, 'report_pack_batch_complete', 'success', privacyProofDefaults({
     tiers,
     zipOutputId: zip.outputId || '',
     generatedCount: results.filter(r => r.generated).length,
+    exportFormats: formats,
     forceRegenerate
   }));
   return { ready: true, results, zip };
@@ -1016,8 +1122,9 @@ async function status(clientDraftId) {
   for (const tier of Object.keys(REPORTS)) {
     const htmlReady = !!(await getLatestIntakeOutput(clientDraftId, REPORTS[tier].htmlOutputType));
     const docxReady = !!(await getLatestIntakeOutput(clientDraftId, REPORTS[tier].docxOutputType));
-    result[tier] = htmlReady || docxReady;
-    result.formats[tier] = { html: htmlReady, docx: docxReady };
+    const mdReady = !!(await getLatestIntakeOutput(clientDraftId, REPORTS[tier].outputType));
+    result[tier] = htmlReady || docxReady || mdReady;
+    result.formats[tier] = { html: htmlReady, docx: docxReady, md: mdReady };
   }
   result.zip = !!(await getLatestIntakeOutput(clientDraftId, 'three_report_pack_zip'));
   result.timings = {};
@@ -1235,6 +1342,13 @@ async function privacyCertificate(clientDraftId, certificateType) {
 }
 
 function reportPackSummaryMarkdown({ clientDraftId, businessName, files }) {
+  const purposeForFile = file => {
+    if (file.name.includes('Internal')) return 'Internal Bridge To AI advisor use only.';
+    if (file.name.includes('HTML_Reports')) return 'Primary browser-readable report.';
+    if (file.name.includes('MD_Reports')) return 'Editable Markdown source report.';
+    if (file.name.includes('DOCX_Backup')) return 'Editable Word backup copy.';
+    return 'Package support file.';
+  };
   return `# Bridge To AI Report Package Summary
 
 This package was generated from the encrypted Bridge To AI intake record.
@@ -1245,7 +1359,7 @@ This package was generated from the encrypted Bridge To AI intake record.
 
 | File | Purpose |
 | --- | --- |
-${files.map(file => `| ${file.name} | ${file.name.includes('Internal') ? 'Internal Bridge To AI advisor use only.' : file.name.includes('HTML_Reports') ? 'Primary client-readable HTML report.' : 'Editable DOCX backup copy.'} |`).join('\n')}
+${files.map(file => `| ${file.name} | ${purposeForFile(file)} |`).join('\n')}
 
 ---
 
@@ -1268,16 +1382,21 @@ Record ID: ${clientDraftId}
 
 Generated: ${new Date().toISOString()}
 
-This summary is included so the package is readable without opening the raw validation JSON. HTML reports are the primary readable files. DOCX files are backup/editable copies. The raw Venture DNA markdown is intentionally not included in this ZIP.
+This summary is included so the package is readable without opening the raw validation JSON. The ZIP contains only the export formats selected in the admin console. The raw Venture DNA markdown is intentionally not included in this ZIP.
 `;
 }
 
-async function downloadZip(clientDraftId) {
+async function downloadZip(clientDraftId, formatsInput = 'html') {
+  const formats = normalizeReportFormats(formatsInput);
+  const key = formatKey(formats);
   const row = await getLatestIntakeOutput(clientDraftId, 'three_report_pack_zip');
-  if (!row) return buildZip(clientDraftId);
+  if (!row) return buildZip(clientDraftId, formats);
   const payload = decryptJson(row.encrypted_payload);
+  if (payload.formatKey !== key) return buildZip(clientDraftId, formats);
   await logReportEvent(clientDraftId, 'report_pack_zip_downloaded', 'success', privacyProofDefaults({
-    zipReady: true
+    zipReady: true,
+    exportFormats: formats,
+    formatKey: key
   }));
   return {
     ready: true,
@@ -1301,11 +1420,12 @@ export default async function handler(req, res) {
     if (action === 'generate-one') {
       const tier = String(req.body?.tier || '').trim();
       const forceRegenerate = !!req.body?.forceRegenerate;
-      return res.status(200).json(forceRegenerate ? await generateOne(clientDraftId, tier) : await getOrGenerateOne(clientDraftId, tier, false));
+      const formats = normalizeReportFormats(req.body?.formats || 'html');
+      return res.status(200).json(forceRegenerate ? await generateOne(clientDraftId, tier, { formats }) : await getOrGenerateOne(clientDraftId, tier, false, { formats }));
     }
-    if (action === 'generate-all') return res.status(200).json(await generateAll(clientDraftId, !!req.body?.forceRegenerate));
-    if (action === 'build-zip') return res.status(200).json(await buildZip(clientDraftId));
-    if (action === 'download-zip') return res.status(200).json(await downloadZip(clientDraftId));
+    if (action === 'generate-all') return res.status(200).json(await generateAll(clientDraftId, !!req.body?.forceRegenerate, req.body?.formats || 'html'));
+    if (action === 'build-zip') return res.status(200).json(await buildZip(clientDraftId, req.body?.formats || 'html'));
+    if (action === 'download-zip') return res.status(200).json(await downloadZip(clientDraftId, req.body?.formats || 'html'));
     if (action === 'status') return res.status(200).json({ status: await status(clientDraftId) });
     if (action === 'privacy-proof-summary') {
       await logReportEvent(clientDraftId, 'admin_privacy_proof_downloaded', 'success', privacyProofDefaults({

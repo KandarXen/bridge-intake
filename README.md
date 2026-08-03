@@ -1,11 +1,17 @@
-# Bridge To AI Intake App - v1.65.0 Free Report Prompt Win + Admin Control Board
+# Bridge To AI Intake App - v1.66.0 Selectable Report Formats
 
-This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the admin interview index, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, and the clearer core-question/follow-up progress language. v1.65.0 adds a required high-value "Try This This Week" AI prompt to every free report and refines the records console into a clearer control-board layout.
+This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the admin interview index, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, the required high-value "Try This This Week" prompt in the free report, the admin control-board layout, and the clearer core-question/follow-up progress language. v1.66.0 adds selectable report export formats so the admin console can request HTML, Markdown, DOCX, or combinations instead of always receiving DOCX backup files.
 
 ## What Changed
 
 - Privacy Policy version is now `2026-07-25-v1.56.1`.
-- Header version is now `v1.65.0`.
+- Header version is now `v1.66.0`.
+- Admin report generation now has a **Report output format** selector.
+- HTML-only is now the default report-pack format for the cleanest ZIP and fastest non-DOCX workflow.
+- Markdown-only, DOCX-only, HTML + Markdown, HTML + DOCX, and HTML + DOCX + Markdown are available when needed.
+- ZIP downloads now use a format key, so an older all-format ZIP is not reused when the admin asks for HTML-only or Markdown-only.
+- DOCX files are created only when DOCX is selected, reducing ZIP clutter and avoiding unnecessary Word conversion work.
+- Existing stored report markdown can be reused to create HTML or DOCX without re-running the AI generation step.
 - Free Snapshot reports now require a `Try This This Week` section with one copy/paste-ready AI prompt that creates a useful, safe win in under an hour.
 - The free-report prompt must use the client's own words and quietly encode expert-level industry/customer context without gimmicky "act as a top expert" language.
 - The free-report prompt must tell clients not to paste private financials, customer names, supplier names, recipes, payroll, invoices, contracts, formulas, or other sensitive information into public AI tools.
