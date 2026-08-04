@@ -1,11 +1,14 @@
-# Bridge To AI Intake App - v1.70.1 Report Completion Repair Hotfix
+# Bridge To AI Intake App - v1.70.2 Report Completion Safety Net
 
-This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, the required high-value "Try This This Week" prompt in the free report, selectable report export formats, searchable/sortable admin interview index, and the clearer core-question/follow-up progress language. v1.70.1 adds an automatic report completion repair pass so a report that is cut off or missing its final section gets one controlled repair attempt before the server blocks delivery.
+This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, the required high-value "Try This This Week" prompt in the free report, selectable report export formats, searchable/sortable admin interview index, and the clearer core-question/follow-up progress language. v1.70.2 adds a deterministic final-section safety net after the model repair pass, and tightens two admin console UX details.
 
 ## What Changed
 
 - Privacy Policy version is now `2026-07-25-v1.56.1`.
-- Header version is now `v1.70.1`.
+- Header version is now `v1.70.2`.
+- If the model repair pass still misses the required final section, the server can add a safe deterministic closing section for that report tier instead of failing the whole run.
+- The admin Record ID field is now capped to a practical dashboard width.
+- The regenerate checkbox is now aligned with its label.
 - Report generation now attempts one completion repair pass when the first draft fails only because the final section is missing, the last line is too short, or the last line ends mid-thought.
 - Free Snapshot token room increased to reduce cutoff risk on the highest-use report.
 - Report generation now combines all returned model text blocks before validation instead of assuming the first block contains the whole report.

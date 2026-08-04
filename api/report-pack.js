@@ -423,6 +423,66 @@ VENTURE DNA:
 ${dna}`;
 }
 
+function trimIncompleteTail(markdown) {
+  const lines = String(markdown || '').trim().split(/\r?\n/);
+  while (lines.length) {
+    const line = lines[lines.length - 1].trim();
+    if (!line || /^[-*_]{3,}$/.test(line) || /^#+\s/.test(line) || /^\|/.test(line)) {
+      lines.pop();
+      continue;
+    }
+    const stripped = line.replace(/[*_`>#-]/g, '').trim();
+    if (
+      /\b(of|for|to|with|and|or|the|a|an|in|on|at|from|by|about|front of)$/i.test(stripped) ||
+      (!/[.!?)"]$/.test(stripped) && stripped.split(/\s+/).filter(Boolean).length > 6)
+    ) {
+      lines.pop();
+      continue;
+    }
+    break;
+  }
+  return lines.join('\n').trim();
+}
+
+function deterministicFinalSection(tier) {
+  if (tier === 'free') {
+    return `## 8. Bridge To AI Note
+
+This snapshot is meant to give you a useful first read, not a finished implementation plan. I would use it to decide where AI looks practical, where the business foundations need cleanup first, and what should wait until there is better information underneath it.
+
+If you want to go deeper, the next step is to confirm the missing details privately and turn the best opportunity into a clear build sequence. That keeps the work practical, avoids guessing, and helps make sure AI is solving the right problem.`;
+  }
+  if (tier === 'detailed') {
+    return `## 11. Final Advisor Note
+
+The useful next step is not to automate everything. It is to choose the highest-value repeatable work, confirm the facts that are still missing, and start with the first project that gives the business real relief without creating new risk.
+
+Where the information is clear, this report points to action. Where the information is thin, it marks the item for confirmation before anyone builds around it.`;
+  }
+  if (tier === 'roadmap') {
+    return `## 19. Final Implementation Recommendation
+
+I would treat this as a preliminary build sequence, not a final technical scope. The right next move is to confirm the data sources, privacy requirements, owner approvals, workflow details, and success measures before any automation is connected to live business operations.
+
+Build the first workflow where the repeated work is clear, the risk is manageable, and the business can feel the time savings quickly. Clean up the foundation first anywhere the information underneath the workflow is not worth trusting yet.`;
+  }
+  return `## 10. Needs Confirmation Before Build
+
+Before Bridge To AI scopes or builds from this record, confirm the current tools, data locations, privacy constraints, user permissions, workflow owners, and the business outcome that matters most.
+
+Also confirm which recommendations are based on direct intake statements and which are directional signals. The build should only proceed once the key assumptions are verified with the client.`;
+}
+
+function applyDeterministicCompletion(markdown, tier) {
+  const cleaned = trimIncompleteTail(markdown);
+  const finalSection = deterministicFinalSection(tier);
+  const finalHeading = expectedFinalSection(tier);
+  if (hasCompletionAnchor(cleaned, tier, { expected: finalHeading, variants: REPORT_COMPLETION_RULES[tier]?.[0]?.variants || [] }).found) {
+    return `${cleaned}\n\n${finalSection.replace(/^## .+?\n\n/s, '')}`;
+  }
+  return `${cleaned}\n\n${finalSection}`;
+}
+
 function sharedRules() {
   return `SOURCE OF TRUTH RULES:
 - Use only the supplied Venture DNA markdown as source material.
@@ -755,7 +815,45 @@ async function generateOne(clientDraftId, tier, options = {}) {
           repairBlockingWarnings: repairedCompletion.blockingWarnings,
           generationMs: Date.now() - startedAt
         }));
-        throw new Error(`Report quality gate failed for ${tier}: ${repairedCompletion.blockingWarnings.join(', ')}`);
+        const deterministicMarkdown = applyDeterministicCompletion(repairedMarkdown || generatedMarkdown, tier);
+        const deterministicCompletion = validateReportCompletion(deterministicMarkdown, tier);
+        if (deterministicCompletion.completed) {
+          generatedMarkdown = deterministicMarkdown;
+          completion = {
+            completed: true,
+            warnings: Array.from(new Set([
+              ...originalWarnings,
+              ...repairedCompletion.warnings,
+              ...deterministicCompletion.warnings,
+              'deterministic_completion_added'
+            ])),
+            blockingWarnings: []
+          };
+          await logReportEvent(clientDraftId, 'report_generation_deterministic_completion_added', 'success', privacyProofDefaults({
+            partner: meta?.sourceMeta?.partner || 'BTAI',
+            campaign: meta?.sourceMeta?.campaign || 'general_intake',
+            reportTier: tier,
+            reportOutputType: spec.htmlOutputType,
+            payloadType: 'generated_report_markdown',
+            originalBlockingWarnings,
+            repairBlockingWarnings: repairedCompletion.blockingWarnings,
+            deterministicWarnings: deterministicCompletion.warnings,
+            generationMs: Date.now() - startedAt
+          }));
+        } else {
+          await logReportEvent(clientDraftId, 'report_generation_deterministic_completion_failed', 'failed', privacyProofDefaults({
+            partner: meta?.sourceMeta?.partner || 'BTAI',
+            campaign: meta?.sourceMeta?.campaign || 'general_intake',
+            reportTier: tier,
+            reportOutputType: spec.htmlOutputType,
+            payloadType: 'generated_report_markdown',
+            originalBlockingWarnings,
+            repairBlockingWarnings: repairedCompletion.blockingWarnings,
+            deterministicBlockingWarnings: deterministicCompletion.blockingWarnings,
+            generationMs: Date.now() - startedAt
+          }));
+          throw new Error(`Report quality gate failed for ${tier}: ${repairedCompletion.blockingWarnings.join(', ')}`);
+        }
       }
     } else {
       throw new Error(`Report quality gate failed for ${tier}: ${completion.blockingWarnings.join(', ')}`);
