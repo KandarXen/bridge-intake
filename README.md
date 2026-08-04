@@ -1,11 +1,16 @@
-# Bridge To AI Intake App - v1.70.2 Report Completion Safety Net
+# Bridge To AI Intake App - v1.70.3 Clearer Paid Report Ladder
 
-This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, the required high-value "Try This This Week" prompt in the free report, selectable report export formats, searchable/sortable admin interview index, and the clearer core-question/follow-up progress language. v1.70.2 adds a deterministic final-section safety net after the model repair pass, and tightens two admin console UX details.
+This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, the required high-value "Try This This Week" prompt in the free report, selectable report export formats, searchable/sortable admin interview index, deterministic final-section safety net, and the clearer core-question/follow-up progress language. v1.70.3 clarifies the paid report ladder so Level 1 remains useful but directional, while Level 2 visibly adds ranking, readiness, cleanup-first guidance, 30-day action, and success measures.
 
 ## What Changed
 
 - Privacy Policy version is now `2026-07-25-v1.56.1`.
-- Header version is now `v1.70.2`.
+- Header version is now `v1.70.3`.
+- Level 1 Free Snapshot prompt now stops before becoming a paid implementation plan.
+- Level 1 still gives real value, likely opportunities, and one useful "Try This This Week" prompt.
+- Level 1 now avoids full sequencing, deep readiness scoring, implementation phases, tool maps, and detailed 30-day plans.
+- Level 2 Detailed Report prompt now must provide a visibly deeper paid layer: ranked diagnosis, ranking logic, ready-now vs cleanup-first separation, do-not-automate-yet guidance, 30-day action plan, risk/data/privacy considerations, success measures, and confirmation questions.
+- Level 2 final note now avoids repeating the Level 1 closing and must explain the practical paid-report value.
 - If the model repair pass still misses the required final section, the server can add a safe deterministic closing section for that report tier instead of failing the whole run.
 - The admin Record ID field is now capped to a practical dashboard width.
 - The regenerate checkbox is now aligned with its label.

@@ -448,9 +448,9 @@ function deterministicFinalSection(tier) {
   if (tier === 'free') {
     return `## 8. Bridge To AI Note
 
-This snapshot is meant to give you a useful first read, not a finished implementation plan. I would use it to decide where AI looks practical, where the business foundations need cleanup first, and what should wait until there is better information underneath it.
+This snapshot is meant to give you a useful first read, not a finished implementation plan. I would use it to see the likely opportunities, spot the first practical win, and decide whether the next layer is worth a deeper look.
 
-If you want to go deeper, the next step is to confirm the missing details privately and turn the best opportunity into a clear build sequence. That keeps the work practical, avoids guessing, and helps make sure AI is solving the right problem.`;
+The deeper report is where the work gets ranked, sequenced, and pressure-tested. That is where we look at what is ready now, what needs cleanup first, what should wait, and what the first 30 days should actually look like.`;
   }
   if (tier === 'detailed') {
     return `## 11. Final Advisor Note
@@ -590,7 +590,13 @@ Generate REPORT 1: Free AI Opportunity Snapshot.
 Target: 2-4 pages in markdown.
 Purpose: useful no-cost report that proves Bridge To AI understood the business.
 Tone: client-facing, practical, plain-spoken, specific, and evidence-first. This should sound like Darren saying, "Here is what I noticed, here is the real pinch point, and here is what I would do first." Do not make this sound like an AI sales pitch or a consultant deck.
-Important: the free report must give real value. Do not make it thin or teaser-only. Give the client one useful, specific next move they could act on without buying anything.
+Important: the free report must give real value, but it must stop before becoming a paid implementation plan. Its job is to show likely opportunities and give the client one useful, specific next move they could act on without buying anything.
+Paid-ladder boundary:
+- The free report may name likely opportunity areas, but it should not fully rank the implementation sequence.
+- The free report may give one first move, but it should not provide a full 30-day action plan.
+- The free report may mention what appears ready or risky, but it should not deeply diagnose dependencies, readiness scores, implementation phases, tool maps, or success metrics.
+- The free report may invite a deeper report, but it should not sound like the build is already scoped or say things like "a few hours of build time" unless the Venture DNA directly proves that.
+- The final Bridge To AI Note should be short. It should say the snapshot is directional and that the next layer ranks, sequences, and pressure-tests the work.
 Opportunity rule: do not make email automation the default first opportunity. Look first for where the owner or highest-value person is losing time on repeated work. Only recommend email if the Venture DNA proves it is the real bottleneck.
 Required free value moment: include one section called "Try This This Week". It must give the client a copy/paste-ready AI prompt they can use in ChatGPT, Claude, or another AI tool using only non-sensitive information. The prompt must be based on the client's own words from the Venture DNA and should create a useful result in less than one hour.
 The prompt must quietly contain expert-level context for their industry, customer type, and business situation without saying "act as a top expert" or similar gimmicky role language. Encode the expertise through the instructions: who the audience is, what they care about, what outcome matters, what tone to use, what to avoid, what format to produce, and what a good answer should feel like.
@@ -611,6 +617,7 @@ Use a table: Priority | Opportunity | Why It Matters | First Step
 Give one copy/paste-ready AI prompt with expert-level context embedded in plain language. Make it safe, specific, and useful this week.
 ## 7. What To Avoid For Now
 ## 8. Bridge To AI Note
+Keep this to 2-3 short paragraphs. Do not introduce new implementation details here. The message is: this snapshot shows likely opportunities and one useful first win; the paid report ranks the work, identifies cleanup, and lays out the first 30 days.
 
 VENTURE DNA:
 ${dna}`;
@@ -622,9 +629,16 @@ ${dna}`;
 Generate REPORT 2: Detailed AI Readiness & Opportunity Report.
 
 Target: 6-10 pages in markdown.
-Purpose: paid mid-tier report around $97. It must add deeper diagnosis, clearer prioritization, and more actionable next steps than the free snapshot.
+Purpose: paid mid-tier report. It must feel obviously more valuable than the free snapshot by doing work the free report does not do: ranked diagnosis, why each item is ranked, what is ready now, what needs cleanup first, what should not be automated yet, first 30-day action plan, risk/privacy/data concerns, success measures, and questions to confirm before implementation.
 Tone: practical advisor, not corporate consultant. Keep it direct, useful, and grounded. If something should wait, say so. If something needs cleanup first, say so.
 Opportunity rule: rank opportunities by valuable time saved, rework reduced, revenue conversations created, and readiness to implement. Do not over-rank email automation unless it is clearly the highest-value repeated work in the Venture DNA.
+Paid-value standard:
+- A reader should feel: "The free report helped me see the problem. This paid report helps me decide what to do first, what not to do yet, and what I would hand to someone before starting implementation."
+- Every ranked opportunity must explain why it sits above or below the others.
+- Clearly separate ready-now opportunities from cleanup-first opportunities.
+- Include practical "do not automate this yet" advice where the foundation is not ready.
+- The 30-day plan must be more specific than the free report's single first move.
+- The final note should reinforce the implementation logic, not repeat the free report's closing note.
 
 Required structure:
 # [Business Name] - Detailed AI Readiness & Opportunity Report
@@ -636,15 +650,21 @@ Use a table: Revenue Stream | Current State | Growth Opportunity | AI Relevance
 Use a table: Growth Leak | What Is Happening | Business Impact | Recommended Fix
 ## 5. Where AI Looks Useful First
 Use a ranked table: Rank | AI Opportunity | Problem Solved | Impact | Feasibility | Priority | Notes
+After the table, explain the ranking logic in plain English. Say why the top item is first, why the second/third items wait, and what would change the order.
 ## 6. Recommended First 5 AI Projects
 Use a table: Priority | Project | Business Problem Solved | Client Benefit | Complexity | Suggested Timing
 ## 7. Readiness Scorecard
 Score Data & Information Quality, Workflow Documentation, Tools & Tech Stack, People & Change Readiness, Risk & Compliance Posture from 1-5.
+For each score, state whether it is ready now, cleanup first, or needs confirmation.
 ## 8. 30-Day Action Plan
 Use a table: Week | Action | Owner | Output | Success Measure
+This section must contain specific actions, not generic planning language.
 ## 9. Directional Success Metrics
+Include what would count as a useful win without inventing exact ROI.
 ## 10. Recommended Bridge To AI Next Step
+Make the next step practical and scoped. Do not oversell.
 ## 11. Final Advisor Note
+Explain the paid-report value in plain terms: this report ranks the work, identifies what should wait, and gives the first 30-day path. Do not repeat the Level 1 Bridge To AI Note.
 
 VENTURE DNA:
 ${dna}`;
