@@ -11,7 +11,7 @@ const REPORTS = {
     docxOutputType: 'report_free_snapshot_docx',
     htmlOutputType: 'report_free_snapshot_html',
     filename: 'Level1_report',
-    maxTokens: 3200
+    maxTokens: 4200
   },
   detailed: {
     title: 'Detailed AI Readiness & Opportunity Report',
@@ -90,7 +90,11 @@ async function callClaude(prompt, maxTokens) {
 
   if (!response.ok) throw new Error('Report generation failed: ' + await response.text());
   const data = await response.json();
-  return data.content?.[0]?.text || '';
+  return (data.content || [])
+    .filter(block => block?.type === 'text' && block.text)
+    .map(block => block.text)
+    .join('\n\n')
+    .trim();
 }
 
 async function getDna(clientDraftId) {
@@ -378,6 +382,47 @@ function validateReportCompletion(markdown, tier) {
   };
 }
 
+function canRepairCompletionFailure(completion) {
+  const allowed = new Set([
+    'last_line_too_short_possible_cutoff',
+    'last_line_ends_mid_thought'
+  ]);
+  return (completion.blockingWarnings || []).every(warning =>
+    allowed.has(warning) || warning.startsWith('missing_expected_final_section:')
+  );
+}
+
+function expectedFinalSection(tier) {
+  return REPORT_COMPLETION_RULES[tier]?.[0]?.expected || 'Final Bridge To AI Note';
+}
+
+function repairPromptForTier(tier, partialMarkdown, dna, blockingWarnings) {
+  const finalSection = expectedFinalSection(tier);
+  return `${sharedRules()}
+
+You are repairing a Bridge To AI report that failed the completion quality gate.
+
+Task:
+- Keep the report grounded only in the Venture DNA and the already-generated report draft.
+- Return the complete repaired markdown report only.
+- Preserve the existing useful sections where possible.
+- Complete any unfinished sentence or paragraph.
+- Add or repair the final section heading exactly as:
+## ${finalSection}
+- The final section must be complete, plain-spoken, and must not end mid-thought.
+- Do not add private financials, recipes, customer names beyond what is already appropriate for the report, supplier contracts, payroll details, invoices, or confidential formulas.
+- Do not use markdown horizontal rules.
+
+Completion gate warnings to fix:
+${(blockingWarnings || []).map(warning => `- ${warning}`).join('\n')}
+
+PARTIAL REPORT DRAFT:
+${partialMarkdown}
+
+VENTURE DNA:
+${dna}`;
+}
+
 function sharedRules() {
   return `SOURCE OF TRUTH RULES:
 - Use only the supplied Venture DNA markdown as source material.
@@ -652,8 +697,8 @@ async function generateOne(clientDraftId, tier, options = {}) {
     payloadType: 'encrypted_venture_dna_record',
     startedAt: new Date(startedAt).toISOString()
   }));
-  const generatedMarkdown = await callClaude(promptForTier(tier, dnaContent), spec.maxTokens);
-  const completion = validateReportCompletion(generatedMarkdown, tier);
+  let generatedMarkdown = await callClaude(promptForTier(tier, dnaContent), spec.maxTokens);
+  let completion = validateReportCompletion(generatedMarkdown, tier);
   if (!completion.completed) {
     await logReportEvent(clientDraftId, 'report_generation_quality_gate_failed', 'failed', privacyProofDefaults({
       partner: meta?.sourceMeta?.partner || 'BTAI',
@@ -665,7 +710,56 @@ async function generateOne(clientDraftId, tier, options = {}) {
       blockingWarnings: completion.blockingWarnings,
       generationMs: Date.now() - startedAt
     }));
-    throw new Error(`Report quality gate failed for ${tier}: ${completion.blockingWarnings.join(', ')}`);
+    if (canRepairCompletionFailure(completion)) {
+      const originalBlockingWarnings = [...completion.blockingWarnings];
+      const originalWarnings = [...completion.warnings];
+      await logReportEvent(clientDraftId, 'report_generation_repair_started', 'success', privacyProofDefaults({
+        partner: meta?.sourceMeta?.partner || 'BTAI',
+        campaign: meta?.sourceMeta?.campaign || 'general_intake',
+        reportTier: tier,
+        reportOutputType: spec.htmlOutputType,
+        payloadType: 'generated_report_markdown',
+        repairReason: originalBlockingWarnings,
+        generationMs: Date.now() - startedAt
+      }));
+      const repairedMarkdown = await callClaude(
+        repairPromptForTier(tier, generatedMarkdown, dnaContent, originalBlockingWarnings),
+        Math.max(1800, Math.min(3200, Math.floor(spec.maxTokens * 0.6)))
+      );
+      const repairedCompletion = validateReportCompletion(repairedMarkdown, tier);
+      if (repairedCompletion.completed) {
+        generatedMarkdown = repairedMarkdown;
+        completion = {
+          completed: true,
+          warnings: Array.from(new Set([...originalWarnings, ...repairedCompletion.warnings, 'completion_repaired'])),
+          blockingWarnings: []
+        };
+        await logReportEvent(clientDraftId, 'report_generation_repair_completed', 'success', privacyProofDefaults({
+          partner: meta?.sourceMeta?.partner || 'BTAI',
+          campaign: meta?.sourceMeta?.campaign || 'general_intake',
+          reportTier: tier,
+          reportOutputType: spec.htmlOutputType,
+          payloadType: 'generated_report_markdown',
+          originalBlockingWarnings,
+          repairedWarnings: repairedCompletion.warnings,
+          generationMs: Date.now() - startedAt
+        }));
+      } else {
+        await logReportEvent(clientDraftId, 'report_generation_repair_failed', 'failed', privacyProofDefaults({
+          partner: meta?.sourceMeta?.partner || 'BTAI',
+          campaign: meta?.sourceMeta?.campaign || 'general_intake',
+          reportTier: tier,
+          reportOutputType: spec.htmlOutputType,
+          payloadType: 'generated_report_markdown',
+          repairWarnings: repairedCompletion.warnings,
+          repairBlockingWarnings: repairedCompletion.blockingWarnings,
+          generationMs: Date.now() - startedAt
+        }));
+        throw new Error(`Report quality gate failed for ${tier}: ${repairedCompletion.blockingWarnings.join(', ')}`);
+      }
+    } else {
+      throw new Error(`Report quality gate failed for ${tier}: ${completion.blockingWarnings.join(', ')}`);
+    }
   }
   const markdown = decorateReportMarkdown(generatedMarkdown, tier);
   const validation = validateDnaOutput(markdown, { requireEvidenceLabels: false });

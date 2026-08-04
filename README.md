@@ -1,11 +1,21 @@
-# Bridge To AI Intake App - v1.68.0 Executive Admin Dashboard
+# Bridge To AI Intake App - v1.70.1 Report Completion Repair Hotfix
 
-This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the admin interview index, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, the required high-value "Try This This Week" prompt in the free report, selectable report export formats, and the clearer core-question/follow-up progress language. v1.68.0 tightens the records console into a more executive-grade operating dashboard with less dead space, clearer status chips, and useful empty states.
+This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, the required high-value "Try This This Week" prompt in the free report, selectable report export formats, searchable/sortable admin interview index, and the clearer core-question/follow-up progress language. v1.70.1 adds an automatic report completion repair pass so a report that is cut off or missing its final section gets one controlled repair attempt before the server blocks delivery.
 
 ## What Changed
 
 - Privacy Policy version is now `2026-07-25-v1.56.1`.
-- Header version is now `v1.68.0`.
+- Header version is now `v1.70.1`.
+- Report generation now attempts one completion repair pass when the first draft fails only because the final section is missing, the last line is too short, or the last line ends mid-thought.
+- Free Snapshot token room increased to reduce cutoff risk on the highest-use report.
+- Report generation now combines all returned model text blocks before validation instead of assuming the first block contains the whole report.
+- Interview Index now includes a search box for client name, business name, email, category, partner/campaign, status, or Record ID.
+- Interview Index headers are now sortable, with newest records shown first by default.
+- The loaded Interview Index area is taller so more records are visible without turning the whole admin console into a long scrolling page.
+- Interview Index CSV export now respects the current filtered/sorted view.
+- Privacy proof actions now prioritize the Brief Certificate and Detailed Attestation, while the machine-readable JSON is renamed **Raw JSON Audit**.
+- Admin console font sizes are increased across headings, labels, fields, buttons, status chips, table rows, empty states, and console output.
+- The dashboard remains tuned for a one-screen desktop workflow after the readability pass.
 - Report action controls now sit directly under the format selector instead of being pushed toward the bottom of the panel.
 - Report status now uses compact status chips for faster scanning.
 - Interview Index now shows a useful empty state before records are loaded.

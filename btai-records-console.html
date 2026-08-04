@@ -52,7 +52,7 @@
     .admin-header p {
       max-width: 760px;
       margin-bottom: 0;
-      font-size: .76rem;
+      font-size: .82rem;
     }
     .version-pill {
       flex: 0 0 auto;
@@ -61,32 +61,32 @@
       color: var(--green-dark);
       border-radius: 999px;
       padding: 5px 10px;
-      font-size: .72rem;
+      font-size: .78rem;
       font-weight: 800;
       letter-spacing: .02em;
       white-space: nowrap;
     }
     h1 {
       margin: 0 0 2px;
-      font-size: 1.08rem;
+      font-size: 1.18rem;
       letter-spacing: 0;
     }
     h2 {
       margin: 0 0 6px;
-      font-size: .86rem;
+      font-size: .96rem;
       letter-spacing: .01em;
     }
     p {
       margin: 0 0 6px;
       color: var(--muted);
       line-height: 1.3;
-      font-size: .74rem;
+      font-size: .8rem;
     }
     label {
       display: block;
       font-weight: 650;
       margin: 7px 0 4px;
-      font-size: .74rem;
+      font-size: .8rem;
     }
     input,
     select {
@@ -94,9 +94,9 @@
       border: 1px solid var(--line);
       border-radius: 6px;
       padding: 6px 8px;
-      font-size: .78rem;
+      font-size: .86rem;
       background: #fff;
-      min-height: 30px;
+      min-height: 32px;
     }
     .inline-option {
       display: flex;
@@ -104,7 +104,7 @@
       gap: 9px;
       margin-top: 8px;
       color: #374151;
-      font-size: .76rem;
+      font-size: .82rem;
       line-height: 1.35;
     }
     .inline-option input {
@@ -148,7 +148,7 @@
       font-weight: 700;
       cursor: pointer;
       min-height: 27px;
-      font-size: .7rem;
+      font-size: .76rem;
       line-height: 1.15;
     }
     button:hover { background: var(--green-dark); }
@@ -192,7 +192,7 @@
     }
     .report-actions h2 {
       text-align: left;
-      font-size: .94rem;
+      font-size: 1rem;
       letter-spacing: .01em;
     }
     .report-actions > p {
@@ -205,7 +205,7 @@
       gap: 7px;
       margin-top: 7px;
       margin-bottom: 8px;
-      font-size: .7rem;
+      font-size: .78rem;
     }
     .report-actions .inline-option input {
       margin-top: 2px;
@@ -227,7 +227,7 @@
       padding-top: 6px;
     }
     .action-stack-title {
-      font-size: .68rem;
+      font-size: .74rem;
       font-weight: 850;
       color: var(--green-dark);
       letter-spacing: .07em;
@@ -262,7 +262,7 @@
       color: var(--warn);
       border-radius: 6px;
       padding: 6px 10px;
-      font-size: .72rem;
+      font-size: .78rem;
     }
     .notice.admin-warning {
       font-weight: 800;
@@ -274,7 +274,7 @@
       margin-top: 0;
       white-space: pre-wrap;
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: .72rem;
+      font-size: .78rem;
       color: #27313b;
       line-height: 1.4;
     }
@@ -284,7 +284,7 @@
       gap: 4px;
       margin-top: 0;
       color: var(--muted);
-      font-size: .7rem;
+      font-size: .76rem;
     }
     .status-chip {
       display: flex;
@@ -320,7 +320,7 @@
       color: var(--green-dark);
       border-radius: 8px;
       padding: 6px 8px;
-      font-size: .72rem;
+      font-size: .78rem;
       line-height: 1.45;
       display: none;
     }
@@ -339,7 +339,7 @@
       border-radius: 8px;
       background: #fff;
       display: none;
-      max-height: 215px;
+      max-height: 330px;
     }
     .table-scroll.active {
       display: block;
@@ -348,7 +348,7 @@
       width: 100%;
       min-width: 980px;
       border-collapse: collapse;
-      font-size: .72rem;
+      font-size: .76rem;
     }
     th, td {
       padding: 6px 7px;
@@ -362,15 +362,44 @@
       font-weight: 800;
       position: sticky;
       top: 0;
+      user-select: none;
+      white-space: nowrap;
+    }
+    th[data-sort] {
+      cursor: pointer;
+    }
+    th[data-sort]::after {
+      content: " -";
+      color: #9a9a9a;
+      font-weight: 700;
+    }
+    th.sorted-asc::after {
+      content: " up";
+      color: var(--green);
+    }
+    th.sorted-desc::after {
+      content: " down";
+      color: var(--green);
     }
     code {
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: .72rem;
+      font-size: .76rem;
     }
     .compact-index {
       display: grid;
-      grid-template-columns: 90px 1fr;
+      grid-template-columns: 84px 110px minmax(0, 1fr);
       gap: 6px;
+    }
+    .index-meta {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: .76rem;
+    }
+    .privacy-proof-actions .technical-export {
+      opacity: .78;
+    }
+    .privacy-proof-actions .technical-export:hover {
+      opacity: 1;
     }
     .empty-state {
       margin-top: 6px;
@@ -383,7 +412,7 @@
       display: grid;
       place-items: center;
       text-align: center;
-      font-size: .74rem;
+      font-size: .8rem;
       line-height: 1.35;
     }
     .empty-state strong {
@@ -415,7 +444,7 @@
         <h1>BTAI Records Console</h1>
         <p>Retrieve secure intake records, generate reports, download privacy proof, and review partner aggregate intelligence from one admin-only dashboard.</p>
       </div>
-      <div class="version-pill">v1.68.0</div>
+      <div class="version-pill">v1.70.1</div>
     </div>
 
     <div class="record-strip">
@@ -499,11 +528,11 @@
       <div class="column-stack fill">
         <section class="panel">
           <h2>Privacy Proof</h2>
-          <p>Download privacy proof and client-friendly certificates from sanitized event logs.</p>
-          <div class="button-row">
-            <button id="privacy-proof-btn" class="secondary" type="button">Privacy Proof JSON</button>
+          <p>Use the certificates for people. Keep JSON for technical audit or troubleshooting.</p>
+          <div class="button-row privacy-proof-actions">
             <button id="privacy-brief-btn" class="secondary" type="button">Brief Certificate</button>
             <button id="privacy-detailed-btn" class="secondary" type="button">Detailed Attestation</button>
+            <button id="privacy-proof-btn" class="secondary technical-export" type="button" title="Technical machine-readable audit evidence">Raw JSON Audit</button>
           </div>
         </section>
 
@@ -519,6 +548,10 @@
               <label for="index-status">Status</label>
               <input id="index-status" autocomplete="off" value="all" placeholder="all, complete, draft">
             </div>
+            <div>
+              <label for="index-search">Search</label>
+              <input id="index-search" autocomplete="off" placeholder="Client, business, email, category, Record ID">
+            </div>
           </div>
           <div class="button-row">
             <button id="load-record-index-btn" class="secondary" type="button">Load Index</button>
@@ -531,18 +564,19 @@
               Load recent records, then click any row to fill the Record ID automatically.
             </div>
           </div>
+          <div id="record-index-meta" class="index-meta">Index not loaded.</div>
           <div id="record-index-wrap" class="table-scroll">
             <table>
               <thead>
                 <tr>
-                  <th>Business</th>
-                  <th>Client</th>
-                  <th>Email</th>
-                  <th>Category</th>
-                  <th>Status</th>
-                  <th>Partner</th>
-                  <th>Record ID</th>
-                  <th>Updated</th>
+                  <th data-sort="businessName">Business</th>
+                  <th data-sort="clientName">Client</th>
+                  <th data-sort="clientEmail">Email</th>
+                  <th data-sort="businessCategory">Category</th>
+                  <th data-sort="status">Status</th>
+                  <th data-sort="partner">Partner</th>
+                  <th data-sort="recordId">Record ID</th>
+                  <th data-sort="updatedAt">Updated</th>
                 </tr>
               </thead>
               <tbody id="record-index-body"></tbody>
@@ -590,10 +624,15 @@
     const buttons = Array.from(document.querySelectorAll('button'));
     const recordIndexWrap = document.getElementById('record-index-wrap');
     const recordIndexEmpty = document.getElementById('record-index-empty');
+    const recordIndexMeta = document.getElementById('record-index-meta');
+    const recordIndexSearch = document.getElementById('index-search');
     const recordIndexBody = document.getElementById('record-index-body');
+    const recordIndexHeaders = Array.from(document.querySelectorAll('th[data-sort]'));
     let timerStartedAt = 0;
     let timerHandle = null;
     let recordIndexRows = [];
+    let visibleRecordIndexRows = [];
+    let recordSort = { key: 'updatedAt', direction: 'desc' };
 
     function formatMs(ms) {
       const n = Number(ms);
@@ -691,6 +730,69 @@
       downloadBlob(filename, new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' }));
     }
 
+    function valueForSort(row, key) {
+      if (key === 'updatedAt') return String(row.updatedAt || row.createdAt || '').toLowerCase();
+      if (key === 'partner') return `${row.partner || ''} ${row.campaign || ''}`.toLowerCase();
+      if (key === 'businessCategory') return `${row.businessCategory || ''} ${row.businessNiche || ''}`.toLowerCase();
+      return String(row[key] || '').toLowerCase();
+    }
+
+    function rowMatchesSearch(row, query) {
+      if (!query) return true;
+      const haystack = [
+        row.businessName,
+        row.clientName,
+        row.clientEmail,
+        row.businessCategory,
+        row.businessNiche,
+        row.status,
+        row.partner,
+        row.campaign,
+        row.recordId,
+        row.updatedAt,
+        row.createdAt
+      ].map(value => String(value || '').toLowerCase()).join(' ');
+      return haystack.includes(query);
+    }
+
+    function renderRecordIndex() {
+      const query = String(recordIndexSearch?.value || '').trim().toLowerCase();
+      visibleRecordIndexRows = recordIndexRows
+        .filter(row => rowMatchesSearch(row, query))
+        .sort((a, b) => {
+          const av = valueForSort(a, recordSort.key);
+          const bv = valueForSort(b, recordSort.key);
+          const compared = av.localeCompare(bv, undefined, { numeric: true, sensitivity: 'base' });
+          return recordSort.direction === 'asc' ? compared : -compared;
+        });
+
+      recordIndexHeaders.forEach(header => {
+        const active = header.dataset.sort === recordSort.key;
+        header.classList.toggle('sorted-asc', active && recordSort.direction === 'asc');
+        header.classList.toggle('sorted-desc', active && recordSort.direction === 'desc');
+      });
+
+      recordIndexBody.innerHTML = visibleRecordIndexRows.map((row, index) => `
+        <tr data-index="${index}" title="Click to use this Record ID">
+          <td>${escapeHtml(row.businessName)}</td>
+          <td>${escapeHtml(row.clientName)}</td>
+          <td>${escapeHtml(row.clientEmail)}</td>
+          <td>${escapeHtml(row.businessCategory)}${row.businessNiche && row.businessNiche !== 'Not captured' ? `<br><span style="color:#6f7378;">${escapeHtml(row.businessNiche)}</span>` : ''}</td>
+          <td>${escapeHtml(row.status)}</td>
+          <td>${escapeHtml(row.partner)}<br><span style="color:#6f7378;">${escapeHtml(row.campaign)}</span></td>
+          <td><code>${escapeHtml(row.recordId)}</code></td>
+          <td>${escapeHtml(row.updatedAt || row.createdAt)}</td>
+        </tr>
+      `).join('');
+
+      const hasLoadedRows = recordIndexRows.length > 0;
+      recordIndexWrap.classList.toggle('active', hasLoadedRows);
+      recordIndexEmpty.style.display = hasLoadedRows ? 'none' : 'grid';
+      recordIndexMeta.textContent = hasLoadedRows
+        ? `Showing ${visibleRecordIndexRows.length} of ${recordIndexRows.length} loaded records${query ? ` for "${recordIndexSearch.value.trim()}"` : ''}. Click a column header to sort.`
+        : 'Index not loaded.';
+    }
+
     function downloadZip(filename, contentBase64) {
       if (!contentBase64) throw new Error('ZIP content was not returned by the server.');
       try {
@@ -745,7 +847,7 @@
     function friendlyAdminError(message = '') {
       const text = String(message || '').trim();
       if (/Report quality gate failed/i.test(text) && /missing_expected_final_section/i.test(text)) {
-        return `${text}\n\nMeaning: the report generated, but the completion validator did not find the required final section. In v1.68.0 the validator accepts close heading variants, so retry this report after deploying the current build.`;
+        return `${text}\n\nMeaning: the report generated, but the completion validator did not find the required final section. In v1.70.1 the server attempts one repair pass for missing final-section and cut-off reports before giving up. Retry this report after deploying the current build.`;
       }
       if (/No client email found/i.test(text)) {
         return `${text}\n\nMeaning: the secure intake session does not contain a client email address, so the free report cannot be emailed automatically.`;
@@ -838,21 +940,8 @@
           limit: 200
         }, values.adminSecret);
         recordIndexRows = data.records || [];
-        recordIndexBody.innerHTML = recordIndexRows.map((row, index) => `
-          <tr data-index="${index}" title="Click to use this Record ID">
-            <td>${escapeHtml(row.businessName)}</td>
-            <td>${escapeHtml(row.clientName)}</td>
-            <td>${escapeHtml(row.clientEmail)}</td>
-            <td>${escapeHtml(row.businessCategory)}${row.businessNiche && row.businessNiche !== 'Not captured' ? `<br><span style="color:#6f7378;">${escapeHtml(row.businessNiche)}</span>` : ''}</td>
-            <td>${escapeHtml(row.status)}</td>
-            <td>${escapeHtml(row.partner)}<br><span style="color:#6f7378;">${escapeHtml(row.campaign)}</span></td>
-            <td><code>${escapeHtml(row.recordId)}</code></td>
-            <td>${escapeHtml(row.updatedAt || row.createdAt)}</td>
-          </tr>
-        `).join('');
-        recordIndexWrap.classList.toggle('active', recordIndexRows.length > 0);
-        recordIndexEmpty.style.display = recordIndexRows.length > 0 ? 'none' : 'grid';
-        statusEl.textContent = `Loaded ${recordIndexRows.length} intake records.\nClick any row to copy its Record ID into the retrieval field.`;
+        renderRecordIndex();
+        statusEl.textContent = `Loaded ${recordIndexRows.length} intake records.\nSearch by client, business, email, category, or Record ID. Click a row to copy its Record ID into the retrieval field.`;
       } catch (err) {
         statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;
       } finally {
@@ -863,7 +952,7 @@
     recordIndexBody.addEventListener('click', event => {
       const rowEl = event.target.closest('tr[data-index]');
       if (!rowEl) return;
-      const row = recordIndexRows[Number(rowEl.getAttribute('data-index'))];
+      const row = visibleRecordIndexRows[Number(rowEl.getAttribute('data-index'))];
       if (!row) return;
       document.getElementById('record-id').value = row.recordId || '';
       document.getElementById('filename').value = row.businessName && row.businessName !== 'Not captured' ? row.businessName : row.clientName || '';
@@ -872,13 +961,26 @@
 
     document.getElementById('load-record-index-btn').addEventListener('click', loadRecordIndex);
     document.getElementById('refresh-record-index-btn').addEventListener('click', loadRecordIndex);
+    recordIndexSearch.addEventListener('input', renderRecordIndex);
+    recordIndexHeaders.forEach(header => {
+      header.addEventListener('click', () => {
+        const key = header.dataset.sort;
+        if (recordSort.key === key) {
+          recordSort.direction = recordSort.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+          recordSort = { key, direction: key === 'updatedAt' ? 'desc' : 'asc' };
+        }
+        renderRecordIndex();
+      });
+    });
     document.getElementById('download-record-index-csv-btn').addEventListener('click', () => {
-      if (!recordIndexRows.length) {
+      const rows = visibleRecordIndexRows.length ? visibleRecordIndexRows : recordIndexRows;
+      if (!rows.length) {
         statusEl.textContent = 'Load the interview index before downloading CSV.';
         return;
       }
-      downloadCsv(`BTAI_Interview_Index_${new Date().toISOString().slice(0, 10)}.csv`, recordIndexRows);
-      statusEl.textContent = `Downloaded interview index CSV with ${recordIndexRows.length} records.`;
+      downloadCsv(`BTAI_Interview_Index_${new Date().toISOString().slice(0, 10)}.csv`, rows);
+      statusEl.textContent = `Downloaded interview index CSV with ${rows.length} records.`;
     });
 
     document.getElementById('privacy-proof-btn').addEventListener('click', async () => {
