@@ -72,6 +72,7 @@ Set `BTAI_ENABLE_EMERGENCY_ADMIN_SECRET=false` for normal production. Turn it on
 4. Set each admin user's app metadata to include either `"btai_admin": true` or `"role": "btai_admin"`.
 5. Insert matching rows into `admin_profiles`.
 6. Verify `/btai-records-console` says **Signed in with Supabase admin MFA**.
+7. In Supabase Auth URL configuration, add `https://intake.bridgetoai.ca/btai-records-console` to allowed redirect URLs so password recovery links can return to the admin console.
 
 ## 3.2 Vercel Firewall / Abuse Controls
 

@@ -82,6 +82,48 @@ async function refresh(body) {
   };
 }
 
+function adminRedirectTo(req) {
+  const origins = String(process.env.BTAI_ALLOWED_ORIGINS || '')
+    .split(',')
+    .map(value => value.trim().replace(/\/$/, ''))
+    .filter(Boolean);
+  const host = req.headers?.host || '';
+  const fallback = host ? `https://${host}` : origins[0] || '';
+  return `${origins[0] || fallback}/btai-records-console`;
+}
+
+async function requestPasswordReset(req, body) {
+  const email = String(body?.email || '').trim().toLowerCase();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    const err = new Error('Valid email is required');
+    err.statusCode = 400;
+    throw err;
+  }
+  await supabaseAuth(`recover?redirect_to=${encodeURIComponent(adminRedirectTo(req))}`, {
+    method: 'POST',
+    body: { email }
+  });
+  return {
+    sent: true,
+    message: 'If this email is authorized, a password reset link has been sent.'
+  };
+}
+
+async function updatePassword(token, body) {
+  const password = String(body?.password || '');
+  if (password.length < 12) {
+    const err = new Error('Password must be at least 12 characters');
+    err.statusCode = 400;
+    throw err;
+  }
+  await supabaseAuth('user', {
+    method: 'PUT',
+    token,
+    body: { password }
+  });
+  return { updated: true };
+}
+
 async function factors(token) {
   const data = await supabaseAuth('factors', { token });
   const all = Array.isArray(data) ? data : data.factors || [];
@@ -132,6 +174,8 @@ export default async function handler(req, res) {
     assertRateLimit(req, { key: 'admin-session', limit: 12, windowMs: 60_000 });
     const action = String(req.body?.action || '').trim();
     if (action === 'sign-in') return res.status(200).json(await signIn(req.body));
+    if (action === 'request-password-reset') return res.status(200).json(await requestPasswordReset(req, req.body));
+    if (action === 'update-password') return res.status(200).json(await updatePassword(bearerToken(req), req.body));
     if (action === 'refresh') return res.status(200).json(await refresh(req.body));
     if (action === 'factors') return res.status(200).json(await factors(bearerToken(req)));
     if (action === 'verify-mfa') return res.status(200).json(await challengeAndVerify(bearerToken(req), req.body));

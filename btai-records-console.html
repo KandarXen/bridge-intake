@@ -452,7 +452,7 @@
         <h1>BTAI Records Console</h1>
         <p>Retrieve secure intake records, generate reports, download privacy proof, and review partner aggregate intelligence from one admin-only dashboard.</p>
       </div>
-      <div class="version-pill">v1.70.7</div>
+      <div class="version-pill">v1.70.8</div>
     </div>
 
     <div id="admin-record-controls" class="record-strip auth-locked">
@@ -488,8 +488,22 @@
       </div>
       <div class="button-row">
         <button id="admin-signin-btn" type="button">Sign In</button>
+        <button id="admin-reset-request-btn" class="secondary" type="button">Send Password Reset</button>
         <button id="admin-mfa-btn" class="secondary" type="button">Verify MFA</button>
         <button id="admin-signout-btn" class="secondary" type="button">Sign Out</button>
+      </div>
+      <div id="password-reset-panel" class="auth-locked" style="margin-top: 10px;">
+        <div class="record-strip">
+          <label for="admin-new-password">New password
+            <input id="admin-new-password" type="password" autocomplete="new-password" placeholder="At least 12 characters">
+          </label>
+          <label for="admin-new-password-confirm">Confirm password
+            <input id="admin-new-password-confirm" type="password" autocomplete="new-password">
+          </label>
+          <div style="align-self:end;">
+            <button id="admin-update-password-btn" type="button">Set New Password</button>
+          </div>
+        </div>
       </div>
       <div id="admin-auth-status" class="status">Not signed in.</div>
     </section>
@@ -661,6 +675,7 @@
     const adminAuthStatus = document.getElementById('admin-auth-status');
     const adminRecordControls = document.getElementById('admin-record-controls');
     const adminConsoleGrid = document.getElementById('admin-console-grid');
+    const passwordResetPanel = document.getElementById('password-reset-panel');
     let adminAccessToken = sessionStorage.getItem('btaiAdminAccessToken') || '';
     let adminRefreshToken = sessionStorage.getItem('btaiAdminRefreshToken') || '';
     let adminMfaFactors = [];
@@ -678,6 +693,20 @@
       } else {
         statusEl.textContent = 'Ready. Choose a Record ID, then run an admin action.';
       }
+    }
+
+    function loadRecoveryTokenFromUrl() {
+      const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      const query = new URLSearchParams(window.location.search);
+      const token = hash.get('access_token') || query.get('access_token') || '';
+      const type = hash.get('type') || query.get('type') || '';
+      if (!token || type !== 'recovery') return false;
+      adminAccessToken = token;
+      sessionStorage.setItem('btaiAdminAccessToken', adminAccessToken);
+      passwordResetPanel.classList.remove('auth-locked');
+      adminAuthStatus.textContent = 'Password reset link accepted. Enter a new password below.';
+      history.replaceState(null, '', '/btai-records-console');
+      return true;
     }
 
     function formatMs(ms) {
@@ -948,7 +977,7 @@
     function friendlyAdminError(message = '') {
       const text = String(message || '').trim();
       if (/Report quality gate failed/i.test(text) && /missing_expected_final_section/i.test(text)) {
-        return `${text}\n\nMeaning: the report generated, but the completion validator did not find the required final section. In v1.70.7 the server attempts one repair pass, then adds a safe deterministic closing section when the only remaining issue is an incomplete or missing final section. Retry this report after deploying the current build.`;
+        return `${text}\n\nMeaning: the report generated, but the completion validator did not find the required final section. In v1.70.8 the server attempts one repair pass, then adds a safe deterministic closing section when the only remaining issue is an incomplete or missing final section. Retry this report after deploying the current build.`;
       }
       if (/No client email found/i.test(text)) {
         return `${text}\n\nMeaning: the secure intake session does not contain a client email address, so the free report cannot be emailed automatically.`;
@@ -981,6 +1010,41 @@
       } catch (err) {
         clearAdminTokens();
         adminAuthStatus.textContent = `Sign-in failed: ${friendlyAdminError(err.message)}`;
+      }
+    });
+
+    document.getElementById('admin-reset-request-btn').addEventListener('click', async () => {
+      const email = document.getElementById('admin-email').value.trim();
+      if (!email) {
+        adminAuthStatus.textContent = 'Enter your admin email first, then request a reset.';
+        return;
+      }
+      adminAuthStatus.textContent = 'Requesting password reset email...';
+      try {
+        const data = await adminSession('request-password-reset', { email });
+        adminAuthStatus.textContent = data.message || 'If this email is authorized, a password reset link has been sent.';
+      } catch (err) {
+        adminAuthStatus.textContent = `Password reset request failed: ${friendlyAdminError(err.message)}`;
+      }
+    });
+
+    document.getElementById('admin-update-password-btn').addEventListener('click', async () => {
+      const password = document.getElementById('admin-new-password').value;
+      const confirm = document.getElementById('admin-new-password-confirm').value;
+      if (password !== confirm) {
+        adminAuthStatus.textContent = 'New password and confirmation do not match.';
+        return;
+      }
+      adminAuthStatus.textContent = 'Updating password...';
+      try {
+        await adminSession('update-password', { password });
+        document.getElementById('admin-new-password').value = '';
+        document.getElementById('admin-new-password-confirm').value = '';
+        passwordResetPanel.classList.add('auth-locked');
+        clearAdminTokens();
+        adminAuthStatus.textContent = 'Password updated. Sign in with the new password.';
+      } catch (err) {
+        adminAuthStatus.textContent = `Password update failed: ${friendlyAdminError(err.message)}`;
       }
     });
 
@@ -1299,7 +1363,7 @@
       }
     });
 
-    refreshAdminAuthStatus();
+    if (!loadRecoveryTokenFromUrl()) refreshAdminAuthStatus();
   </script>
 </body>
 </html>

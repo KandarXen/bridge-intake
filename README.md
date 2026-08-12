@@ -100,6 +100,7 @@ This build keeps the trust-first, controlled industry-adaptive intake, live-inte
 - The index is protected by `BTAI_ADMIN_SECRET` and logs an admin access audit event.
 - v1.70.5 hardens the same-day production path by requiring a browser-held draft resume token, using header-only constant-time admin-secret checks, blocking untrusted browser origins, disabling completion test mode on public hosts, erasing abandoned draft payloads, and creating the KPI view with `security_invoker`.
 - v1.70.6 adds Supabase admin-account/MFA enforcement support, `/api/admin-session`, Turnstile server validation hooks, server-side rate-limit backstops, admin profile/privacy request tables, and operating runbooks in `docs/`.
+- v1.70.8 adds admin-console password reset request and new-password completion support for Supabase Auth recovery links.
 - `vercel.json` now explicitly rewrites `/btai-records-console` to `/btai-records-console.html`.
 - The private records console file is now `btai-records-console.html`.
 - With Vercel `cleanUrls`, use `/btai-records-console` instead of `/admin` or `/admin.html`.
