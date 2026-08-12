@@ -54,7 +54,7 @@ For live purchases, `BTAI_LEVEL2_PAYMENT_URL` and `BTAI_LEVEL3_PAYMENT_URL` shou
 
 `BTAI_STORE_RECORD_LABELS=false` keeps client and business names out of plaintext Supabase metadata. The names remain inside encrypted payloads.
 
-`BTAI_ADMIN_SECRET` protects the private admin retrieval page at `/btai-records-console`. Use a unique random value of at least 24 characters, store it only in a password manager, and rotate it after any contractor/demo access.
+`BTAI_ADMIN_SECRET` is only an emergency fallback when `BTAI_ENABLE_EMERGENCY_ADMIN_SECRET=true`. Normal production must use Supabase admin sign-in with MFA and keep `BTAI_ENABLE_EMERGENCY_ADMIN_SECRET=false`.
 
 `BTAI_ALLOWED_ORIGINS` must include every production domain that is allowed to submit intake/admin requests. Do not use `*`.
 
@@ -144,7 +144,7 @@ validate-output.js
    - second Voice & Standards prompt shows as step 2 of 44;
    - first business question shows as step 3 of 44;
    - Back from the first business question returns to the second Voice & Standards prompt.
-8. Open `/btai-records-console`, paste a real completed Record ID and `BTAI_ADMIN_SECRET`, then click **Send/Resend Free Report Email**.
+8. Open `/btai-records-console`, sign in with MFA, paste a real completed Record ID, then click **Send/Resend Free Report Email**.
 9. Confirm:
    - the interviewee receives the free report email with DOCX attached;
    - `INTAKE_BCC_RECIPIENT` receives a copy with the report attached;
@@ -173,7 +173,7 @@ validate-output.js
    - one `venture_dna_markdown` row in `intake_outputs`
    - Secure processing events in `intake_events`
    - KPI rows visible through the `intake_kpi_events` view
-17. Open `/btai-records-console` and retrieve the test DNA using the Record ID and `BTAI_ADMIN_SECRET`.
+17. Open `/btai-records-console` and retrieve the test DNA using a Supabase admin account with MFA plus the Record ID.
 18. On `/btai-records-console`, click **Download Privacy Proof JSON** and confirm:
     - `encryptedRecordsConfirmed` is `true`
     - `anonymizedAiAnalysisConfirmed` is `true`

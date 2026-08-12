@@ -1,13 +1,42 @@
-# Bridge To AI Intake App - v1.70.11 MFA Factor List Hotfix
+# Bridge To AI Intake App - v1.71.2 Admin MFA Sign-In Hotfix
 
-This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, the required high-value "Try This This Week" prompt in the free report, selectable report export formats, searchable/sortable admin interview index, deterministic final-section safety net, and the clearer core-question/follow-up progress language. v1.70.6 adds admin MFA enforcement support, Turnstile hooks, rate-limit backstops, and operating runbooks.
+This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, the required high-value "Try This This Week" prompt in the free report, selectable report export formats, searchable/sortable admin interview index, deterministic final-section safety net, and the clearer core-question/follow-up progress language. v1.71.2 adds a reusable **Snapshot First** campaign URL for a shorter free first-pass intake while preserving the full diagnostic at the normal URL.
+
+## Snapshot First Campaign
+
+- New clean campaign URLs:
+  - `/snapshot`
+  - `/snapshot-first`
+- `snapshot.html` and `snapshot-first.html` are physical copies of `index.html` so Vercel `cleanUrls` can serve the campaign reliably even if rewrite handling changes.
+- Query-string equivalent:
+  - `/?campaign=snapshot_first`
+- The normal `/` URL remains the full diagnostic.
+- The snapshot campaign is intentionally not hard-branded as AFPA. AFPA can be offered this link as a shorter participation-friendly option, but the same campaign can later become the broader public/SEO front door.
+- The campaign uses a purpose-built 12-question free interview: business snapshot, top bottleneck, frequency, current workaround, handoffs, roles involved, information location, readiness assets, AI comfort boundary, human-review boundary, first useful win, and practical leverage.
+- Snapshot mode skips the two Voice & Standards prompts. Those belong to the deeper diagnostic because the free snapshot does not build a business voice/DNA profile.
+- Snapshot mode limits adaptive AI probes to 2 instead of the full diagnostic cap of 5.
+- Snapshot mode is recorded in draft, KPI, and report-generation metadata as `intakeVariant: snapshot_first`.
+- Snapshot completion now offers an optional `Continue deeper interview` path. This keeps the free snapshot low-friction, then lets motivated users continue into the full diagnostic in the same secure browser session without re-entering their earlier answers.
+- Free-report email now uses the deeper interview as the primary next step. Paid report options are described as later choices after the deeper interview, not direct payment links from the free email.
+- The Business DNA prompt is aware that this is a shorter first-pass intake and must label deeper sequencing, readiness, ROI, and implementation assumptions as needing confirmation/private scoping.
+- The same SIL rules apply: consent, data minimization, sensitive-data warnings, pseudonymization/tokenization where practical, encrypted Supabase storage, encrypted re-identification maps, privacy-proof logging, report quality/sensitive-data scans, and partner aggregate-only boundaries.
 
 ## What Changed
 
+- Header version is now `v1.71.2`.
+- Added `/snapshot` and `/snapshot-first` rewrites to `vercel.json`.
+- Added `snapshot.html` and `snapshot-first.html` static entry files for reliable clean URLs.
+- Added campaign variant detection from path or `campaign=snapshot_first`.
+- Added a curated short question set for Snapshot First while leaving the full diagnostic question set unchanged.
+- Added variant-aware welcome copy for the shorter intake.
+- Removed the Voice & Standards scenario from the free snapshot path and reserved it for the deeper interview.
+- Replaced the shorter path's old filtered diagnostic/mastery list with a sharper free-report question set focused on workflow friction, readiness, boundaries, and practical value.
+- Added an optional snapshot-to-full continuation path with preserved answers and a separate Hermes log event.
+- Added secure email continuation links using `continue=deep&recordId=...` so free-report recipients can reopen their saved snapshot and continue into the deeper interview.
+- Added variant-aware adaptive probe cap.
+- Added `intakeVariant` and `questionSet` to draft payloads, KPI events, and report-generation source metadata.
+- Added prompt guidance so the internal Business DNA file does not overstate what can be known from the shorter first-pass intake.
 - Privacy Policy version is now `2026-07-25-v1.56.1`.
-- Header version is now `v1.70.11`.
-- Paid report links in the report upgrade section are now generated as proper markdown hyperlinks.
-- HTML report rendering now converts markdown links and safe raw URLs into clickable links that open in a new tab.
 - Level 1 Free Snapshot prompt now stops before becoming a paid implementation plan.
 - Level 1 still gives real value, likely opportunities, and one useful "Try This This Week" prompt.
 - Level 1 now avoids full sequencing, deep readiness scoring, implementation phases, tool maps, and detailed 30-day plans.
@@ -97,18 +126,12 @@ This build keeps the trust-first, controlled industry-adaptive intake, live-inte
 - The interview index shows recent Record IDs, business names, client names, client emails, category, partner/campaign, status, and updated date.
 - Clicking a row fills the Record ID and filename fields for faster Venture DNA retrieval or report generation.
 - The interview index can be downloaded as CSV for private BTAI admin use.
-- The index is protected by `BTAI_ADMIN_SECRET` and logs an admin access audit event.
-- v1.70.5 hardens the same-day production path by requiring a browser-held draft resume token, using header-only constant-time admin-secret checks, blocking untrusted browser origins, disabling completion test mode on public hosts, erasing abandoned draft payloads, and creating the KPI view with `security_invoker`.
-- v1.70.6 adds Supabase admin-account/MFA enforcement support, `/api/admin-session`, Turnstile server validation hooks, server-side rate-limit backstops, admin profile/privacy request tables, and operating runbooks in `docs/`.
-- v1.70.8 adds admin-console password reset request and new-password completion support for Supabase Auth recovery links.
-- v1.70.9 adds admin-console TOTP MFA enrollment with QR/manual secret display and verification.
-- v1.70.10 adds clearer Supabase Auth diagnostics for admin sign-in, password reset, password update, and MFA enrollment failures.
-- v1.70.11 keeps admin password sign-in usable when Supabase does not return the MFA factor list, then directs the admin to Set Up MFA.
+- The index is protected by Supabase admin sign-in, MFA, admin app metadata, and `admin_profiles`; access logs an admin audit event.
 - `vercel.json` now explicitly rewrites `/btai-records-console` to `/btai-records-console.html`.
 - The private records console file is now `btai-records-console.html`.
 - With Vercel `cleanUrls`, use `/btai-records-console` instead of `/admin` or `/admin.html`.
 - The obvious `admin.html` file is no longer included in the deploy package.
-- This is reduced visibility, not the security boundary. The real protection remains `BTAI_ADMIN_SECRET` plus server-side authorization on the admin APIs.
+- This is reduced visibility, not the security boundary. The real protection is Supabase admin authentication with MFA plus server-side authorization on the admin APIs.
 - Partner aggregate reports now exclude completion-page test records and obvious test Record IDs by default.
 - Partner aggregate reports now disclose how many test/demo records were excluded.
 - Admin now includes a **Partner Aggregate Intelligence** section.
@@ -163,7 +186,7 @@ This build keeps the trust-first, controlled industry-adaptive intake, live-inte
 - The DOCX builder has been upgraded with stronger Word styles, better spacing, heading hierarchy, bullet handling, and markdown table rendering.
 - Completion-page next-step copy now matches the free-intake model instead of implying every user automatically receives a full roadmap and workbench build.
 - Completion-page BTAI follow-up preference now supports the report-delivery CTA instead of a separate preference-saving action.
-- Completion-page test mode is local-only with `?testComplete=1` so the final screen can be reviewed without taking a full interview during development. It is disabled on public hosts.
+- Completion-page test mode is available with `?testComplete=1` so the final screen can be reviewed without taking a full interview. This does not submit an interview or send a report email.
 - Privacy Policy now distinguishes reversible pseudonymization/tokenization from anonymized aggregate partner reporting.
 - Privacy Policy now includes named privacy accountability, cross-border processing, concrete retention/deletion targets, OPC complaint escalation, AI provider data-use language, breach response, access/correction/deletion process, minimum aggregate-reporting threshold, age restriction, cookies/analytics language, and the first-intake vs paid-implementation boundary.
 - Browser stores only a random session ID.
@@ -212,9 +235,6 @@ BTAI_ENCRYPTION_KEY
 ANTHROPIC_API_KEY
 RESEND_API_KEY
 BTAI_ADMIN_SECRET
-BTAI_ENABLE_EMERGENCY_ADMIN_SECRET
-BTAI_ALLOWED_ORIGINS
-TURNSTILE_SECRET_KEY
 ```
 
 Recommended:
@@ -243,7 +263,7 @@ BTAI_LEVEL3_PAYMENT_URL=https://buy.stripe.com/...
 
 ## Completion Page Test Mode
 
-To test the final page without taking the full interview, run the site locally and open:
+To test the final page without taking the full interview, open:
 
 ```text
 /?testComplete=1
@@ -261,9 +281,15 @@ Optional test labels:
 /?testComplete=1&name=Morgan%20Ellis&business=Prairie%20Hearth%20Bakery&email=demo@bridgetoai.test
 ```
 
-This mode is for local UX review only. It is disabled on public hosts, does not create a Supabase Venture DNA record, and does not email the free report.
+This mode is for UX review only. It does not create a Supabase Venture DNA record and does not email the free report.
 
-To test real report delivery, complete a real test intake on the deployed preview using a controlled test email, then use the final-page **Email my free report** action or the admin console resend action.
+To test real report delivery from the completion page without retaking the interview, use an existing completed Record ID:
+
+```text
+/?testComplete=1&allowRealDelivery=1&recordId=PASTE_REAL_RECORD_ID&email=CLIENT_EMAIL_ON_THAT_RECORD
+```
+
+The email must match the email stored on that secure intake session. This mode does not submit a new interview; it only lets you test the final-page **Email my free report** action against an existing encrypted Supabase record.
 
 After a completed intake, use:
 
@@ -271,7 +297,7 @@ After a completed intake, use:
 /btai-records-console
 ```
 
-Paste the notification email's Record ID and the private `BTAI_ADMIN_SECRET` to download the decrypted `.md` file.
+Sign in to `/btai-records-console` with a Supabase admin account and MFA, then paste the notification email's Record ID to download the decrypted `.md` file.
 
 The DNA is decrypted server-side only after the admin secret is verified.
 
@@ -292,7 +318,7 @@ The internal BTAI Advisor Brief is for Bridge To AI only. It summarizes what to 
 
 ## Privacy Proof Export
 
-Use `/btai-records-console`, paste the Record ID and `BTAI_ADMIN_SECRET`, then click **Download Privacy Proof JSON**.
+Use `/btai-records-console`, sign in with MFA, paste the Record ID, then click **Download Privacy Proof JSON**.
 
 The export is designed for AFPA/client trust review. It includes sanitized event proof such as:
 
@@ -394,3 +420,7 @@ privacy.js
 supabase-rest.js
 validate-output.js
 ```
+
+- v1.71.1 adds the production Cloudflare Turnstile site key to public intake configuration and carries forward the MFA admin hardening baseline.
+
+- v1.71.2 fixes admin MFA sign-in when a verified authenticator factor already exists and the code is entered before pressing Sign In.

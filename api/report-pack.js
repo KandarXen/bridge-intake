@@ -173,11 +173,6 @@ function paymentConfig() {
   };
 }
 
-function markdownLink(label, url, fallback = 'Reply to the Bridge To AI email thread to request this.') {
-  if (!url) return fallback;
-  return `[${label}](${url})`;
-}
-
 function reportPrivacyStatement() {
   return `## How This Was Handled Privately
 
@@ -196,7 +191,7 @@ This action plan gives the build direction, but the actual build still needs pri
 
 If you want Bridge To AI to help turn this into a working AI system or workbench, book a scoping conversation here:
 
-${markdownLink('Book a Bridge To AI implementation scoping conversation', consultUrl, 'Reply to the Bridge To AI email thread to request implementation scoping.')}
+${consultUrl || 'Reply to the Bridge To AI email thread to request implementation scoping.'}
 
 A workbench is a private operating dashboard built around your business so repeated workflows can run from one place instead of being scattered across notes, spreadsheets, prompts, files, and tools.`;
   }
@@ -204,11 +199,12 @@ A workbench is a private operating dashboard built around your business so repea
 
 This free snapshot is meant to give you one useful first read, not hold the value hostage.
 
-The next layer goes deeper on the pieces we can only touch lightly here: which opportunities deserve priority, what should wait, what needs cleanup first, and how this could become a private Bridge To AI workbench.
+The best next step is not to buy a deeper report cold. First, continue the deeper interview while the context is fresh. That gives Bridge To AI enough information to rank the work properly, spot what should wait, identify cleanup needs, and decide whether a paid report or action plan is actually worth preparing.
 
-- ${markdownLink(`Detailed AI Opportunity Report - ${level2Price}`, level2Url, `Detailed AI Opportunity Report - ${level2Price}`)}: More diagnosis, clearer ranking, and practical first projects.
-- ${markdownLink(`Preliminary AI Action Plan - ${level3Price}`, level3Url, `Preliminary AI Action Plan - ${level3Price}`)}: A build sequence with workflow priorities, risk controls, and scoping questions.
-- ${markdownLink('Talk with Bridge To AI about implementation or a custom workbench', consultUrl, 'Talk with Bridge To AI about implementation or a custom workbench')}: A private operating dashboard built around your business so repeated workflows can run from one place.
+- Continue the deeper interview: use the continuation link in your report email, or reply to Bridge To AI and ask us to reopen your secure interview.
+- Detailed AI Opportunity Report - ${level2Price}: Available after the deeper interview gives enough context.
+- Preliminary AI Action Plan - ${level3Price}: Available after the deeper interview confirms workflow priorities, risk controls, and scoping questions.
+- Talk with Bridge To AI about implementation or a custom workbench: ${consultUrl || 'Reply to the Bridge To AI email thread to request a conversation.'}
 
 A workbench is a private operating dashboard built around your business so repeated workflows can run from one place instead of being scattered across notes, spreadsheets, prompts, files, and tools.`;
 }
@@ -1222,6 +1218,7 @@ async function sendFreeReportEmail({ clientDraftId, clientEmail, clientName, bus
   if (!process.env.RESEND_API_KEY) throw new Error('Missing RESEND_API_KEY');
   const bccRecipient = process.env.INTAKE_BCC_RECIPIENT || 'darren.randles@gmail.com';
   const { level2Price, level3Price, level2Url, level3Url, consultUrl } = paymentConfig();
+  const continueInterviewUrl = `https://intake.bridgetoai.ca/snapshot?continue=deep&recordId=${encodeURIComponent(clientDraftId)}`;
   const html = `
     <div style="font-family:Inter,Arial,sans-serif;max-width:640px;margin:0 auto;color:#111827;">
       <div style="background:#0d6e5e;padding:24px 30px;border-radius:12px 12px 0 0;">
@@ -1229,22 +1226,24 @@ async function sendFreeReportEmail({ clientDraftId, clientEmail, clientName, bus
       </div>
       <div style="border:1px solid #d9e7e3;border-top:0;padding:26px 30px;border-radius:0 0 12px 12px;background:#fafaf8;">
         <p style="font-size:15px;line-height:1.6;margin-top:0;">Hi ${escapeHtml(clientName || 'there')},</p>
-        <p style="font-size:15px;line-height:1.6;">Thank you for completing the intake. Your free AI Opportunity Snapshot is attached as a clean HTML report you can read in your browser or print.</p>
+        <p style="font-size:15px;line-height:1.6;">Thank you for completing the free interview. Your AI Opportunity Snapshot is attached as a clean HTML report you can read in your browser or print.</p>
         <p style="font-size:15px;line-height:1.6;">This first report is intentionally practical and directional. It avoids private financials, recipes, customer lists, supplier contracts, payroll details, invoices, and confidential formulas.</p>
         <div style="background:#e8f4f1;border:1px solid #b8ddd7;border-radius:10px;padding:14px 16px;color:#0d6e5e;font-size:14px;line-height:1.5;margin-bottom:16px;">
-          <strong>Next step:</strong> Review the snapshot first. It should give you one useful place to start without buying anything. If it feels accurate, the deeper reports turn the same intake into a clearer build order and a better implementation plan.
+          <strong>Next step:</strong> Review the snapshot first. If it feels accurate, continue the deeper interview before buying a paid report. The deeper questions give Bridge To AI enough context to rank the work properly and decide what report level actually makes sense.
         </div>
         <div style="border:1px solid #e4e2dd;border-radius:10px;padding:16px 18px;background:#ffffff;font-size:14px;line-height:1.55;">
-          <strong style="display:block;margin-bottom:8px;color:#111827;">What this snapshot does not fully cover</strong>
-          <div style="margin-bottom:10px;">The free report gives you the first layer. The deeper reports look at implementation order, what should wait, what could save time first, and which workflows could become part of a private Bridge To AI workbench.</div>
-          ${ctaLineHtml(`Detailed AI Opportunity Report - ${level2Price}`, level2Url, 'More diagnosis, clearer ranking, and practical first projects.')}
-          ${ctaLineHtml(`Preliminary AI Action Plan - ${level3Price}`, level3Url, 'A build sequence with workflow priorities, risk controls, and scoping questions.')}
-          ${ctaLineHtml('Talk with Bridge To AI about implementation or a custom workbench', consultUrl, 'A workbench is a private operating dashboard built around your business so repeated workflows can run from one place.')}
+          <strong style="display:block;margin-bottom:8px;color:#111827;">What this snapshot does not fully cover yet</strong>
+          <div style="margin-bottom:10px;">The free report gives you the first layer. The deeper interview captures the extra context needed before Bridge To AI can responsibly prepare a detailed opportunity report, action plan, or workbench recommendation.</div>
+          ${ctaLineHtml('Continue the deeper interview', continueInterviewUrl, 'No payment is required to add the missing context. This is the best next step if you want a stronger report.')}
+          <div style="margin-bottom:10px;color:#6b7280;font-size:13px;">Privacy note: this continuation link opens your saved secure interview. Please do not forward this email if you do not want someone else to access that continuation path.</div>
+          ${ctaLineHtml(`Detailed AI Opportunity Report - ${level2Price}`, '', 'Best considered after the deeper interview confirms enough detail for ranking and first projects.')}
+          ${ctaLineHtml(`Preliminary AI Action Plan - ${level3Price}`, '', 'Best considered after workflow priorities, risk controls, and scoping questions are clearer.')}
+          ${ctaLineHtml('Talk with Bridge To AI about implementation or a custom workbench', consultUrl, 'Useful if you already know you want help turning the opportunity into a working system.')}
         </div>
         <p style="font-size:13px;color:#6b7280;line-height:1.5;margin-bottom:0;margin-top:18px;">Record ID: <code>${escapeHtml(clientDraftId)}</code></p>
       </div>
     </div>`;
-  const text = `Your Bridge To AI opportunity snapshot is ready.\n\nThe free report is attached.\n\nWhat this snapshot does not fully cover:\n- Detailed AI Opportunity Report - ${level2Price}: deeper diagnosis, readiness gaps, and prioritized first projects. ${level2Url || 'Reply to this email to request it.'}\n- Preliminary AI Action Plan - ${level3Price}: implementation phases, workflow priorities, and scoping questions. ${level3Url || 'Reply to this email to request it.'}\n- Implementation support: help turning the plan into a working AI system or workbench after private scoping. ${consultUrl || 'Reply to this email to request a conversation.'}\n\nA workbench is a private operating dashboard built around your business so repeated workflows can run from one place.\n\nRecord ID: ${clientDraftId}`;
+  const text = `Your Bridge To AI opportunity snapshot is ready.\n\nThe free report is attached.\n\nWhat this snapshot does not fully cover yet:\nThe free report gives you the first layer. The deeper interview captures the extra context needed before Bridge To AI can responsibly prepare a detailed opportunity report, action plan, or workbench recommendation.\n\nBest next step:\n- Continue the deeper interview: ${continueInterviewUrl}\n\nPrivacy note: this continuation link opens your saved secure interview. Please do not forward this email if you do not want someone else to access that continuation path.\n\nAfter the deeper interview:\n- Detailed AI Opportunity Report - ${level2Price}: deeper diagnosis, readiness gaps, and prioritized first projects.\n- Preliminary AI Action Plan - ${level3Price}: implementation phases, workflow priorities, and scoping questions.\n- Implementation support: help turning the plan into a working AI system or workbench after private scoping. ${consultUrl || 'Reply to this email to request a conversation.'}\n\nA workbench is a private operating dashboard built around your business so repeated workflows can run from one place.\n\nRecord ID: ${clientDraftId}`;
   const payload = {
     from: 'The Bridge Team <team@bridgetoai.ca>',
     to: [clientEmail],
@@ -1277,8 +1276,7 @@ async function generateFreeAndEmail(clientDraftId, providedEmail = '') {
   const sessionEmail = String(sessionPayload.clientEmail || '').trim().toLowerCase();
   const requestEmail = String(providedEmail || '').trim().toLowerCase();
   if (!sessionEmail) throw new Error('No client email found on the intake session');
-  if (!requestEmail) throw new Error('Client email confirmation is required');
-  if (requestEmail !== sessionEmail) throw new Error('Client email does not match the secure intake session');
+  if (requestEmail && requestEmail !== sessionEmail) throw new Error('Client email does not match the secure intake session');
 
   await logReportEvent(clientDraftId, 'free_report_delivery_started', 'success', privacyProofDefaults({
     reportTier: 'free',

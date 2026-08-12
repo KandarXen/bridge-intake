@@ -452,7 +452,7 @@
         <h1>BTAI Records Console</h1>
         <p>Retrieve secure intake records, generate reports, download privacy proof, and review partner aggregate intelligence from one admin-only dashboard.</p>
       </div>
-      <div class="version-pill">v1.70.11</div>
+      <div class="version-pill">v1.71.2</div>
     </div>
 
     <div id="admin-record-controls" class="record-strip auth-locked">
@@ -996,7 +996,7 @@
     function friendlyAdminError(message = '') {
       const text = String(message || '').trim();
       if (/Report quality gate failed/i.test(text) && /missing_expected_final_section/i.test(text)) {
-        return `${text}\n\nMeaning: the report generated, but the completion validator did not find the required final section. In v1.70.11 the server attempts one repair pass, then adds a safe deterministic closing section when the only remaining issue is an incomplete or missing final section. Retry this report after deploying the current build.`;
+        return `${text}\n\nMeaning: the report generated, but the completion validator did not find the required final section. In v1.71.2 the server attempts one repair pass, then adds a safe deterministic closing section when the only remaining issue is an incomplete or missing final section. Retry this report after deploying the current build.`;
       }
       if (/No client email found/i.test(text)) {
         return `${text}\n\nMeaning: the secure intake session does not contain a client email address, so the free report cannot be emailed automatically.`;
@@ -1016,11 +1016,19 @@
     document.getElementById('admin-signin-btn').addEventListener('click', async () => {
       const email = document.getElementById('admin-email').value.trim();
       const password = document.getElementById('admin-password').value;
+      const code = document.getElementById('admin-mfa-code').value.trim();
       adminAuthStatus.textContent = 'Signing in...';
       try {
         const data = await adminSession('sign-in', { email, password });
         setAdminTokens(data);
         if (data.mfaRequired) {
+          if (code) {
+            adminAuthStatus.textContent = 'Password accepted. Verifying MFA code...';
+            const verified = await adminSession('verify-mfa', { code });
+            setAdminTokens(verified);
+            await refreshAdminAuthStatus();
+            return;
+          }
           const factorData = await adminSession('factors');
           adminMfaFactors = factorData.factors || [];
           adminAuthStatus.textContent = adminMfaFactors.length
@@ -1080,6 +1088,11 @@
       adminAuthStatus.textContent = 'Creating MFA setup QR code...';
       try {
         const data = await adminSession('enroll-mfa');
+        if (data.alreadyEnrolled) {
+          adminMfaFactors = data.factors || [];
+          adminAuthStatus.textContent = data.message || 'MFA is already enrolled. Enter the current authenticator code and click Verify MFA.';
+          return;
+        }
         pendingMfaFactorId = data.factorId || '';
         const src = qrImageSrc(data.qrCode);
         mfaQrWrap.innerHTML = src
@@ -1096,8 +1109,8 @@
     document.getElementById('admin-mfa-btn').addEventListener('click', async () => {
       const code = document.getElementById('admin-mfa-code').value.trim();
       const factorId = pendingMfaFactorId || adminMfaFactors[0]?.id || '';
-      if (!factorId) {
-        adminAuthStatus.textContent = 'No MFA factor is available. Click Set Up MFA first.';
+      if (!code) {
+        adminAuthStatus.textContent = 'Enter the 6-digit authenticator code first.';
         return;
       }
       adminAuthStatus.textContent = 'Verifying MFA...';
