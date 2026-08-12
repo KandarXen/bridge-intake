@@ -342,6 +342,26 @@ report_pack_zip_downloaded
 
 The proof export does not include raw interview answers, raw Venture DNA content, client email, private recipes, supplier/customer details, payroll, invoices, formulas, or confidential operating data.
 
+### Automated Privacy-Proof Smoke Test
+
+Run this after privacy/schema changes and before taking sensitive client data:
+
+```bash
+node scripts/privacy-proof-smoke-test.mjs
+```
+
+The test creates a synthetic non-client record in Supabase, logs the required privacy-proof events, stores only an encrypted synthetic payload, then verifies that consent, cross-border notice, retention/deletion policy, encrypted storage, anonymized AI-analysis evidence, admin access logging, and report privacy scan evidence all resolve to passing proof flags.
+
+Required local environment variables:
+
+```text
+SUPABASE_URL
+SUPABASE_SECRET_KEY
+BTAI_ENCRYPTION_KEY
+```
+
+Use `--json` for machine-readable output. Synthetic test records use a `privacy-smoke-...` Record ID and are intentionally marked with `syntheticTest: true`.
+
 ## Privacy Model
 
 The secure path is:

@@ -184,6 +184,7 @@ validate-output.js
     - `rawDataSharedWithPartner` is `false`
     - `rawDnaIncludedInReportZip` is `false`
     - the export contains proof events but no raw interview answers
+
 19. On `/btai-records-console`, generate the reports one at a time if needed:
     - Free Snapshot
     - Detailed Opportunity Report
@@ -210,6 +211,29 @@ validate-output.js
     - the Level 3 purchase link appears in the report body
     - the BTAI Secure Intelligence Layer privacy statement appears in the report body
     - no raw Venture DNA markdown is included
+
+## Automated Privacy-Proof Smoke Test
+
+Before accepting sensitive client data, run:
+
+```bash
+node scripts/privacy-proof-smoke-test.mjs
+```
+
+Expected result:
+
+```text
+PASS encryptedRecordsConfirmed
+PASS anonymizedAiAnalysisConfirmed
+PASS privacyConsentConfirmed
+PASS crossBorderNoticeConfirmed
+PASS retentionPolicyRecorded
+PASS adminAccessLogged
+PASS reportPrivacyScanCompleted
+PASS reportPrivacyScanBlockingIssueFound is false
+```
+
+This test creates a synthetic `privacy-smoke-...` record only. It does not send real client data to the AI provider.
 
 ## 6. Security Notes
 
