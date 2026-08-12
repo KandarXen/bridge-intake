@@ -18,6 +18,8 @@ Run this locally in PowerShell:
 
 Use the generated value as `BTAI_ENCRYPTION_KEY`.
 
+When rotating this key, keep the old value in `BTAI_ENCRYPTION_KEY_PREVIOUS` until old records are no longer needed. The app encrypts new records with `BTAI_ENCRYPTION_KEY` and can decrypt older records with `BTAI_ENCRYPTION_KEY_PREVIOUS`.
+
 ## 3. Vercel Environment Variables
 
 Required:
@@ -27,6 +29,7 @@ SUPABASE_URL=
 SUPABASE_SECRET_KEY=
 SUPABASE_ANON_KEY=
 BTAI_ENCRYPTION_KEY=
+BTAI_ENCRYPTION_KEY_PREVIOUS=
 ANTHROPIC_API_KEY=
 RESEND_API_KEY=
 BTAI_ADMIN_SECRET=
@@ -52,7 +55,7 @@ BTAI_CONSULTATION_URL=
 
 For live purchases, `BTAI_LEVEL2_PAYMENT_URL` and `BTAI_LEVEL3_PAYMENT_URL` should be Stripe Payment Links such as `https://buy.stripe.com/...`.
 
-`BTAI_STORE_RECORD_LABELS=false` keeps client and business names out of plaintext Supabase metadata. The names remain inside encrypted payloads.
+`BTAI_STORE_RECORD_LABELS=false` keeps client and business names out of plaintext Supabase metadata. The names remain inside encrypted payloads. Set it to `true` only if BTAI accepts storing business/client display labels in `intake_sessions` for admin index usability.
 
 `BTAI_ADMIN_SECRET` is only an emergency fallback when `BTAI_ENABLE_EMERGENCY_ADMIN_SECRET=true`. Normal production must use Supabase admin sign-in with MFA and keep `BTAI_ENABLE_EMERGENCY_ADMIN_SECRET=false`.
 

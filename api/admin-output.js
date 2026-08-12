@@ -54,6 +54,7 @@ function countFilled(values) {
 
 function progressSummary(row, payload) {
   const status = String(row.status || '').toLowerCase();
+  const decryptError = !!payload.decryptError;
   const questionCount = Number(payload.baseQuestionCount || 0) || (Array.isArray(payload.answers) ? payload.answers.length : 0);
   const scenarioSteps = payload.intakeVariant === 'full_diagnostic' ? 2 : 0;
   const totalSteps = Math.max(1, Number(payload.progressTotalSteps || 0) || questionCount + scenarioSteps || 1);
@@ -75,7 +76,8 @@ function progressSummary(row, payload) {
   const idleHours = updatedAt ? Math.max(0, Math.round((Date.now() - updatedAt) / 36_000) / 100) : null;
   const likelyAbandoned = status === 'draft' && idleHours !== null && idleHours >= 24;
   let bucket = 'Not started';
-  if (status === 'complete' || progressPercent >= 100) bucket = 'Complete';
+  if (decryptError) bucket = 'Encrypted - previous key needed';
+  else if (status === 'complete' || progressPercent >= 100) bucket = 'Complete';
   else if (progressPercent >= 75) bucket = 'Near finish';
   else if (progressPercent >= 40) bucket = 'Midway';
   else if (progressPercent > 0) bucket = 'Early';
@@ -89,7 +91,7 @@ function progressSummary(row, payload) {
     abandonmentBucket: bucket,
     likelyAbandoned,
     idleHours,
-    progressLabel: `${progressPercent}% (${currentStep}/${totalSteps})`
+    progressLabel: decryptError ? 'Encrypted' : `${progressPercent}% (${currentStep}/${totalSteps})`
   };
 }
 
@@ -101,14 +103,15 @@ function sessionSummary(row) {
     payload = { decryptError: err.message || 'Could not decrypt session payload' };
   }
   const progress = progressSummary(row, payload);
+  const encryptedLabel = payload.decryptError ? 'Encrypted - previous key needed' : 'Not captured';
   return {
     recordId: row.client_draft_id || '',
     status: row.status || '',
-    businessName: safeText(payload.businessName || row.business_name_label || 'Not captured'),
-    clientName: safeText(payload.clientName || row.client_name_label || 'Not captured'),
-    clientEmail: safeText(payload.clientEmail || 'Not captured', 220),
-    businessCategory: safeText(payload.businessCategory || row.business_category || 'Not captured'),
-    businessNiche: safeText(payload.businessNiche || 'Not captured'),
+    businessName: safeText(payload.businessName || row.business_name_label || encryptedLabel),
+    clientName: safeText(payload.clientName || row.client_name_label || encryptedLabel),
+    clientEmail: safeText(payload.clientEmail || encryptedLabel, 220),
+    businessCategory: safeText(payload.businessCategory || row.business_category || encryptedLabel),
+    businessNiche: safeText(payload.businessNiche || encryptedLabel),
     partner: safeText(payload.campaignPartner || payload.partner || 'BTAI'),
     campaign: safeText(payload.campaignId || payload.campaign || 'general_intake'),
     currentStep: row.current_step || '',

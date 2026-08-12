@@ -232,10 +232,13 @@ SUPABASE_URL
 SUPABASE_SECRET_KEY
 SUPABASE_ANON_KEY
 BTAI_ENCRYPTION_KEY
+BTAI_ENCRYPTION_KEY_PREVIOUS
 ANTHROPIC_API_KEY
 RESEND_API_KEY
 BTAI_ADMIN_SECRET
 ```
+
+`BTAI_ENCRYPTION_KEY_PREVIOUS` is only needed after a key rotation so older encrypted records remain readable while new records use the current key.
 
 Recommended:
 
