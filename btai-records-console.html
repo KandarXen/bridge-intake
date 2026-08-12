@@ -125,6 +125,9 @@
       gap: 6px;
       margin: 0;
     }
+    .auth-locked {
+      display: none !important;
+    }
     .console-grid {
       display: grid;
       grid-template-columns: minmax(330px, .86fr) minmax(420px, 1.1fr) minmax(410px, 1.05fr);
@@ -449,10 +452,10 @@
         <h1>BTAI Records Console</h1>
         <p>Retrieve secure intake records, generate reports, download privacy proof, and review partner aggregate intelligence from one admin-only dashboard.</p>
       </div>
-      <div class="version-pill">v1.70.6</div>
+      <div class="version-pill">v1.70.7</div>
     </div>
 
-    <div class="record-strip">
+    <div id="admin-record-controls" class="record-strip auth-locked">
       <section class="panel">
         <label for="record-id">Record ID / clientDraftId</label>
         <input id="record-id" autocomplete="off" placeholder="Paste the Record ID from the notification email">
@@ -493,7 +496,7 @@
 
     <div class="notice admin-warning">Do not share this page, admin tokens, or emergency secrets. Files are decrypted only after the server verifies an MFA-backed admin account or an explicitly enabled emergency fallback.</div>
 
-    <div class="console-grid">
+    <div id="admin-console-grid" class="console-grid auth-locked">
       <section class="panel report-actions">
         <h2>Report Actions</h2>
         <p>Generate reports from the encrypted Venture DNA record. The raw Venture DNA markdown is not included in the ZIP.</p>
@@ -656,6 +659,8 @@
     const recordIndexBody = document.getElementById('record-index-body');
     const recordIndexHeaders = Array.from(document.querySelectorAll('th[data-sort]'));
     const adminAuthStatus = document.getElementById('admin-auth-status');
+    const adminRecordControls = document.getElementById('admin-record-controls');
+    const adminConsoleGrid = document.getElementById('admin-console-grid');
     let adminAccessToken = sessionStorage.getItem('btaiAdminAccessToken') || '';
     let adminRefreshToken = sessionStorage.getItem('btaiAdminRefreshToken') || '';
     let adminMfaFactors = [];
@@ -664,6 +669,16 @@
     let recordIndexRows = [];
     let visibleRecordIndexRows = [];
     let recordSort = { key: 'updatedAt', direction: 'desc' };
+
+    function setAdminUnlocked(isUnlocked) {
+      adminRecordControls.classList.toggle('auth-locked', !isUnlocked);
+      adminConsoleGrid.classList.toggle('auth-locked', !isUnlocked);
+      if (!isUnlocked) {
+        statusEl.textContent = 'Admin controls locked. Sign in with Supabase admin MFA.';
+      } else {
+        statusEl.textContent = 'Ready. Choose a Record ID, then run an admin action.';
+      }
+    }
 
     function formatMs(ms) {
       const n = Number(ms);
@@ -915,14 +930,17 @@
     async function refreshAdminAuthStatus() {
       if (!adminAccessToken) {
         adminAuthStatus.textContent = 'Not signed in.';
+        setAdminUnlocked(false);
         return;
       }
       try {
         const data = await adminSession('check');
+        setAdminUnlocked(!!data.authorized);
         adminAuthStatus.textContent = data.authorized
           ? 'Signed in with Supabase admin MFA.'
           : 'Signed in, but MFA/admin authorization is not complete.';
       } catch (err) {
+        setAdminUnlocked(false);
         adminAuthStatus.textContent = `Admin session check failed: ${err.message}`;
       }
     }
@@ -930,7 +948,7 @@
     function friendlyAdminError(message = '') {
       const text = String(message || '').trim();
       if (/Report quality gate failed/i.test(text) && /missing_expected_final_section/i.test(text)) {
-        return `${text}\n\nMeaning: the report generated, but the completion validator did not find the required final section. In v1.70.6 the server attempts one repair pass, then adds a safe deterministic closing section when the only remaining issue is an incomplete or missing final section. Retry this report after deploying the current build.`;
+        return `${text}\n\nMeaning: the report generated, but the completion validator did not find the required final section. In v1.70.7 the server attempts one repair pass, then adds a safe deterministic closing section when the only remaining issue is an incomplete or missing final section. Retry this report after deploying the current build.`;
       }
       if (/No client email found/i.test(text)) {
         return `${text}\n\nMeaning: the secure intake session does not contain a client email address, so the free report cannot be emailed automatically.`;
@@ -987,6 +1005,7 @@
       clearAdminTokens();
       document.getElementById('admin-password').value = '';
       document.getElementById('admin-mfa-code').value = '';
+      setAdminUnlocked(false);
       adminAuthStatus.textContent = 'Signed out.';
     });
 
