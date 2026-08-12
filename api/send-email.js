@@ -2,6 +2,7 @@
 // Sends completion notifications through Resend. By default this endpoint does
 // not email raw DNA content or attachments; the encrypted Supabase record is the
 // system of record.
+import { assertRateLimit, assertTrustedOrigin, safeError } from '../lib/security.js';
 
 function uniqueList(values) {
   return Array.from(new Set(values.filter(Boolean)));
@@ -11,9 +12,29 @@ function attachmentsEnabled() {
   return String(process.env.INTAKE_EMAIL_ATTACHMENTS_ENABLED || '').toLowerCase() === 'true';
 }
 
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function singleLine(value) {
+  return String(value || '').replace(/[\r\n]+/g, ' ').trim();
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  try {
+    assertTrustedOrigin(req);
+    assertRateLimit(req, { key: 'send-email', limit: 8, windowMs: 60_000 });
+  } catch (err) {
+    return safeError(res, err);
   }
 
   const {
@@ -62,22 +83,22 @@ export default async function handler(req, res) {
       </div>
       <div style="background: #fafaf8; border: 1px solid #e4e2dd; border-top: none; padding: 28px 32px; border-radius: 0 0 10px 10px;">
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
-          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280; width: 150px;">Client</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; font-weight: 600;">${clientName}</td></tr>
-          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Client email</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${clientEmail || 'Not provided'}</td></tr>
-          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Business type</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${businessCategory || 'Not provided'}</td></tr>
-          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Size</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${companySize || 'Not provided'}</td></tr>
-          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Owner status</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${ownerWorkStatus || 'Not provided'}</td></tr>
-          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Departments</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${departments || 'Not provided'}</td></tr>
-          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Privacy consent</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${privacyConsent ? 'Accepted' : 'Not confirmed'}${privacyConsentAt ? ` at ${privacyConsentAt}` : ''}</td></tr>
-          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Policy version</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${privacyPolicyVersion || 'Not provided'}</td></tr>
-          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Partner / campaign</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${partnerDisplayName || partner || 'BTAI'} / ${campaign || 'general_intake'}</td></tr>
-          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Record ID</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;"><code>${recordId || 'Not provided'}</code></td></tr>
-          <tr><td style="padding: 8px 0; color: #6b7280;">Date</td><td style="padding: 8px 0;">${date || new Date().toISOString()}</td></tr>
+          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280; width: 150px;">Client</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; font-weight: 600;">${escapeHtml(clientName)}</td></tr>
+          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Client email</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${escapeHtml(clientEmail || 'Not provided')}</td></tr>
+          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Business type</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${escapeHtml(businessCategory || 'Not provided')}</td></tr>
+          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Size</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${escapeHtml(companySize || 'Not provided')}</td></tr>
+          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Owner status</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${escapeHtml(ownerWorkStatus || 'Not provided')}</td></tr>
+          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Departments</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${escapeHtml(departments || 'Not provided')}</td></tr>
+          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Privacy consent</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${privacyConsent ? 'Accepted' : 'Not confirmed'}${privacyConsentAt ? ` at ${escapeHtml(privacyConsentAt)}` : ''}</td></tr>
+          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Policy version</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${escapeHtml(privacyPolicyVersion || 'Not provided')}</td></tr>
+          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Partner / campaign</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${escapeHtml(partnerDisplayName || partner || 'BTAI')} / ${escapeHtml(campaign || 'general_intake')}</td></tr>
+          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Record ID</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;"><code>${escapeHtml(recordId || 'Not provided')}</code></td></tr>
+          <tr><td style="padding: 8px 0; color: #6b7280;">Date</td><td style="padding: 8px 0;">${escapeHtml(date || new Date().toISOString())}</td></tr>
         </table>
 
         <div style="background: ${secureStorage?.saved ? '#e8f4f1' : '#fdf6e8'}; border: 1px solid ${secureStorage?.saved ? '#b8ddd7' : '#f0d9a8'}; border-radius: 8px; padding: 14px 16px; font-size: 0.9rem; color: ${secureStorage?.saved ? '#0d6e5e' : '#8a6d2a'}; margin-bottom: 18px;">
           <strong>${storageStatus}.</strong>
-          ${secureStorage?.reason ? `<br>Reason: ${secureStorage.reason}` : ''}
+          ${secureStorage?.reason ? `<br>Reason: ${escapeHtml(secureStorage.reason)}` : ''}
         </div>
 
         <p style="font-size: 0.9rem; line-height: 1.6; color: #374151;">
@@ -112,7 +133,7 @@ This is a notification-only email. The encrypted intake output is stored in the 
     from: 'The Bridge Team <team@bridgetoai.ca>',
     to: recipients,
     bcc: bccRecipients,
-    subject: subject || `New Intake Complete - ${clientName}`,
+    subject: singleLine(subject || `New Intake Complete - ${clientName}`),
     html: htmlBody,
     text: textBody
   };

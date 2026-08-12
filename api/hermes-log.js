@@ -3,6 +3,7 @@
 // No answer bodies are logged.
 
 import { insertIntakeEvent, supabaseConfigured } from '../lib/supabase-rest.js';
+import { assertRateLimit, assertTrustedOrigin, safeError } from '../lib/security.js';
 
 function sanitizeEvent(body) {
   const details = body.details && typeof body.details === 'object' ? body.details : {};
@@ -105,6 +106,8 @@ export default async function handler(req, res) {
   }
 
   try {
+    assertTrustedOrigin(req);
+    assertRateLimit(req, { key: 'hermes-log', limit: 120, windowMs: 60_000 });
     const event = sanitizeEvent(req.body || {});
     const row = await insertIntakeEvent({
       client_draft_id: event.clientDraftId || null,
@@ -120,6 +123,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ logged: true, id: row?.id || '' });
   } catch (err) {
     console.error('hermes-log error:', err);
+    if (err.statusCode) return safeError(res, err);
     return res.status(200).json({ logged: false, reason: err.message });
   }
 }

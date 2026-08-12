@@ -1,12 +1,6 @@
 import { createReportHtml } from '../lib/report-html.js';
 import { getPartnerKpiEvents } from '../lib/supabase-rest.js';
-
-function authorized(req) {
-  const expected = process.env.BTAI_ADMIN_SECRET;
-  if (!expected) return false;
-  const provided = req.headers['x-btai-admin-secret'] || req.body?.adminSecret;
-  return provided && String(provided) === String(expected);
-}
+import { assertRateLimit, assertTrustedOrigin, authorizedAdminRequest, safeError } from '../lib/security.js';
 
 function safeName(value) {
   return String(value || 'AFPA')
@@ -242,7 +236,13 @@ Test and completion-page demo records are excluded by default so partner reporti
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  if (!authorized(req)) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    assertTrustedOrigin(req);
+    assertRateLimit(req, { key: 'partner-aggregate', limit: 12, windowMs: 60_000 });
+  } catch (err) {
+    return safeError(res, err);
+  }
+  if (!(await authorizedAdminRequest(req))) return res.status(401).json({ error: 'Unauthorized' });
 
   const partner = safeName(req.body?.partner || 'AFPA');
   const campaign = String(req.body?.campaign || 'all').trim() || 'all';

@@ -3,6 +3,7 @@ import { createDocxBuffer, createZipBuffer } from '../lib/docx.js';
 import { createReportHtml } from '../lib/report-html.js';
 import { getIntakeEvents, getIntakeSession, getLatestIntakeOutput, insertIntakeEvent, insertIntakeOutput } from '../lib/supabase-rest.js';
 import { validateDnaOutput } from '../lib/validate-output.js';
+import { assertRateLimit, assertTrustedOrigin, assertTurnstile, authorizedAdminRequest, safeError } from '../lib/security.js';
 
 const REPORTS = {
   free: {
@@ -38,13 +39,6 @@ const REPORTS = {
     maxTokens: 5200
   }
 };
-
-function authorized(req) {
-  const expected = process.env.BTAI_ADMIN_SECRET;
-  if (!expected) return false;
-  const provided = req.headers['x-btai-admin-secret'] || req.body?.adminSecret;
-  return provided && String(provided) === String(expected);
-}
 
 function escapeHtml(value) {
   return String(value || '')
@@ -179,6 +173,11 @@ function paymentConfig() {
   };
 }
 
+function markdownLink(label, url, fallback = 'Reply to the Bridge To AI email thread to request this.') {
+  if (!url) return fallback;
+  return `[${label}](${url})`;
+}
+
 function reportPrivacyStatement() {
   return `## How This Was Handled Privately
 
@@ -197,7 +196,7 @@ This action plan gives the build direction, but the actual build still needs pri
 
 If you want Bridge To AI to help turn this into a working AI system or workbench, book a scoping conversation here:
 
-${consultUrl || 'Reply to the Bridge To AI email thread to request implementation scoping.'}
+${markdownLink('Book a Bridge To AI implementation scoping conversation', consultUrl, 'Reply to the Bridge To AI email thread to request implementation scoping.')}
 
 A workbench is a private operating dashboard built around your business so repeated workflows can run from one place instead of being scattered across notes, spreadsheets, prompts, files, and tools.`;
   }
@@ -207,9 +206,9 @@ This free snapshot is meant to give you one useful first read, not hold the valu
 
 The next layer goes deeper on the pieces we can only touch lightly here: which opportunities deserve priority, what should wait, what needs cleanup first, and how this could become a private Bridge To AI workbench.
 
-- Detailed AI Opportunity Report - ${level2Price}: More diagnosis, clearer ranking, and practical first projects. ${level2Url || 'Payment link coming soon.'}
-- Preliminary AI Action Plan - ${level3Price}: A build sequence with workflow priorities, risk controls, and scoping questions. ${level3Url || 'Payment link coming soon.'}
-- Talk with Bridge To AI about implementation or a custom workbench: ${consultUrl || 'Reply to the Bridge To AI email thread to request a conversation.'}
+- ${markdownLink(`Detailed AI Opportunity Report - ${level2Price}`, level2Url, `Detailed AI Opportunity Report - ${level2Price}`)}: More diagnosis, clearer ranking, and practical first projects.
+- ${markdownLink(`Preliminary AI Action Plan - ${level3Price}`, level3Url, `Preliminary AI Action Plan - ${level3Price}`)}: A build sequence with workflow priorities, risk controls, and scoping questions.
+- ${markdownLink('Talk with Bridge To AI about implementation or a custom workbench', consultUrl, 'Talk with Bridge To AI about implementation or a custom workbench')}: A private operating dashboard built around your business so repeated workflows can run from one place.
 
 A workbench is a private operating dashboard built around your business so repeated workflows can run from one place instead of being scattered across notes, spreadsheets, prompts, files, and tools.`;
 }
@@ -1278,7 +1277,8 @@ async function generateFreeAndEmail(clientDraftId, providedEmail = '') {
   const sessionEmail = String(sessionPayload.clientEmail || '').trim().toLowerCase();
   const requestEmail = String(providedEmail || '').trim().toLowerCase();
   if (!sessionEmail) throw new Error('No client email found on the intake session');
-  if (requestEmail && requestEmail !== sessionEmail) throw new Error('Client email does not match the secure intake session');
+  if (!requestEmail) throw new Error('Client email confirmation is required');
+  if (requestEmail !== sessionEmail) throw new Error('Client email does not match the secure intake session');
 
   await logReportEvent(clientDraftId, 'free_report_delivery_started', 'success', privacyProofDefaults({
     reportTier: 'free',
@@ -1625,10 +1625,13 @@ export default async function handler(req, res) {
   if (!clientDraftId) return res.status(400).json({ error: 'Missing clientDraftId' });
 
   try {
+    assertTrustedOrigin(req);
+    assertRateLimit(req, { key: `report-pack:${action || 'unknown'}`, limit: action === 'generate-free-email' ? 8 : 12, windowMs: 60_000 });
     if (action === 'generate-free-email') {
+      await assertTurnstile(req);
       return res.status(200).json(await generateFreeAndEmail(clientDraftId, req.body?.clientEmail || ''));
     }
-    if (!authorized(req)) return res.status(401).json({ error: 'Unauthorized' });
+    if (!(await authorizedAdminRequest(req))) return res.status(401).json({ error: 'Unauthorized' });
     if (action === 'generate-one') {
       const tier = String(req.body?.tier || '').trim();
       const forceRegenerate = !!req.body?.forceRegenerate;
@@ -1676,7 +1679,7 @@ export default async function handler(req, res) {
         console.error('free report failure logging failed:', logErr);
       }
     }
-    return res.status(500).json({ error: 'Server error', message: err.message || 'Report-pack request failed' });
+    return safeError(res, err, 'Report-pack request failed');
   }
 }
 

@@ -25,10 +25,14 @@ Required:
 ```text
 SUPABASE_URL=
 SUPABASE_SECRET_KEY=
+SUPABASE_ANON_KEY=
 BTAI_ENCRYPTION_KEY=
 ANTHROPIC_API_KEY=
 RESEND_API_KEY=
 BTAI_ADMIN_SECRET=
+BTAI_ENABLE_EMERGENCY_ADMIN_SECRET=false
+BTAI_ALLOWED_ORIGINS=https://intake.bridgetoai.ca,https://www.bridgetoai.ca
+TURNSTILE_SECRET_KEY=
 ```
 
 Recommended:
@@ -50,7 +54,36 @@ For live purchases, `BTAI_LEVEL2_PAYMENT_URL` and `BTAI_LEVEL3_PAYMENT_URL` shou
 
 `BTAI_STORE_RECORD_LABELS=false` keeps client and business names out of plaintext Supabase metadata. The names remain inside encrypted payloads.
 
-`BTAI_ADMIN_SECRET` protects the private admin retrieval page at `/btai-records-console`.
+`BTAI_ADMIN_SECRET` protects the private admin retrieval page at `/btai-records-console`. Use a unique random value of at least 24 characters, store it only in a password manager, and rotate it after any contractor/demo access.
+
+`BTAI_ALLOWED_ORIGINS` must include every production domain that is allowed to submit intake/admin requests. Do not use `*`.
+
+`SUPABASE_ANON_KEY` is required for Supabase Auth admin sign-in. Admin API access requires a Supabase access token with `aal2` and `app_metadata.btai_admin=true` or `app_metadata.role=btai_admin`.
+
+`TURNSTILE_SECRET_KEY` enables server-side Turnstile enforcement for final report-generation/delivery actions. Do not set this until `CONFIG.TURNSTILE_SITE_KEY` has been added to `index.html` and verified in preview.
+
+Set `BTAI_ENABLE_EMERGENCY_ADMIN_SECRET=false` for normal production. Turn it on only during a documented emergency window.
+
+## 3.1 Supabase Admin Auth Setup
+
+1. Enable Supabase Auth.
+2. Create the real BTAI admin user account(s).
+3. Enroll TOTP MFA for each admin.
+4. Set each admin user's app metadata to include either `"btai_admin": true` or `"role": "btai_admin"`.
+5. Insert matching rows into `admin_profiles`.
+6. Verify `/btai-records-console` says **Signed in with Supabase admin MFA**.
+
+## 3.2 Vercel Firewall / Abuse Controls
+
+Configure Vercel WAF rate limits before production:
+
+- `/api/generate-dna`: 5-10 requests/minute/IP.
+- `/api/report-pack`: 5-10 requests/minute/IP.
+- `/api/send-email`: 5 requests/minute/IP.
+- `/api/interview-ai`: 20 requests/minute/IP.
+- `/api/admin-*` and `/api/partner-aggregate`: strict admin-only monitoring.
+
+Start in log mode on preview, then enforce `429` or challenge/deny in production.
 
 ## 4. Upload Files
 
@@ -62,22 +95,25 @@ privacy.html
 vercel.json
 api/
 lib/
+docs/
 btai-records-console.html
 SUPABASE_SETUP.sql
 SECURE_DEPLOY_CHECKLIST.md
 README.md
 ```
 
-The `api/` folder should contain 7 serverless endpoint files. The helper files belong in `lib/`, not `api/`, so the Vercel Hobby plan stays under the 12-function limit.
+The `api/` folder should contain 9 serverless endpoint files. The helper files belong in `lib/`, not `api/`, so the Vercel Hobby plan stays under the 12-function limit.
 
 `api/` should contain only:
 
 ```text
 admin-output.js
+admin-session.js
 draft.js
 generate-dna.js
 hermes-log.js
 interview-ai.js
+partner-aggregate.js
 report-pack.js
 send-email.js
 ```
@@ -88,6 +124,8 @@ send-email.js
 crypto.js
 docx.js
 privacy.js
+report-html.js
+security.js
 supabase-rest.js
 validate-output.js
 ```
@@ -97,24 +135,23 @@ validate-output.js
 1. Open the Vercel preview URL.
 2. Open `/privacy.html` and confirm the Privacy Policy loads and shows version `2026-07-25-v1.56.1`.
 3. Open `/btai-records-console` and confirm the page includes **Generate Full Report Pack** and **Download Privacy Proof JSON**.
-4. Open `/?testComplete=1` and confirm the completion page appears without taking an interview.
-5. Open `/?partner=AFPA&campaign=demo&testComplete=1` and confirm the AFPA completion copy appears.
-6. Confirm the completion page primary button says **Email my free report**, not **Save preference**.
-7. Confirm pure `?testComplete=1` mode disables the report button and says **Test mode only - no report to send**.
-8. Start a real intake and confirm:
+4. Confirm `/?testComplete=1` on the public preview does not open completion test mode.
+5. Run a local-only completion-page test if needed, then close that local server before production testing.
+6. Confirm the completion page primary button says **Email my free report**, not **Save preference** after a real test intake.
+7. Start a real intake and confirm:
    - first Voice & Standards prompt shows as step 1 of 44;
    - second Voice & Standards prompt shows as step 2 of 44;
    - first business question shows as step 3 of 44;
    - Back from the first business question returns to the second Voice & Standards prompt.
-9. Open `/btai-records-console`, paste a real completed Record ID and `BTAI_ADMIN_SECRET`, then click **Send/Resend Free Report Email**.
-10. Confirm:
+8. Open `/btai-records-console`, paste a real completed Record ID and `BTAI_ADMIN_SECRET`, then click **Send/Resend Free Report Email**.
+9. Confirm:
    - the interviewee receives the free report email with DOCX attached;
    - `INTAKE_BCC_RECIPIENT` receives a copy with the report attached;
    - the original intake notification email includes the Record ID for admin retrieval;
    - Supabase has `report_free_snapshot_markdown`, `report_free_snapshot_docx`, and `free_report_emailed` event records.
    - Supabase has `report_btai_advisor_brief_markdown` and `report_btai_advisor_brief_docx` if `BTAI_GENERATE_INTERNAL_BRIEF_AFTER_FREE=true`.
    - The free-report email includes Level 2, Level 3, and implementation/workbench breadcrumbs.
-9. To test the actual final-page button without another interview, open `/?testComplete=1&allowRealDelivery=1&recordId=PASTE_REAL_RECORD_ID&email=CLIENT_EMAIL_ON_THAT_RECORD`, then click **Email my free report**.
+10. To test the actual final-page button, complete a real controlled test intake and click **Email my free report** from that completion page.
 3. Open `/?partner=AFPA&campaign=AFPA_December_AI_Course_2026`.
 4. Confirm the welcome screen is co-branded for AFPA and says AFPA receives anonymized aggregate insights only.
 5. On desktop, confirm the welcome screen uses a wider two-column layout: explanation/trust content on the left, start form on the right.

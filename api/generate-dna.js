@@ -7,6 +7,7 @@
 import { encryptJson } from '../lib/crypto.js';
 import { insertClaimTrace, insertIntakeEvent, insertIntakeOutput, updateIntakeSession } from '../lib/supabase-rest.js';
 import { validateDnaOutput } from '../lib/validate-output.js';
+import { assertRateLimit, assertTrustedOrigin, assertTurnstile, safeError } from '../lib/security.js';
 
 async function logPrivacyProof(clientDraftId, eventType, status, details = {}) {
   try {
@@ -249,12 +250,14 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { prompt, clientDraftId, sourceMeta } = req.body;
-  if (!prompt) {
-    return res.status(400).json({ error: 'Missing prompt' });
-  }
-
   try {
+    assertTrustedOrigin(req);
+    assertRateLimit(req, { key: 'generate-dna', limit: 6, windowMs: 60_000 });
+    await assertTurnstile(req);
+    const { prompt, clientDraftId, sourceMeta } = req.body;
+    if (!prompt) {
+      return res.status(400).json({ error: 'Missing prompt' });
+    }
     await logPrivacyProof(clientDraftId, 'privacy_proof_consent_recorded', sourceMeta?.privacyConsent ? 'success' : 'failed', {
       privacyProofType: 'consent',
       privacyConsentAccepted: !!sourceMeta?.privacyConsent,
@@ -384,7 +387,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error('Server error:', err);
-    return res.status(500).json({ error: 'Server error', message: err.message });
+    return safeError(res, err);
   }
 }
 

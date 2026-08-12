@@ -1,5 +1,6 @@
 import { encryptJson, decryptJson } from '../lib/crypto.js';
 import { getIntakeSession, updateIntakeSession, upsertIntakeSession } from '../lib/supabase-rest.js';
+import { assertRateLimit, assertTrustedOrigin, safeError, timingSafeEqualText } from '../lib/security.js';
 
 function publicLabels(payload) {
   const allowLabels = String(process.env.BTAI_STORE_RECORD_LABELS || '').toLowerCase() === 'true';
@@ -12,6 +13,8 @@ function publicLabels(payload) {
 async function saveDraft(payload) {
   const clientDraftId = String(payload?.clientDraftId || '').trim();
   if (!clientDraftId) return { status: 400, body: { error: 'Missing clientDraftId' } };
+  const draftResumeToken = String(payload?.draftResumeToken || '').trim();
+  if (draftResumeToken.length < 32) return { status: 400, body: { error: 'Missing draft resume token' } };
 
   const now = new Date().toISOString();
   const encrypted = encryptJson(payload);
@@ -30,12 +33,21 @@ async function saveDraft(payload) {
   return { status: 200, body: { saved: true, clientDraftId, at: now } };
 }
 
-async function loadDraft(clientDraftId) {
+function canAccessDraft(payload, providedToken) {
+  const expectedToken = String(payload?.draftResumeToken || '').trim();
+  const token = String(providedToken || '').trim();
+  if (expectedToken && token) return timingSafeEqualText(token, expectedToken);
+  return String(process.env.BTAI_ALLOW_LEGACY_DRAFT_LOAD || '').toLowerCase() === 'true';
+}
+
+async function loadDraft(clientDraftId, draftResumeToken) {
   const id = String(clientDraftId || '').trim();
   if (!id) return { status: 400, body: { error: 'Missing clientDraftId' } };
 
   const record = await getIntakeSession(id);
   if (!record) return { status: 200, body: { found: false } };
+  const payload = decryptJson(record.encrypted_payload);
+  if (!canAccessDraft(payload, draftResumeToken)) return { status: 403, body: { error: 'Draft resume token required' } };
 
   return {
     status: 200,
@@ -43,17 +55,28 @@ async function loadDraft(clientDraftId) {
       found: true,
       status: record.status,
       savedAt: record.updated_at,
-      payload: decryptJson(record.encrypted_payload)
+      payload
     }
   };
 }
 
-async function deleteDraft(clientDraftId) {
+async function deleteDraft(clientDraftId, draftResumeToken) {
   const id = String(clientDraftId || '').trim();
   if (!id) return { status: 200, body: { deleted: false, reason: 'No clientDraftId' } };
+  const record = await getIntakeSession(id);
+  if (record?.encrypted_payload) {
+    const payload = decryptJson(record.encrypted_payload);
+    if (!canAccessDraft(payload, draftResumeToken)) return { status: 403, body: { error: 'Draft resume token required' } };
+  }
 
   await updateIntakeSession(id, {
     status: 'abandoned',
+    encrypted_payload: encryptJson({
+      clientDraftId: id,
+      deletedAt: new Date().toISOString(),
+      deletionType: 'client_abandoned_draft',
+      privacyNote: 'Draft payload erased from active encrypted record by client-side clear action.'
+    }),
     updated_at: new Date().toISOString()
   });
   return { status: 200, body: { deleted: true } };
@@ -63,16 +86,20 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
+    assertTrustedOrigin(req);
+    assertRateLimit(req, { key: 'draft', limit: 60, windowMs: 60_000 });
     const action = String(req.body?.action || '').trim();
     let result;
-    if (action === 'save') result = await saveDraft(req.body?.payload || req.body);
-    else if (action === 'load') result = await loadDraft(req.body?.clientDraftId);
-    else if (action === 'delete') result = await deleteDraft(req.body?.clientDraftId);
+    if (action === 'save') {
+      result = await saveDraft(req.body?.payload || req.body);
+    }
+    else if (action === 'load') result = await loadDraft(req.body?.clientDraftId, req.body?.draftResumeToken);
+    else if (action === 'delete') result = await deleteDraft(req.body?.clientDraftId, req.body?.draftResumeToken);
     else result = { status: 400, body: { error: 'Unknown draft action' } };
 
     return res.status(result.status).json(result.body);
   } catch (err) {
     console.error('draft endpoint error:', err);
-    return res.status(500).json({ error: err.message });
+    return safeError(res, err);
   }
 }

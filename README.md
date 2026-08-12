@@ -1,11 +1,13 @@
-# Bridge To AI Intake App - v1.70.3 Clearer Paid Report Ladder
+# Bridge To AI Intake App - v1.70.6 Admin MFA / Turnstile / Ops Hardening
 
-This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, the required high-value "Try This This Week" prompt in the free report, selectable report export formats, searchable/sortable admin interview index, deterministic final-section safety net, and the clearer core-question/follow-up progress language. v1.70.3 clarifies the paid report ladder so Level 1 remains useful but directional, while Level 2 visibly adds ranking, readiness, cleanup-first guidance, 30-day action, and success measures.
+This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, the required high-value "Try This This Week" prompt in the free report, selectable report export formats, searchable/sortable admin interview index, deterministic final-section safety net, and the clearer core-question/follow-up progress language. v1.70.6 adds admin MFA enforcement support, Turnstile hooks, rate-limit backstops, and operating runbooks.
 
 ## What Changed
 
 - Privacy Policy version is now `2026-07-25-v1.56.1`.
-- Header version is now `v1.70.3`.
+- Header version is now `v1.70.6`.
+- Paid report links in the report upgrade section are now generated as proper markdown hyperlinks.
+- HTML report rendering now converts markdown links and safe raw URLs into clickable links that open in a new tab.
 - Level 1 Free Snapshot prompt now stops before becoming a paid implementation plan.
 - Level 1 still gives real value, likely opportunities, and one useful "Try This This Week" prompt.
 - Level 1 now avoids full sequencing, deep readiness scoring, implementation phases, tool maps, and detailed 30-day plans.
@@ -96,6 +98,8 @@ This build keeps the trust-first, controlled industry-adaptive intake, live-inte
 - Clicking a row fills the Record ID and filename fields for faster Venture DNA retrieval or report generation.
 - The interview index can be downloaded as CSV for private BTAI admin use.
 - The index is protected by `BTAI_ADMIN_SECRET` and logs an admin access audit event.
+- v1.70.5 hardens the same-day production path by requiring a browser-held draft resume token, using header-only constant-time admin-secret checks, blocking untrusted browser origins, disabling completion test mode on public hosts, erasing abandoned draft payloads, and creating the KPI view with `security_invoker`.
+- v1.70.6 adds Supabase admin-account/MFA enforcement support, `/api/admin-session`, Turnstile server validation hooks, server-side rate-limit backstops, admin profile/privacy request tables, and operating runbooks in `docs/`.
 - `vercel.json` now explicitly rewrites `/btai-records-console` to `/btai-records-console.html`.
 - The private records console file is now `btai-records-console.html`.
 - With Vercel `cleanUrls`, use `/btai-records-console` instead of `/admin` or `/admin.html`.
@@ -155,7 +159,7 @@ This build keeps the trust-first, controlled industry-adaptive intake, live-inte
 - The DOCX builder has been upgraded with stronger Word styles, better spacing, heading hierarchy, bullet handling, and markdown table rendering.
 - Completion-page next-step copy now matches the free-intake model instead of implying every user automatically receives a full roadmap and workbench build.
 - Completion-page BTAI follow-up preference now supports the report-delivery CTA instead of a separate preference-saving action.
-- Completion-page test mode is available with `?testComplete=1` so the final screen can be reviewed without taking a full interview. This does not submit an interview or send a report email.
+- Completion-page test mode is local-only with `?testComplete=1` so the final screen can be reviewed without taking a full interview during development. It is disabled on public hosts.
 - Privacy Policy now distinguishes reversible pseudonymization/tokenization from anonymized aggregate partner reporting.
 - Privacy Policy now includes named privacy accountability, cross-border processing, concrete retention/deletion targets, OPC complaint escalation, AI provider data-use language, breach response, access/correction/deletion process, minimum aggregate-reporting threshold, age restriction, cookies/analytics language, and the first-intake vs paid-implementation boundary.
 - Browser stores only a random session ID.
@@ -199,10 +203,14 @@ Required Vercel env vars:
 ```text
 SUPABASE_URL
 SUPABASE_SECRET_KEY
+SUPABASE_ANON_KEY
 BTAI_ENCRYPTION_KEY
 ANTHROPIC_API_KEY
 RESEND_API_KEY
 BTAI_ADMIN_SECRET
+BTAI_ENABLE_EMERGENCY_ADMIN_SECRET
+BTAI_ALLOWED_ORIGINS
+TURNSTILE_SECRET_KEY
 ```
 
 Recommended:
@@ -231,7 +239,7 @@ BTAI_LEVEL3_PAYMENT_URL=https://buy.stripe.com/...
 
 ## Completion Page Test Mode
 
-To test the final page without taking the full interview, open:
+To test the final page without taking the full interview, run the site locally and open:
 
 ```text
 /?testComplete=1
@@ -249,15 +257,9 @@ Optional test labels:
 /?testComplete=1&name=Morgan%20Ellis&business=Prairie%20Hearth%20Bakery&email=demo@bridgetoai.test
 ```
 
-This mode is for UX review only. It does not create a Supabase Venture DNA record and does not email the free report.
+This mode is for local UX review only. It is disabled on public hosts, does not create a Supabase Venture DNA record, and does not email the free report.
 
-To test real report delivery from the completion page without retaking the interview, use an existing completed Record ID:
-
-```text
-/?testComplete=1&allowRealDelivery=1&recordId=PASTE_REAL_RECORD_ID&email=CLIENT_EMAIL_ON_THAT_RECORD
-```
-
-The email must match the email stored on that secure intake session. This mode does not submit a new interview; it only lets you test the final-page **Email my free report** action against an existing encrypted Supabase record.
+To test real report delivery, complete a real test intake on the deployed preview using a controlled test email, then use the final-page **Email my free report** action or the admin console resend action.
 
 After a completed intake, use:
 

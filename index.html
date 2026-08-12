@@ -971,7 +971,7 @@
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag" id="header-tag">Business Discovery Session</span>
-      <span class="header-version">v1.70.3</span>
+      <span class="header-version">v1.70.6</span>
   </div>
 </header>
 
@@ -1127,6 +1127,8 @@
             </span>
           </label>
         </div>
+
+        <div id="turnstile-wrap" style="display:none; margin: 14px 0;"></div>
 
         <div id="welcome-error" class="error-banner">Please fill in your name, valid email, business name, business type, and privacy consent before continuing.</div>
 
@@ -1332,7 +1334,8 @@ const CONFIG = {
   REPORT_PACK_ENDPOINT: '/api/report-pack',
   DARREN_EMAIL: 'team@bridgetoai.ca',               // Intake delivery address; forwards to Darren via Resend/email routing
   DEFAULT_PARTNER: 'BTAI',
-  DEFAULT_CAMPAIGN: 'general_intake'
+  DEFAULT_CAMPAIGN: 'general_intake',
+  TURNSTILE_SITE_KEY: ''
 };
 const PRIVACY_POLICY_VERSION = '2026-07-25-v1.56.1';
 
@@ -1583,6 +1586,7 @@ const QUESTIONS = [
 // Fixed follow-up shown after every mastery question
 const MASTERY_FOLLOWUP = 'And if AI quietly handled this area for you, what would that free you up to do, or how would it change things?';
 const SESSION_KEY = 'bridge-to-ai-intake-session-v1';
+const RESUME_TOKEN_KEY = 'bridge-to-ai-intake-resume-token-v1';
 const LEGACY_DRAFT_KEY = 'bridge-to-ai-intake-draft-v1';
 
 // State ------------------------------------------------------------------
@@ -1636,6 +1640,8 @@ let pendingDraftPayload = null;
 let draftSaveTimer = null;
 let lastLoadedDraft = null;
 let lastSecureStorage = null;
+let turnstileToken = '';
+let turnstileWidgetId = null;
 
 // -- Screen management ------------------------------------------------------
 function ensureClientDraftId() {
@@ -1647,6 +1653,55 @@ function ensureClientDraftId() {
   }
   try { localStorage.setItem(SESSION_KEY, clientDraftId); } catch (e) { /* session resume unavailable */ }
   return clientDraftId;
+}
+
+function randomToken(bytes = 32) {
+  const data = new Uint8Array(bytes);
+  if (window.crypto && crypto.getRandomValues) crypto.getRandomValues(data);
+  else for (let i = 0; i < data.length; i += 1) data[i] = Math.floor(Math.random() * 256);
+  return Array.from(data).map(value => value.toString(16).padStart(2, '0')).join('');
+}
+
+function ensureDraftResumeToken() {
+  let token = '';
+  try { token = localStorage.getItem(RESUME_TOKEN_KEY) || ''; } catch (e) { token = ''; }
+  if (!token || token.length < 64) {
+    token = randomToken(32);
+    try { localStorage.setItem(RESUME_TOKEN_KEY, token); } catch (e) { /* session resume unavailable */ }
+  }
+  return token;
+}
+
+function initTurnstile() {
+  if (!CONFIG.TURNSTILE_SITE_KEY) return;
+  const wrap = document.getElementById('turnstile-wrap');
+  if (!wrap) return;
+  wrap.style.display = 'block';
+  const script = document.createElement('script');
+  script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+  script.async = true;
+  script.defer = true;
+  script.onload = () => {
+    if (!window.turnstile || turnstileWidgetId !== null) return;
+    turnstileWidgetId = window.turnstile.render(wrap, {
+      sitekey: CONFIG.TURNSTILE_SITE_KEY,
+      callback: token => { turnstileToken = token || ''; },
+      'expired-callback': () => { turnstileToken = ''; },
+      'error-callback': () => { turnstileToken = ''; }
+    });
+  };
+  document.head.appendChild(script);
+}
+
+function currentTurnstileToken() {
+  return CONFIG.TURNSTILE_SITE_KEY ? turnstileToken : '';
+}
+
+function resetTurnstileToken() {
+  turnstileToken = '';
+  if (window.turnstile && turnstileWidgetId !== null) {
+    try { window.turnstile.reset(turnstileWidgetId); } catch (e) { /* ignore */ }
+  }
 }
 
 function countWords(text) {
@@ -1934,6 +1989,8 @@ function buildDraftPayload(captureTranscript = true) {
     storageMode: 'server_encrypted_supabase',
     savedAt: new Date().toISOString(),
     clientDraftId: ensureClientDraftId(),
+    draftResumeToken: ensureDraftResumeToken(),
+    turnstileToken: currentTurnstileToken(),
     clientName,
     clientEmail,
     privacyConsent,
@@ -1972,6 +2029,7 @@ function buildDraftPayload(captureTranscript = true) {
 function postDraftToServer(payload, useBeacon = false) {
   if (!payload || !payload.clientDraftId) return Promise.resolve({ saved: false });
   try { localStorage.setItem(SESSION_KEY, payload.clientDraftId); } catch (e) { /* ignore */ }
+  if (!payload.draftResumeToken) payload.draftResumeToken = ensureDraftResumeToken();
 
   const body = JSON.stringify({ action: 'save', payload });
   if (useBeacon && navigator.sendBeacon) {
@@ -2017,14 +2075,17 @@ function saveDraft(captureTranscript = true, immediate = false) {
 
 async function loadDraft() {
   let sessionId = '';
+  let draftResumeToken = '';
   try { sessionId = localStorage.getItem(SESSION_KEY) || ''; } catch (e) { sessionId = ''; }
+  try { draftResumeToken = localStorage.getItem(RESUME_TOKEN_KEY) || ''; } catch (e) { draftResumeToken = ''; }
   if (!sessionId) return null;
+  if (!draftResumeToken) return null;
 
   try {
     const resp = await fetch('/api/draft', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'load', clientDraftId: sessionId })
+      body: JSON.stringify({ action: 'load', clientDraftId: sessionId, draftResumeToken })
     });
     if (!resp.ok) return null;
     const data = await resp.json();
@@ -2116,8 +2177,11 @@ async function resumeSavedInterview() {
 function clearSavedInterview(resetFields = false) {
   if (resetFields) draftAutosaveEnabled = true;
   const priorDraftId = clientDraftId;
+  let priorDraftResumeToken = '';
+  try { priorDraftResumeToken = localStorage.getItem(RESUME_TOKEN_KEY) || ''; } catch (e) { priorDraftResumeToken = ''; }
   try {
     localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(RESUME_TOKEN_KEY);
     localStorage.removeItem(LEGACY_DRAFT_KEY);
   } catch (e) { /* ignore */ }
   lastLoadedDraft = null;
@@ -2125,7 +2189,7 @@ function clearSavedInterview(resetFields = false) {
     fetch('/api/draft', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'delete', clientDraftId: priorDraftId }),
+      body: JSON.stringify({ action: 'delete', clientDraftId: priorDraftId, draftResumeToken: priorDraftResumeToken }),
       keepalive: true
     }).catch(() => {});
   }
@@ -2235,7 +2299,7 @@ async function researchBusinessContext() {
     const resp = await fetch('/api/interview-ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ task: 'research-business', businessName, businessCategory, businessNiche, shareComfort, websiteUrl, companySize, ownerWorkStatus, departments }),
+      body: JSON.stringify({ task: 'research-business', businessName, businessCategory, businessNiche, shareComfort, websiteUrl, companySize, ownerWorkStatus, departments, turnstileToken: currentTurnstileToken() }),
       signal: controller.signal
     });
     if (resp.ok) {
@@ -2254,7 +2318,7 @@ async function generateScenario() {
     const resp = await fetch('/api/interview-ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ task: 'scenario', businessCategory, businessNiche, shareComfort, businessContext })
+      body: JSON.stringify({ task: 'scenario', businessCategory, businessNiche, shareComfort, businessContext, turnstileToken: currentTurnstileToken() })
     });
     if (resp.ok) {
       const data = await resp.json();
@@ -2723,7 +2787,7 @@ async function runDomainProbe(domainName) {
     const resp = await fetch('/api/interview-ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ task: 'probe', domain: domainName, qa: domainQA, businessCategory, businessNiche, shareComfort, companySize, ownerWorkStatus, departments, businessContext })
+      body: JSON.stringify({ task: 'probe', domain: domainName, qa: domainQA, businessCategory, businessNiche, shareComfort, companySize, ownerWorkStatus, departments, businessContext, turnstileToken: currentTurnstileToken() })
     });
     if (resp.ok) {
       const data = await resp.json();
@@ -2795,7 +2859,7 @@ async function runMasteryFollowup(qIndex) {
     const resp = await fetch('/api/interview-ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ task: 'mastery-followup', area: q.domain, answer, businessCategory, businessNiche, shareComfort, companySize, ownerWorkStatus, departments, businessContext })
+      body: JSON.stringify({ task: 'mastery-followup', area: q.domain, answer, businessCategory, businessNiche, shareComfort, companySize, ownerWorkStatus, departments, businessContext, turnstileToken: currentTurnstileToken() })
     });
     if (resp.ok) {
       const data = await resp.json();
@@ -3039,6 +3103,7 @@ async function submitInterview() {
     draftAutosaveEnabled = false;
     try {
       localStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem(RESUME_TOKEN_KEY);
       localStorage.removeItem(LEGACY_DRAFT_KEY);
     } catch (e) { /* ignore */ }
     const card = document.getElementById('resume-card');
@@ -3286,6 +3351,7 @@ async function generateDNAWithClaude() {
     body: JSON.stringify({
       prompt: buildPrompt(),
       clientDraftId: ensureClientDraftId(),
+      turnstileToken: currentTurnstileToken(),
       sourceMeta: {
         partner: campaignPartner,
         campaign: campaignId,
@@ -3307,6 +3373,7 @@ async function generateDNAWithClaude() {
       }
     })
   });
+  resetTurnstileToken();
 
   if (!response.ok) throw new Error('DNA generation failed');
   const data = await response.json();
@@ -3358,6 +3425,7 @@ async function sendEmailWithDNA() {
     ownerWorkStatus,
     departments: departments.join(', '),
     recordId: ensureClientDraftId(),
+    turnstileToken: currentTurnstileToken(),
     secureStorage: lastSecureStorage || { saved: false, reason: 'Secure storage result was not returned to browser' },
     date: new Date().toLocaleDateString('en-CA')
   };
@@ -3404,7 +3472,8 @@ function triggerFreeReportDelivery(options = {}) {
   const payload = {
     action: 'generate-free-email',
     clientDraftId: ensureClientDraftId(),
-    clientEmail
+    clientEmail,
+    turnstileToken: currentTurnstileToken()
   };
 
   fetch(CONFIG.REPORT_PACK_ENDPOINT, {
@@ -3439,12 +3508,17 @@ function triggerFreeReportDelivery(options = {}) {
         error: err.message || 'Free report delivery failed',
         deliveryMode: options.manual ? 'manual_click' : 'automatic_completion'
       });
+    })
+    .finally(() => {
+      resetTurnstileToken();
     });
 }
 
 function maybeLaunchCompletionTestMode() {
   const params = new URLSearchParams(window.location.search);
   if (params.get('testComplete') !== '1') return;
+  const testModeAllowed = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+  if (!testModeAllowed) return;
   const providedRecordId = params.get('recordId') || '';
   const allowRealDelivery = params.get('allowRealDelivery') === '1' && !!providedRecordId;
   completionTestMode = !allowRealDelivery;
@@ -3486,6 +3560,7 @@ function maybeLaunchCompletionTestMode() {
   });
 }
 initCampaignContext();
+initTurnstile();
 maybeLaunchCompletionTestMode();
 </script>
 </body>

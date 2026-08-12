@@ -449,7 +449,7 @@
         <h1>BTAI Records Console</h1>
         <p>Retrieve secure intake records, generate reports, download privacy proof, and review partner aggregate intelligence from one admin-only dashboard.</p>
       </div>
-      <div class="version-pill">v1.70.3</div>
+      <div class="version-pill">v1.70.6</div>
     </div>
 
     <div class="record-strip">
@@ -459,8 +459,8 @@
       </section>
 
       <section class="panel">
-        <label for="admin-secret">Admin secret</label>
-        <input id="admin-secret" type="password" autocomplete="current-password" placeholder="Paste BTAI_ADMIN_SECRET">
+        <label for="admin-secret">Emergency admin secret fallback</label>
+        <input id="admin-secret" type="password" autocomplete="current-password" placeholder="Only if emergency fallback is enabled">
       </section>
 
       <section class="panel">
@@ -469,7 +469,29 @@
       </section>
     </div>
 
-    <div class="notice admin-warning">Do not share this page or admin secret. Files are decrypted only after the server verifies the admin secret.</div>
+    <section class="panel">
+      <h2>Admin Sign-In</h2>
+      <p>Use a Supabase admin account with MFA. The emergency secret should be disabled for normal production use.</p>
+      <div class="record-strip">
+        <label for="admin-email">Email
+          <input id="admin-email" type="email" autocomplete="username" placeholder="admin@example.com">
+        </label>
+        <label for="admin-password">Password
+          <input id="admin-password" type="password" autocomplete="current-password">
+        </label>
+        <label for="admin-mfa-code">Authenticator code
+          <input id="admin-mfa-code" inputmode="numeric" autocomplete="one-time-code" placeholder="123456">
+        </label>
+      </div>
+      <div class="button-row">
+        <button id="admin-signin-btn" type="button">Sign In</button>
+        <button id="admin-mfa-btn" class="secondary" type="button">Verify MFA</button>
+        <button id="admin-signout-btn" class="secondary" type="button">Sign Out</button>
+      </div>
+      <div id="admin-auth-status" class="status">Not signed in.</div>
+    </section>
+
+    <div class="notice admin-warning">Do not share this page, admin tokens, or emergency secrets. Files are decrypted only after the server verifies an MFA-backed admin account or an explicitly enabled emergency fallback.</div>
 
     <div class="console-grid">
       <section class="panel report-actions">
@@ -633,6 +655,10 @@
     const recordIndexSearch = document.getElementById('index-search');
     const recordIndexBody = document.getElementById('record-index-body');
     const recordIndexHeaders = Array.from(document.querySelectorAll('th[data-sort]'));
+    const adminAuthStatus = document.getElementById('admin-auth-status');
+    let adminAccessToken = sessionStorage.getItem('btaiAdminAccessToken') || '';
+    let adminRefreshToken = sessionStorage.getItem('btaiAdminRefreshToken') || '';
+    let adminMfaFactors = [];
     let timerStartedAt = 0;
     let timerHandle = null;
     let recordIndexRows = [];
@@ -678,15 +704,20 @@
       return {
         clientDraftId: cleanRecordId,
         adminSecret: document.getElementById('admin-secret').value,
+        adminAccessToken,
         filename: document.getElementById('filename').value.trim(),
         formats: document.getElementById('report-format')?.value || 'html'
       };
     }
 
+    function hasAdminAuth(values = formValues()) {
+      return !!(values.adminAccessToken || values.adminSecret);
+    }
+
     function requireBasics() {
       const values = formValues();
-      if (!values.clientDraftId || !values.adminSecret) {
-        statusEl.textContent = 'Record ID and admin secret are required.';
+      if (!values.clientDraftId || !hasAdminAuth(values)) {
+        statusEl.textContent = 'Record ID and admin authentication are required.';
         return null;
       }
       return values;
@@ -827,12 +858,12 @@
     }
 
     async function postJson(url, body, adminSecret) {
+      const headers = { 'Content-Type': 'application/json' };
+      if (adminAccessToken) headers.Authorization = `Bearer ${adminAccessToken}`;
+      if (adminSecret) headers['x-btai-admin-secret'] = adminSecret;
       const resp = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-btai-admin-secret': adminSecret
-        },
+        headers,
         body: JSON.stringify(body)
       });
       const raw = await resp.text();
@@ -849,10 +880,57 @@
       return data;
     }
 
+    function setAdminTokens(data = {}) {
+      if (data.accessToken) {
+        adminAccessToken = data.accessToken;
+        sessionStorage.setItem('btaiAdminAccessToken', adminAccessToken);
+      }
+      if (data.refreshToken) {
+        adminRefreshToken = data.refreshToken;
+        sessionStorage.setItem('btaiAdminRefreshToken', adminRefreshToken);
+      }
+    }
+
+    function clearAdminTokens() {
+      adminAccessToken = '';
+      adminRefreshToken = '';
+      adminMfaFactors = [];
+      sessionStorage.removeItem('btaiAdminAccessToken');
+      sessionStorage.removeItem('btaiAdminRefreshToken');
+    }
+
+    async function adminSession(action, body = {}) {
+      const headers = { 'Content-Type': 'application/json' };
+      if (adminAccessToken) headers.Authorization = `Bearer ${adminAccessToken}`;
+      const resp = await fetch('/api/admin-session', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ action, ...body })
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || data.error) throw new Error(data.error || data.message || `Admin auth failed with HTTP ${resp.status}`);
+      return data;
+    }
+
+    async function refreshAdminAuthStatus() {
+      if (!adminAccessToken) {
+        adminAuthStatus.textContent = 'Not signed in.';
+        return;
+      }
+      try {
+        const data = await adminSession('check');
+        adminAuthStatus.textContent = data.authorized
+          ? 'Signed in with Supabase admin MFA.'
+          : 'Signed in, but MFA/admin authorization is not complete.';
+      } catch (err) {
+        adminAuthStatus.textContent = `Admin session check failed: ${err.message}`;
+      }
+    }
+
     function friendlyAdminError(message = '') {
       const text = String(message || '').trim();
       if (/Report quality gate failed/i.test(text) && /missing_expected_final_section/i.test(text)) {
-        return `${text}\n\nMeaning: the report generated, but the completion validator did not find the required final section. In v1.70.3 the server attempts one repair pass, then adds a safe deterministic closing section when the only remaining issue is an incomplete or missing final section. Retry this report after deploying the current build.`;
+        return `${text}\n\nMeaning: the report generated, but the completion validator did not find the required final section. In v1.70.6 the server attempts one repair pass, then adds a safe deterministic closing section when the only remaining issue is an incomplete or missing final section. Retry this report after deploying the current build.`;
       }
       if (/No client email found/i.test(text)) {
         return `${text}\n\nMeaning: the secure intake session does not contain a client email address, so the free report cannot be emailed automatically.`;
@@ -865,6 +943,52 @@
       }
       return text || 'Unknown admin console error.';
     }
+
+    document.getElementById('admin-signin-btn').addEventListener('click', async () => {
+      const email = document.getElementById('admin-email').value.trim();
+      const password = document.getElementById('admin-password').value;
+      adminAuthStatus.textContent = 'Signing in...';
+      try {
+        const data = await adminSession('sign-in', { email, password });
+        setAdminTokens(data);
+        if (data.mfaRequired) {
+          const factorData = await adminSession('factors');
+          adminMfaFactors = factorData.factors || [];
+          adminAuthStatus.textContent = adminMfaFactors.length
+            ? 'Password accepted. Enter your authenticator code and click Verify MFA.'
+            : 'Password accepted, but no verified MFA factor was found. Enroll MFA in Supabase before production admin use.';
+        } else {
+          adminAuthStatus.textContent = 'Signed in with Supabase admin MFA.';
+        }
+      } catch (err) {
+        clearAdminTokens();
+        adminAuthStatus.textContent = `Sign-in failed: ${friendlyAdminError(err.message)}`;
+      }
+    });
+
+    document.getElementById('admin-mfa-btn').addEventListener('click', async () => {
+      const code = document.getElementById('admin-mfa-code').value.trim();
+      const factor = adminMfaFactors[0];
+      if (!factor) {
+        adminAuthStatus.textContent = 'No verified MFA factor is available for this admin session.';
+        return;
+      }
+      adminAuthStatus.textContent = 'Verifying MFA...';
+      try {
+        const data = await adminSession('verify-mfa', { factorId: factor.id, code });
+        setAdminTokens(data);
+        await refreshAdminAuthStatus();
+      } catch (err) {
+        adminAuthStatus.textContent = `MFA failed: ${friendlyAdminError(err.message)}`;
+      }
+    });
+
+    document.getElementById('admin-signout-btn').addEventListener('click', () => {
+      clearAdminTokens();
+      document.getElementById('admin-password').value = '';
+      document.getElementById('admin-mfa-code').value = '';
+      adminAuthStatus.textContent = 'Signed out.';
+    });
 
     async function refreshReportStatus(silent) {
       const values = requireBasics();
@@ -930,8 +1054,8 @@
 
     async function loadRecordIndex() {
       const values = formValues();
-      if (!values.adminSecret) {
-        statusEl.textContent = 'Admin secret is required to load the interview index.';
+      if (!hasAdminAuth(values)) {
+        statusEl.textContent = 'Admin authentication is required to load the interview index.';
         return;
       }
       const days = document.getElementById('index-days').value || '120';
@@ -1036,8 +1160,8 @@
 
     async function downloadAggregateReport(format) {
       const values = formValues();
-      if (!values.adminSecret) {
-        statusEl.textContent = 'Admin secret is required for partner aggregate reports.';
+      if (!hasAdminAuth(values)) {
+        statusEl.textContent = 'Admin authentication is required for partner aggregate reports.';
         return;
       }
       const partner = document.getElementById('partner-code').value.trim() || 'AFPA';
@@ -1155,6 +1279,8 @@
         setBusy(false);
       }
     });
+
+    refreshAdminAuthStatus();
   </script>
 </body>
 </html>

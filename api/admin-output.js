@@ -1,12 +1,6 @@
 import { decryptJson } from '../lib/crypto.js';
 import { getLatestIntakeOutput, getRecentIntakeSessions, insertIntakeEvent } from '../lib/supabase-rest.js';
-
-function authorized(req) {
-  const expected = process.env.BTAI_ADMIN_SECRET;
-  if (!expected) return false;
-  const provided = req.headers['x-btai-admin-secret'] || req.body?.adminSecret;
-  return provided && String(provided) === String(expected);
-}
+import { assertRateLimit, assertTrustedOrigin, authorizedAdminRequest, safeError } from '../lib/security.js';
 
 function safeFilename(value) {
   return String(value || 'Venture_DNA')
@@ -99,7 +93,13 @@ async function listRecords(req, res) {
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  if (!authorized(req)) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    assertTrustedOrigin(req);
+    assertRateLimit(req, { key: 'admin-output', limit: 20, windowMs: 60_000 });
+  } catch (err) {
+    return safeError(res, err);
+  }
+  if (!(await authorizedAdminRequest(req))) return res.status(401).json({ error: 'Unauthorized' });
 
   const action = String(req.body?.action || 'download-md').trim();
   if (action === 'list-records') {

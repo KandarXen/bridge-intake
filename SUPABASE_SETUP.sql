@@ -50,6 +50,30 @@ create table if not exists public.claim_trace (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.admin_profiles (
+  user_id uuid primary key,
+  email text not null,
+  role text not null default 'btai_admin',
+  mfa_required boolean not null default true,
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.privacy_requests (
+  id uuid primary key default gen_random_uuid(),
+  request_type text not null,
+  requester_email text,
+  client_draft_id text,
+  status text not null default 'received',
+  notes text,
+  handled_by uuid,
+  received_at timestamptz not null default now(),
+  due_at timestamptz,
+  completed_at timestamptz,
+  metadata jsonb not null default '{}'::jsonb
+);
+
 create index if not exists idx_intake_sessions_client_draft_id
   on public.intake_sessions (client_draft_id);
 
@@ -69,16 +93,21 @@ alter table public.intake_sessions enable row level security;
 alter table public.intake_outputs enable row level security;
 alter table public.intake_events enable row level security;
 alter table public.claim_trace enable row level security;
+alter table public.admin_profiles enable row level security;
+alter table public.privacy_requests enable row level security;
 
 grant usage on schema public to service_role;
 grant select, insert, update, delete on public.intake_sessions to service_role;
 grant select, insert, update, delete on public.intake_outputs to service_role;
 grant select, insert, update, delete on public.intake_events to service_role;
 grant select, insert, update, delete on public.claim_trace to service_role;
+grant select, insert, update, delete on public.admin_profiles to service_role;
+grant select, insert, update, delete on public.privacy_requests to service_role;
 
 drop view if exists public.intake_kpi_events;
 
-create view public.intake_kpi_events as
+create view public.intake_kpi_events
+with (security_invoker = true) as
 select
   id,
   created_at,

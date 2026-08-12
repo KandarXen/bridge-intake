@@ -1,4 +1,5 @@
 import { anonymizeText, privacyHeader, reidentifyText } from '../lib/privacy.js';
+import { assertRateLimit, assertTrustedOrigin, safeError } from '../lib/security.js';
 
 function normalizeUrl(rawUrl) {
   if (!rawUrl || typeof rawUrl !== 'string') return '';
@@ -276,8 +277,10 @@ Write ONE short follow-up question that picks up a specific thing they actually 
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  const task = String(req.body?.task || '').trim();
   try {
+    assertTrustedOrigin(req);
+    assertRateLimit(req, { key: 'interview-ai', limit: 20, windowMs: 60_000 });
+    const task = String(req.body?.task || '').trim();
     let result;
     if (task === 'research-business') result = await researchBusiness(req.body);
     else if (task === 'scenario') result = await scenario(req.body);
@@ -289,6 +292,6 @@ export default async function handler(req, res) {
     return res.status(200).json(result);
   } catch (err) {
     console.error('interview-ai error:', err);
-    return res.status(200).json({ error: err.message });
+    return safeError(res, err);
   }
 }
