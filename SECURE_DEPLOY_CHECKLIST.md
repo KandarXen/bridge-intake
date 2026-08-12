@@ -68,7 +68,7 @@ Set `BTAI_ENABLE_EMERGENCY_ADMIN_SECRET=false` for normal production. Turn it on
 
 1. Enable Supabase Auth.
 2. Create the real BTAI admin user account(s).
-3. Enroll TOTP MFA for each admin.
+3. Enroll TOTP MFA for each admin from `/btai-records-console`: sign in with password, click **Set Up MFA**, scan the QR code in an authenticator app, enter the generated code, then click **Verify MFA**.
 4. Set each admin user's app metadata to include either `"btai_admin": true` or `"role": "btai_admin"`.
 5. Insert matching rows into `admin_profiles`.
 6. Verify `/btai-records-console` says **Signed in with Supabase admin MFA**.

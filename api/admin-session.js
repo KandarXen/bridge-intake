@@ -124,6 +124,30 @@ async function updatePassword(token, body) {
   return { updated: true };
 }
 
+async function enrollMfa(token) {
+  if (!token) {
+    const err = new Error('Sign in before enrolling MFA');
+    err.statusCode = 401;
+    throw err;
+  }
+  const data = await supabaseAuth('factors', {
+    method: 'POST',
+    token,
+    body: {
+      factor_type: 'totp',
+      friendly_name: 'BTAI Admin Authenticator'
+    }
+  });
+  return {
+    factorId: data.id,
+    type: data.factor_type || data.type || 'totp',
+    friendlyName: data.friendly_name || 'BTAI Admin Authenticator',
+    qrCode: data.totp?.qr_code || '',
+    secret: data.totp?.secret || '',
+    uri: data.totp?.uri || ''
+  };
+}
+
 async function factors(token) {
   const data = await supabaseAuth('factors', { token });
   const all = Array.isArray(data) ? data : data.factors || [];
@@ -176,6 +200,7 @@ export default async function handler(req, res) {
     if (action === 'sign-in') return res.status(200).json(await signIn(req.body));
     if (action === 'request-password-reset') return res.status(200).json(await requestPasswordReset(req, req.body));
     if (action === 'update-password') return res.status(200).json(await updatePassword(bearerToken(req), req.body));
+    if (action === 'enroll-mfa') return res.status(200).json(await enrollMfa(bearerToken(req)));
     if (action === 'refresh') return res.status(200).json(await refresh(req.body));
     if (action === 'factors') return res.status(200).json(await factors(bearerToken(req)));
     if (action === 'verify-mfa') return res.status(200).json(await challengeAndVerify(bearerToken(req), req.body));

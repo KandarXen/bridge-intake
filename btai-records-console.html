@@ -452,7 +452,7 @@
         <h1>BTAI Records Console</h1>
         <p>Retrieve secure intake records, generate reports, download privacy proof, and review partner aggregate intelligence from one admin-only dashboard.</p>
       </div>
-      <div class="version-pill">v1.70.8</div>
+      <div class="version-pill">v1.70.9</div>
     </div>
 
     <div id="admin-record-controls" class="record-strip auth-locked">
@@ -489,8 +489,14 @@
       <div class="button-row">
         <button id="admin-signin-btn" type="button">Sign In</button>
         <button id="admin-reset-request-btn" class="secondary" type="button">Send Password Reset</button>
+        <button id="admin-enroll-mfa-btn" class="secondary" type="button">Set Up MFA</button>
         <button id="admin-mfa-btn" class="secondary" type="button">Verify MFA</button>
         <button id="admin-signout-btn" class="secondary" type="button">Sign Out</button>
+      </div>
+      <div id="mfa-enroll-panel" class="auth-locked" style="margin-top: 10px;">
+        <p>Scan this QR code with Microsoft Authenticator, Google Authenticator, 1Password, or Bitwarden. Then enter the 6-digit code above and click **Verify MFA**.</p>
+        <div id="mfa-qr-wrap" style="margin: 10px 0;"></div>
+        <div id="mfa-secret-wrap" class="status"></div>
       </div>
       <div id="password-reset-panel" class="auth-locked" style="margin-top: 10px;">
         <div class="record-strip">
@@ -676,9 +682,13 @@
     const adminRecordControls = document.getElementById('admin-record-controls');
     const adminConsoleGrid = document.getElementById('admin-console-grid');
     const passwordResetPanel = document.getElementById('password-reset-panel');
+    const mfaEnrollPanel = document.getElementById('mfa-enroll-panel');
+    const mfaQrWrap = document.getElementById('mfa-qr-wrap');
+    const mfaSecretWrap = document.getElementById('mfa-secret-wrap');
     let adminAccessToken = sessionStorage.getItem('btaiAdminAccessToken') || '';
     let adminRefreshToken = sessionStorage.getItem('btaiAdminRefreshToken') || '';
     let adminMfaFactors = [];
+    let pendingMfaFactorId = '';
     let timerStartedAt = 0;
     let timerHandle = null;
     let recordIndexRows = [];
@@ -939,8 +949,17 @@
       adminAccessToken = '';
       adminRefreshToken = '';
       adminMfaFactors = [];
+      pendingMfaFactorId = '';
       sessionStorage.removeItem('btaiAdminAccessToken');
       sessionStorage.removeItem('btaiAdminRefreshToken');
+    }
+
+    function qrImageSrc(qrCode) {
+      const raw = String(qrCode || '').trim();
+      if (!raw) return '';
+      if (/^data:/i.test(raw)) return raw;
+      if (/^<svg/i.test(raw)) return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(raw)}`;
+      return raw;
     }
 
     async function adminSession(action, body = {}) {
@@ -977,7 +996,7 @@
     function friendlyAdminError(message = '') {
       const text = String(message || '').trim();
       if (/Report quality gate failed/i.test(text) && /missing_expected_final_section/i.test(text)) {
-        return `${text}\n\nMeaning: the report generated, but the completion validator did not find the required final section. In v1.70.8 the server attempts one repair pass, then adds a safe deterministic closing section when the only remaining issue is an incomplete or missing final section. Retry this report after deploying the current build.`;
+        return `${text}\n\nMeaning: the report generated, but the completion validator did not find the required final section. In v1.70.9 the server attempts one repair pass, then adds a safe deterministic closing section when the only remaining issue is an incomplete or missing final section. Retry this report after deploying the current build.`;
       }
       if (/No client email found/i.test(text)) {
         return `${text}\n\nMeaning: the secure intake session does not contain a client email address, so the free report cannot be emailed automatically.`;
@@ -1003,7 +1022,7 @@
           adminMfaFactors = factorData.factors || [];
           adminAuthStatus.textContent = adminMfaFactors.length
             ? 'Password accepted. Enter your authenticator code and click Verify MFA.'
-            : 'Password accepted, but no verified MFA factor was found. Enroll MFA in Supabase before production admin use.';
+            : 'Password accepted, but no verified MFA factor was found. Click Set Up MFA to create an authenticator QR code.';
         } else {
           adminAuthStatus.textContent = 'Signed in with Supabase admin MFA.';
         }
@@ -1048,17 +1067,40 @@
       }
     });
 
+    document.getElementById('admin-enroll-mfa-btn').addEventListener('click', async () => {
+      if (!adminAccessToken) {
+        adminAuthStatus.textContent = 'Sign in with email and password before setting up MFA.';
+        return;
+      }
+      adminAuthStatus.textContent = 'Creating MFA setup QR code...';
+      try {
+        const data = await adminSession('enroll-mfa');
+        pendingMfaFactorId = data.factorId || '';
+        const src = qrImageSrc(data.qrCode);
+        mfaQrWrap.innerHTML = src
+          ? `<img alt="Authenticator QR code" src="${src}" style="width: 190px; height: 190px; background: white; border: 1px solid #d7d1c4; border-radius: 8px; padding: 8px;">`
+          : '';
+        mfaSecretWrap.textContent = data.secret ? `Manual setup secret: ${data.secret}` : 'QR code created. Scan it with your authenticator app.';
+        mfaEnrollPanel.classList.remove('auth-locked');
+        adminAuthStatus.textContent = 'Scan the QR code, then enter the 6-digit authenticator code and click Verify MFA.';
+      } catch (err) {
+        adminAuthStatus.textContent = `MFA setup failed: ${friendlyAdminError(err.message)}`;
+      }
+    });
+
     document.getElementById('admin-mfa-btn').addEventListener('click', async () => {
       const code = document.getElementById('admin-mfa-code').value.trim();
-      const factor = adminMfaFactors[0];
-      if (!factor) {
-        adminAuthStatus.textContent = 'No verified MFA factor is available for this admin session.';
+      const factorId = pendingMfaFactorId || adminMfaFactors[0]?.id || '';
+      if (!factorId) {
+        adminAuthStatus.textContent = 'No MFA factor is available. Click Set Up MFA first.';
         return;
       }
       adminAuthStatus.textContent = 'Verifying MFA...';
       try {
-        const data = await adminSession('verify-mfa', { factorId: factor.id, code });
+        const data = await adminSession('verify-mfa', { factorId, code });
         setAdminTokens(data);
+        pendingMfaFactorId = '';
+        mfaEnrollPanel.classList.add('auth-locked');
         await refreshAdminAuthStatus();
       } catch (err) {
         adminAuthStatus.textContent = `MFA failed: ${friendlyAdminError(err.message)}`;
