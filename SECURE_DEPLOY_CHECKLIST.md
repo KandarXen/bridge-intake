@@ -220,6 +220,8 @@ Before accepting sensitive client data, run:
 node scripts/privacy-proof-smoke-test.mjs
 ```
 
+For the deployed production runtime, open `/btai-records-console`, sign in with the Supabase admin account and MFA, then click **Run Smoke Test** in the Privacy Proof panel. This verifies the live Vercel environment, including `BTAI_ENCRYPTION_KEY`, without exposing secret values.
+
 Expected result:
 
 ```text

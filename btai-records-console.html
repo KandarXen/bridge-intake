@@ -583,6 +583,7 @@
             <button id="privacy-brief-btn" class="secondary" type="button">Brief Certificate</button>
             <button id="privacy-detailed-btn" class="secondary" type="button">Detailed Attestation</button>
             <button id="privacy-proof-btn" class="secondary technical-export" type="button" title="Technical machine-readable audit evidence">Raw JSON Audit</button>
+            <button id="privacy-smoke-test-btn" class="secondary" type="button">Run Smoke Test</button>
           </div>
         </section>
 
@@ -1299,6 +1300,37 @@
 
     document.getElementById('privacy-detailed-btn').addEventListener('click', () => {
       downloadPrivacyCertificate('privacy-certificate-detailed', 'Detailed_Privacy_Attestation');
+    });
+
+    document.getElementById('privacy-smoke-test-btn').addEventListener('click', async () => {
+      const values = formValues();
+      if (!hasAdminAuth(values)) {
+        statusEl.textContent = 'Sign in with your Supabase admin account and MFA before running the privacy-proof smoke test.';
+        return;
+      }
+      setBusy(true, 'Running synthetic privacy-proof smoke test inside the Vercel production runtime...');
+      try {
+        const data = await postJson('/api/privacy-proof-smoke-test', {}, values.adminSecret);
+        const proof = data.privacyProof || {};
+        const missing = data.missing || [];
+        statusEl.textContent = `Privacy-proof smoke test ${data.success ? 'PASSED' : 'FAILED'}.
+Synthetic record: ${proof.recordId || 'not returned'}
+Proof events: ${proof.proofEventCount || 0}
+Encrypted storage: ${proof.encryptedRecordsConfirmed ? 'yes' : 'no'}
+Anonymized AI proof: ${proof.anonymizedAiAnalysisConfirmed ? 'yes' : 'no'}
+Consent proof: ${proof.privacyConsentConfirmed ? 'yes' : 'no'}
+Cross-border notice: ${proof.crossBorderNoticeConfirmed ? 'yes' : 'no'}
+Retention proof: ${proof.retentionPolicyRecorded ? 'yes' : 'no'}
+Admin access logged: ${proof.adminAccessLogged ? 'yes' : 'no'}
+Report privacy scan: ${proof.reportPrivacyScanCompleted ? 'yes' : 'no'}
+Blocking scan issue: ${proof.reportPrivacyScanBlockingIssueFound ? 'yes' : 'no'}
+Missing: ${missing.length ? missing.join(', ') : 'none'}
+Conclusion: ${proof.privacyConclusion || 'not returned'}`;
+      } catch (err) {
+        statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;
+      } finally {
+        setBusy(false);
+      }
     });
 
     async function downloadAggregateReport(format) {

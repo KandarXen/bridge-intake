@@ -350,6 +350,8 @@ Run this after privacy/schema changes and before taking sensitive client data:
 node scripts/privacy-proof-smoke-test.mjs
 ```
 
+For production, sign in to `/btai-records-console` with the Supabase admin account and MFA, then click **Run Smoke Test** in the Privacy Proof panel. That runs the same synthetic proof check inside the Vercel runtime, using the deployed Supabase and encryption environment variables without exposing secret values.
+
 The test creates a synthetic non-client record in Supabase, logs the required privacy-proof events, stores only an encrypted synthetic payload, then verifies that consent, cross-border notice, retention/deletion policy, encrypted storage, anonymized AI-analysis evidence, admin access logging, and report privacy scan evidence all resolve to passing proof flags.
 
 Required local environment variables:
