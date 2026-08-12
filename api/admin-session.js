@@ -55,6 +55,42 @@ async function supabaseAuth(path, { method = 'GET', token = '', body = null } = 
   return data;
 }
 
+async function listMfaFactors(token) {
+  const { url, anonKey } = authConfig();
+  let resp;
+  try {
+    resp = await fetch(`${url}/rest/v1/auth/factors?select=id,factor_type,friendly_name,status&status=eq.verified`, {
+      method: 'GET',
+      headers: {
+        apikey: anonKey,
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json'
+      }
+    });
+  } catch (networkErr) {
+    const err = new Error(`Could not reach Supabase factor list. Check SUPABASE_URL and Supabase project availability. Detail: ${networkErr.message}`);
+    err.statusCode = 502;
+    throw err;
+  }
+
+  const raw = await resp.text();
+  let data = [];
+  try {
+    data = raw ? JSON.parse(raw) : [];
+  } catch (parseErr) {
+    data = [];
+  }
+
+  if (!resp.ok) {
+    const detail = data.msg || data.message || data.error_description || data.error || raw.slice(0, 300) || 'No response body returned.';
+    const err = new Error(`Supabase factor list failed with HTTP ${resp.status}: ${detail}`);
+    err.statusCode = resp.status;
+    throw err;
+  }
+
+  return Array.isArray(data) ? data : [];
+}
+
 async function signIn(body) {
   const email = String(body?.email || '').trim().toLowerCase();
   const password = String(body?.password || '');
@@ -177,8 +213,14 @@ async function enrollMfa(token) {
 }
 
 async function factors(token) {
-  const data = await supabaseAuth('factors', { token });
-  const all = Array.isArray(data) ? data : data.factors || [];
+  let all = [];
+  let warning = '';
+  try {
+    all = await listMfaFactors(token);
+  } catch (err) {
+    console.warn('MFA factor list unavailable:', err.message);
+    warning = err.message;
+  }
   return {
     factors: all
       .filter(factor => factor.status === 'verified')
@@ -186,7 +228,8 @@ async function factors(token) {
         id: factor.id,
         type: factor.factor_type || factor.type,
         friendlyName: factor.friendly_name || ''
-      }))
+      })),
+    warning
   };
 }
 
