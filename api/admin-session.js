@@ -3,24 +3,52 @@ import { assertRateLimit, assertTrustedOrigin, authorizedAdminAccount, bearerTok
 function authConfig() {
   const url = (process.env.SUPABASE_URL || '').replace(/\/$/, '');
   const anonKey = process.env.SUPABASE_ANON_KEY;
-  if (!url || !anonKey) throw new Error('Supabase Auth is not configured');
+  const missing = [];
+  if (!url) missing.push('SUPABASE_URL');
+  if (!anonKey) missing.push('SUPABASE_ANON_KEY');
+  if (missing.length) {
+    const err = new Error(`Supabase Auth is not configured. Missing Vercel env var(s): ${missing.join(', ')}`);
+    err.statusCode = 500;
+    throw err;
+  }
+  if (!/^https:\/\/[^/]+\.supabase\.co$/i.test(url)) {
+    const err = new Error('SUPABASE_URL does not look like a Supabase project URL. Expected https://YOUR-PROJECT.supabase.co');
+    err.statusCode = 500;
+    throw err;
+  }
   return { url, anonKey };
 }
 
 async function supabaseAuth(path, { method = 'GET', token = '', body = null } = {}) {
   const { url, anonKey } = authConfig();
-  const resp = await fetch(`${url}/auth/v1/${path}`, {
-    method,
-    headers: {
-      apikey: anonKey,
-      Authorization: token ? `Bearer ${token}` : `Bearer ${anonKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: body ? JSON.stringify(body) : undefined
-  });
-  const data = await resp.json().catch(() => ({}));
+  let resp;
+  try {
+    resp = await fetch(`${url}/auth/v1/${path}`, {
+      method,
+      headers: {
+        apikey: anonKey,
+        Authorization: token ? `Bearer ${token}` : `Bearer ${anonKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: body ? JSON.stringify(body) : undefined
+    });
+  } catch (networkErr) {
+    const err = new Error(`Could not reach Supabase Auth. Check SUPABASE_URL and Supabase project availability. Detail: ${networkErr.message}`);
+    err.statusCode = 502;
+    throw err;
+  }
+
+  const raw = await resp.text();
+  let data = {};
+  try {
+    data = raw ? JSON.parse(raw) : {};
+  } catch (parseErr) {
+    data = {};
+  }
   if (!resp.ok) {
-    const err = new Error(data.msg || data.error_description || data.error || 'Supabase Auth request failed');
+    const detail = data.msg || data.message || data.error_description || data.error || raw.slice(0, 300) || 'No response body returned.';
+    const endpoint = path.split('?')[0];
+    const err = new Error(`Supabase Auth ${method} /${endpoint} failed with HTTP ${resp.status}: ${detail}`);
     err.statusCode = resp.status;
     throw err;
   }

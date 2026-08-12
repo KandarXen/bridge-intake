@@ -1,11 +1,11 @@
-# Bridge To AI Intake App - v1.70.6 Admin MFA / Turnstile / Ops Hardening
+# Bridge To AI Intake App - v1.70.10 Admin Auth Diagnostics
 
 This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, the required high-value "Try This This Week" prompt in the free report, selectable report export formats, searchable/sortable admin interview index, deterministic final-section safety net, and the clearer core-question/follow-up progress language. v1.70.6 adds admin MFA enforcement support, Turnstile hooks, rate-limit backstops, and operating runbooks.
 
 ## What Changed
 
 - Privacy Policy version is now `2026-07-25-v1.56.1`.
-- Header version is now `v1.70.6`.
+- Header version is now `v1.70.10`.
 - Paid report links in the report upgrade section are now generated as proper markdown hyperlinks.
 - HTML report rendering now converts markdown links and safe raw URLs into clickable links that open in a new tab.
 - Level 1 Free Snapshot prompt now stops before becoming a paid implementation plan.
@@ -102,6 +102,7 @@ This build keeps the trust-first, controlled industry-adaptive intake, live-inte
 - v1.70.6 adds Supabase admin-account/MFA enforcement support, `/api/admin-session`, Turnstile server validation hooks, server-side rate-limit backstops, admin profile/privacy request tables, and operating runbooks in `docs/`.
 - v1.70.8 adds admin-console password reset request and new-password completion support for Supabase Auth recovery links.
 - v1.70.9 adds admin-console TOTP MFA enrollment with QR/manual secret display and verification.
+- v1.70.10 adds clearer Supabase Auth diagnostics for admin sign-in, password reset, password update, and MFA enrollment failures.
 - `vercel.json` now explicitly rewrites `/btai-records-console` to `/btai-records-console.html`.
 - The private records console file is now `btai-records-console.html`.
 - With Vercel `cleanUrls`, use `/btai-records-console` instead of `/admin` or `/admin.html`.

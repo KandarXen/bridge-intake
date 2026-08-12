@@ -452,7 +452,7 @@
         <h1>BTAI Records Console</h1>
         <p>Retrieve secure intake records, generate reports, download privacy proof, and review partner aggregate intelligence from one admin-only dashboard.</p>
       </div>
-      <div class="version-pill">v1.70.9</div>
+      <div class="version-pill">v1.70.10</div>
     </div>
 
     <div id="admin-record-controls" class="record-strip auth-locked">
@@ -996,13 +996,16 @@
     function friendlyAdminError(message = '') {
       const text = String(message || '').trim();
       if (/Report quality gate failed/i.test(text) && /missing_expected_final_section/i.test(text)) {
-        return `${text}\n\nMeaning: the report generated, but the completion validator did not find the required final section. In v1.70.9 the server attempts one repair pass, then adds a safe deterministic closing section when the only remaining issue is an incomplete or missing final section. Retry this report after deploying the current build.`;
+        return `${text}\n\nMeaning: the report generated, but the completion validator did not find the required final section. In v1.70.10 the server attempts one repair pass, then adds a safe deterministic closing section when the only remaining issue is an incomplete or missing final section. Retry this report after deploying the current build.`;
       }
       if (/No client email found/i.test(text)) {
         return `${text}\n\nMeaning: the secure intake session does not contain a client email address, so the free report cannot be emailed automatically.`;
       }
       if (/Client email does not match/i.test(text)) {
         return `${text}\n\nMeaning: the browser/request email does not match the email stored inside the secure intake session.`;
+      }
+      if (/Supabase Auth|auth\/v1|Invalid login credentials|Email not confirmed|SUPABASE_ANON_KEY|Supabase Auth is not configured|Could not reach Supabase Auth/i.test(text)) {
+        return `${text}\n\nMeaning: the admin sign-in request reached the server, but Supabase Auth could not complete it. Check the admin password first, then confirm SUPABASE_URL and SUPABASE_ANON_KEY are set in Vercel for Production and that the site was redeployed after the env changes.`;
       }
       if (/Supabase/i.test(text)) {
         return `${text}\n\nMeaning: the secure storage layer did not respond as expected. Check Vercel environment variables and Supabase availability.`;
