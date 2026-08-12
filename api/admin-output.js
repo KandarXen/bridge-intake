@@ -46,6 +46,53 @@ function safeText(value, max = 160) {
   return String(value || '').trim().slice(0, max);
 }
 
+function countFilled(values) {
+  return Array.isArray(values)
+    ? values.filter(value => String(value || '').trim()).length
+    : 0;
+}
+
+function progressSummary(row, payload) {
+  const status = String(row.status || '').toLowerCase();
+  const questionCount = Number(payload.baseQuestionCount || 0) || (Array.isArray(payload.answers) ? payload.answers.length : 0);
+  const scenarioSteps = payload.intakeVariant === 'full_diagnostic' ? 2 : 0;
+  const totalSteps = Math.max(1, Number(payload.progressTotalSteps || 0) || questionCount + scenarioSteps || 1);
+  const currentQuestion = Number.isInteger(row.current_question)
+    ? row.current_question
+    : Number.isInteger(payload.currentQ) ? payload.currentQ : null;
+  const fallbackStep = currentQuestion === null ? 0 : Math.min(totalSteps, scenarioSteps + currentQuestion + 1);
+  const currentStep = Math.max(0, Math.min(totalSteps, Number(payload.progressCurrentStep || 0) || fallbackStep));
+  const answeredPromptCount = Number(payload.answeredPromptCount || 0) ||
+    countFilled(payload.answers) +
+    countFilled(payload.masteryFollowups) +
+    (payload.scenarioGood ? 1 : 0) +
+    (payload.scenarioBad ? 1 : 0) +
+    Object.values(payload.domainProbes || {}).filter(probe => String(probe?.answer || '').trim()).length;
+  const progressPercent = status === 'complete'
+    ? 100
+    : Math.max(0, Math.min(100, Number(payload.progressPercent || 0) || Math.round((currentStep / totalSteps) * 100)));
+  const updatedAt = row.updated_at ? Date.parse(row.updated_at) : 0;
+  const idleHours = updatedAt ? Math.max(0, Math.round((Date.now() - updatedAt) / 36_000) / 100) : null;
+  const likelyAbandoned = status === 'draft' && idleHours !== null && idleHours >= 24;
+  let bucket = 'Not started';
+  if (status === 'complete' || progressPercent >= 100) bucket = 'Complete';
+  else if (progressPercent >= 75) bucket = 'Near finish';
+  else if (progressPercent >= 40) bucket = 'Midway';
+  else if (progressPercent > 0) bucket = 'Early';
+  if (likelyAbandoned) bucket = `${bucket} - likely abandoned`;
+
+  return {
+    progressPercent,
+    progressCurrentStep: currentStep,
+    progressTotalSteps: totalSteps,
+    answeredPromptCount,
+    abandonmentBucket: bucket,
+    likelyAbandoned,
+    idleHours,
+    progressLabel: `${progressPercent}% (${currentStep}/${totalSteps})`
+  };
+}
+
 function sessionSummary(row) {
   let payload = {};
   try {
@@ -53,6 +100,7 @@ function sessionSummary(row) {
   } catch (err) {
     payload = { decryptError: err.message || 'Could not decrypt session payload' };
   }
+  const progress = progressSummary(row, payload);
   return {
     recordId: row.client_draft_id || '',
     status: row.status || '',
@@ -65,6 +113,7 @@ function sessionSummary(row) {
     campaign: safeText(payload.campaignId || payload.campaign || 'general_intake'),
     currentStep: row.current_step || '',
     currentQuestion: row.current_question,
+    ...progress,
     createdAt: row.created_at || '',
     updatedAt: row.updated_at || '',
     decryptError: payload.decryptError || ''

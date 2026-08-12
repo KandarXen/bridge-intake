@@ -317,6 +317,33 @@
     .status-chip.ready span:last-child {
       color: var(--ok);
     }
+    .progress-cell {
+      min-width: 128px;
+    }
+    .mini-progress {
+      height: 7px;
+      margin-top: 4px;
+      border-radius: 999px;
+      background: #e8e5dd;
+      overflow: hidden;
+    }
+    .mini-progress span {
+      display: block;
+      height: 100%;
+      width: var(--progress-width, 0%);
+      background: var(--green);
+    }
+    .abandonment-note {
+      display: block;
+      margin-top: 3px;
+      color: #6f7378;
+      font-size: .72rem;
+      line-height: 1.2;
+    }
+    .abandonment-note.hot {
+      color: var(--warn);
+      font-weight: 800;
+    }
     .ready {
       color: var(--ok);
       font-weight: 700;
@@ -625,6 +652,7 @@
                   <th data-sort="clientEmail">Email</th>
                   <th data-sort="businessCategory">Category</th>
                   <th data-sort="status">Status</th>
+                  <th data-sort="progressPercent">Progress</th>
                   <th data-sort="partner">Partner</th>
                   <th data-sort="recordId">Record ID</th>
                   <th data-sort="updatedAt">Updated</th>
@@ -816,13 +844,14 @@
     }
 
     function downloadCsv(filename, rows) {
-      const headers = ['businessName', 'clientName', 'clientEmail', 'businessCategory', 'businessNiche', 'status', 'partner', 'campaign', 'recordId', 'createdAt', 'updatedAt'];
+      const headers = ['businessName', 'clientName', 'clientEmail', 'businessCategory', 'businessNiche', 'status', 'progressPercent', 'progressLabel', 'abandonmentBucket', 'likelyAbandoned', 'idleHours', 'partner', 'campaign', 'recordId', 'createdAt', 'updatedAt'];
       const lines = [headers.join(',')].concat(rows.map(row => headers.map(header => csvEscape(row[header] || '')).join(',')));
       downloadBlob(filename, new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' }));
     }
 
     function valueForSort(row, key) {
       if (key === 'updatedAt') return String(row.updatedAt || row.createdAt || '').toLowerCase();
+      if (key === 'progressPercent') return String(Number(row.progressPercent || 0)).padStart(3, '0');
       if (key === 'partner') return `${row.partner || ''} ${row.campaign || ''}`.toLowerCase();
       if (key === 'businessCategory') return `${row.businessCategory || ''} ${row.businessNiche || ''}`.toLowerCase();
       return String(row[key] || '').toLowerCase();
@@ -837,6 +866,9 @@
         row.businessCategory,
         row.businessNiche,
         row.status,
+        row.progressLabel,
+        row.abandonmentBucket,
+        row.likelyAbandoned ? 'likely abandoned abandoned cold draft' : '',
         row.partner,
         row.campaign,
         row.recordId,
@@ -870,6 +902,11 @@
           <td>${escapeHtml(row.clientEmail)}</td>
           <td>${escapeHtml(row.businessCategory)}${row.businessNiche && row.businessNiche !== 'Not captured' ? `<br><span style="color:#6f7378;">${escapeHtml(row.businessNiche)}</span>` : ''}</td>
           <td>${escapeHtml(row.status)}</td>
+          <td class="progress-cell">
+            <strong>${escapeHtml(row.progressLabel || '0%')}</strong>
+            <div class="mini-progress" aria-hidden="true"><span style="--progress-width:${Math.max(0, Math.min(100, Number(row.progressPercent || 0)))}%"></span></div>
+            <span class="abandonment-note ${row.likelyAbandoned ? 'hot' : ''}">${escapeHtml(row.abandonmentBucket || '')}</span>
+          </td>
           <td>${escapeHtml(row.partner)}<br><span style="color:#6f7378;">${escapeHtml(row.campaign)}</span></td>
           <td><code>${escapeHtml(row.recordId)}</code></td>
           <td>${escapeHtml(row.updatedAt || row.createdAt)}</td>
@@ -879,8 +916,9 @@
       const hasLoadedRows = recordIndexRows.length > 0;
       recordIndexWrap.classList.toggle('active', hasLoadedRows);
       recordIndexEmpty.style.display = hasLoadedRows ? 'none' : 'grid';
+      const abandonedCount = recordIndexRows.filter(row => row.likelyAbandoned).length;
       recordIndexMeta.textContent = hasLoadedRows
-        ? `Showing ${visibleRecordIndexRows.length} of ${recordIndexRows.length} loaded records${query ? ` for "${recordIndexSearch.value.trim()}"` : ''}. Click a column header to sort.`
+        ? `Showing ${visibleRecordIndexRows.length} of ${recordIndexRows.length} loaded records${query ? ` for "${recordIndexSearch.value.trim()}"` : ''}. Likely abandoned: ${abandonedCount}. Click a column header to sort.`
         : 'Index not loaded.';
     }
 
@@ -1229,7 +1267,13 @@
       if (!row) return;
       document.getElementById('record-id').value = row.recordId || '';
       document.getElementById('filename').value = row.businessName && row.businessName !== 'Not captured' ? row.businessName : row.clientName || '';
-      statusEl.textContent = `Selected Record ID:\n${row.recordId}\nBusiness: ${row.businessName || 'Not captured'}`;
+      statusEl.textContent = `Selected Record ID:
+${row.recordId}
+Business: ${row.businessName || 'Not captured'}
+Status: ${row.status || 'unknown'}
+Progress: ${row.progressLabel || 'unknown'}
+Patience signal: ${row.abandonmentBucket || 'unknown'}
+Idle hours: ${row.idleHours ?? 'unknown'}`;
     });
 
     document.getElementById('load-record-index-btn').addEventListener('click', loadRecordIndex);

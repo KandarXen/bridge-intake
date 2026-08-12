@@ -2453,6 +2453,30 @@ function activeScenarioStepCount() {
   return intakeVariant === 'full_diagnostic' ? 2 : 0;
 }
 
+function progressSnapshot() {
+  const scenarioSteps = activeScenarioStepCount();
+  const baseQuestionCount = Array.isArray(QUESTIONS) ? QUESTIONS.length : 0;
+  const totalSteps = Math.max(1, baseQuestionCount + scenarioSteps);
+  let currentStep = 0;
+  if (scenarioStage === 'good') currentStep = 1;
+  else if (scenarioStage === 'bad') currentStep = 2;
+  else if (scenarioDone || answers.some(Boolean) || masteryFollowups.some(Boolean) || Object.keys(domainProbes || {}).length > 0) {
+    currentStep = Math.min(totalSteps, scenarioSteps + clampQuestionIndex(currentQ) + 1);
+  }
+  if (baseQuestionCount && currentQ >= baseQuestionCount - 1 && (subStep === 'followup' || subStep === 'probe')) {
+    currentStep = totalSteps;
+  }
+  const answeredPromptCount = allAnswerTexts().length;
+  const progressPercent = Math.max(0, Math.min(100, Math.round((currentStep / totalSteps) * 100)));
+  return {
+    progressPercent,
+    progressCurrentStep: currentStep,
+    progressTotalSteps: totalSteps,
+    baseQuestionCount,
+    answeredPromptCount
+  };
+}
+
 function questionKey(q) {
   return `${q.section || ''}|${q.domain || ''}|${q.type || ''}`;
 }
@@ -2775,6 +2799,7 @@ function buildDraftPayload(captureTranscript = true) {
   if (!draftAutosaveEnabled) return;
   readWelcomeFields();
   if (captureTranscript) captureVisibleTranscript();
+  const progress = progressSnapshot();
   return {
     version: 2,
     storageMode: 'server_encrypted_supabase',
@@ -2814,6 +2839,7 @@ function buildDraftPayload(captureTranscript = true) {
     businessContext,
     subStep,
     activeProbe,
+    ...progress,
     interviewStarted: scenarioDone || !!scenarioStage || answers.some(Boolean) || masteryFollowups.some(Boolean) || Object.keys(domainProbes).length > 0
   };
 }
