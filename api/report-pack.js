@@ -4,6 +4,7 @@ import { createReportHtml } from '../lib/report-html.js';
 import { getIntakeEvents, getIntakeSession, getLatestIntakeOutput, insertIntakeEvent, insertIntakeOutput } from '../lib/supabase-rest.js';
 import { validateDnaOutput } from '../lib/validate-output.js';
 import { assertRateLimit, assertTrustedOrigin, assertTurnstile, authorizedAdminRequest, safeError } from '../lib/security.js';
+import { isLostKeyDecryptError, isRetiredLostKeyRecord, retiredLostKeyError } from '../lib/retirement.js';
 
 const REPORTS = {
   free: {
@@ -94,7 +95,14 @@ async function callClaude(prompt, maxTokens) {
 async function getDna(clientDraftId) {
   const output = await getLatestIntakeOutput(clientDraftId, 'venture_dna_markdown');
   if (!output) throw new Error('No Venture DNA output found for that Record ID');
-  const decrypted = decryptJson(output.encrypted_payload);
+  if (output.retired_lost_key) throw retiredLostKeyError();
+  let decrypted;
+  try {
+    decrypted = decryptJson(output.encrypted_payload);
+  } catch (err) {
+    if (isLostKeyDecryptError(err)) throw retiredLostKeyError();
+    throw err;
+  }
   if (!decrypted.dnaContent) throw new Error('Venture DNA output is empty');
   return {
     dnaContent: decrypted.dnaContent,
@@ -107,7 +115,13 @@ async function getDna(clientDraftId) {
 async function getSessionPayload(clientDraftId) {
   const session = await getIntakeSession(clientDraftId);
   if (!session?.encrypted_payload) throw new Error('No intake session found for that Record ID');
-  return decryptJson(session.encrypted_payload);
+  if (isRetiredLostKeyRecord(session)) throw retiredLostKeyError();
+  try {
+    return decryptJson(session.encrypted_payload);
+  } catch (err) {
+    if (isLostKeyDecryptError(err)) throw retiredLostKeyError();
+    throw err;
+  }
 }
 
 async function logReportEvent(clientDraftId, eventType, status, details = {}) {
@@ -1015,7 +1029,13 @@ async function loadGenerated(clientDraftId, tier, format = 'docx') {
   const outputType = format === 'html' ? spec.htmlOutputType : spec.docxOutputType;
   const row = await getLatestIntakeOutput(clientDraftId, outputType);
   if (!row) return null;
-  return decryptJson(row.encrypted_payload);
+  if (row.retired_lost_key) throw retiredLostKeyError();
+  try {
+    return decryptJson(row.encrypted_payload);
+  } catch (err) {
+    if (isLostKeyDecryptError(err)) throw retiredLostKeyError();
+    throw err;
+  }
 }
 
 async function loadGeneratedMarkdown(clientDraftId, tier) {
@@ -1023,9 +1043,14 @@ async function loadGeneratedMarkdown(clientDraftId, tier) {
   if (!spec) throw new Error(`Unknown report tier: ${tier || 'blank'}`);
   const row = await getLatestIntakeOutput(clientDraftId, spec.outputType);
   if (!row) return null;
-  return decryptJson(row.encrypted_payload);
+  if (row.retired_lost_key) throw retiredLostKeyError();
+  try {
+    return decryptJson(row.encrypted_payload);
+  } catch (err) {
+    if (isLostKeyDecryptError(err)) throw retiredLostKeyError();
+    throw err;
+  }
 }
-
 async function ensureHtmlReport(clientDraftId, tier) {
   const existingHtml = await loadGenerated(clientDraftId, tier, 'html');
   if (existingHtml?.contentBase64) return existingHtml;
@@ -1601,7 +1626,14 @@ async function downloadZip(clientDraftId, formatsInput = 'html') {
   const key = formatKey(formats);
   const row = await getLatestIntakeOutput(clientDraftId, 'three_report_pack_zip');
   if (!row) return buildZip(clientDraftId, formats);
-  const payload = decryptJson(row.encrypted_payload);
+  if (row.retired_lost_key) throw retiredLostKeyError();
+  let payload;
+  try {
+    payload = decryptJson(row.encrypted_payload);
+  } catch (err) {
+    if (isLostKeyDecryptError(err)) throw retiredLostKeyError();
+    throw err;
+  }
   if (payload.formatKey !== key) return buildZip(clientDraftId, formats);
   await logReportEvent(clientDraftId, 'report_pack_zip_downloaded', 'success', privacyProofDefaults({
     zipReady: true,

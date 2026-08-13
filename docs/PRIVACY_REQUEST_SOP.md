@@ -39,3 +39,16 @@ Before releasing or deleting personal information, verify control of the request
 2. Amend the active report or source profile.
 3. Preserve correction audit history.
 
+
+
+## Lost-Key Trial Data Retirement
+
+Use this process only for prototype/trial records where the previous encryption key is unavailable and the affected payloads cannot be decrypted or re-encrypted.
+
+1. Notify affected trial participants using `docs/TRIAL_PARTICIPANT_EMAIL.md`.
+2. Run `TRIAL_DATA_RETIREMENT.sql` first with `erase_payloads = false`.
+3. Save the audit result sets: retirement batch, affected sessions, and output inventory.
+4. Check whether client-facing reports exist outside Supabase, such as emailed/downloaded HTML, DOCX, PDF, or Markdown files.
+5. If approved by the privacy owner, rerun the SQL with `erase_payloads = true` to overwrite encrypted database payloads with non-sensitive tombstones.
+6. Preserve `docs/TRIAL_DATA_RETIREMENT_AUDIT.md`, the SQL result exports, and the participant notification record.
+7. Do not represent database-only encrypted reports as recoverable unless they are successfully decrypted under an available key or exist as exported/email copies.

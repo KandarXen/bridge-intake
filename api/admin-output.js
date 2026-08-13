@@ -1,6 +1,7 @@
 import { decryptJson } from '../lib/crypto.js';
 import { getLatestIntakeOutput, getRecentIntakeSessions, insertIntakeEvent } from '../lib/supabase-rest.js';
 import { assertRateLimit, assertTrustedOrigin, authorizedAdminRequest, safeError } from '../lib/security.js';
+import { isLostKeyDecryptError, retiredLostKeyMessage } from '../lib/retirement.js';
 
 function safeFilename(value) {
   return String(value || 'Venture_DNA')
@@ -103,7 +104,8 @@ function sessionSummary(row) {
     payload = { decryptError: err.message || 'Could not decrypt session payload' };
   }
   const progress = progressSummary(row, payload);
-  const encryptedLabel = payload.decryptError ? 'Encrypted - previous key needed' : 'Not captured';
+  const retiredLostKey = row.retired_lost_key === true || String(row.status || '').toLowerCase() === 'retired_lost_key';
+  const encryptedLabel = retiredLostKey ? 'Retired trial record - lost key' : payload.decryptError ? 'Encrypted - previous key needed' : 'Not captured';
   return {
     recordId: row.client_draft_id || '',
     status: row.status || '',
@@ -119,7 +121,8 @@ function sessionSummary(row) {
     ...progress,
     createdAt: row.created_at || '',
     updatedAt: row.updated_at || '',
-    decryptError: payload.decryptError || ''
+    retiredLostKey,
+    decryptError: retiredLostKey ? retiredLostKeyMessage() : payload.decryptError || ''
   };
 }
 
@@ -170,7 +173,21 @@ export default async function handler(req, res) {
     const output = await getLatestIntakeOutput(clientDraftId, 'venture_dna_markdown');
     if (!output) return res.status(404).json({ error: 'No Venture DNA output found for that record ID' });
 
-    const decrypted = decryptJson(output.encrypted_payload);
+    let decrypted;
+    try {
+      decrypted = decryptJson(output.encrypted_payload);
+    } catch (err) {
+      if (isLostKeyDecryptError(err)) {
+        await logAdminAccess(clientDraftId, 'admin_raw_dna_retired_lost_key', 'blocked', {
+          adminAction: 'download_venture_dna_markdown',
+          rawDnaAccessed: false,
+          retiredLostKey: true,
+          proofStatus: 'blocked_retired_lost_key'
+        });
+        return res.status(410).json({ error: retiredLostKeyMessage(), retiredLostKey: true });
+      }
+      throw err;
+    }
     const dnaContent = decrypted.dnaContent || '';
     if (!dnaContent) return res.status(404).json({ error: 'Output record did not contain DNA content' });
 

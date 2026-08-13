@@ -60,6 +60,22 @@ create table if not exists public.admin_profiles (
   updated_at timestamptz not null default now()
 );
 
+
+create table if not exists public.privacy_retirement_audits (
+  id uuid primary key default gen_random_uuid(),
+  retirement_batch_id uuid not null,
+  retirement_type text not null,
+  cutoff_at timestamptz,
+  approved_by text,
+  reason text not null,
+  old_key_status text not null,
+  affected_session_count integer not null default 0,
+  affected_output_count integer not null default 0,
+  erased_payloads boolean not null default false,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists public.privacy_requests (
   id uuid primary key default gen_random_uuid(),
   request_type text not null,
@@ -73,6 +89,27 @@ create table if not exists public.privacy_requests (
   completed_at timestamptz,
   metadata jsonb not null default '{}'::jsonb
 );
+
+
+alter table public.intake_sessions add column if not exists retired_lost_key boolean not null default false;
+alter table public.intake_sessions add column if not exists retired_at timestamptz;
+alter table public.intake_sessions add column if not exists retired_reason text;
+alter table public.intake_sessions add column if not exists retired_by text;
+alter table public.intake_sessions add column if not exists retired_batch_id uuid;
+alter table public.intake_sessions add column if not exists retirement_evidence jsonb not null default '{}'::jsonb;
+
+alter table public.intake_outputs add column if not exists retired_lost_key boolean not null default false;
+alter table public.intake_outputs add column if not exists retired_at timestamptz;
+alter table public.intake_outputs add column if not exists retired_reason text;
+alter table public.intake_outputs add column if not exists retired_by text;
+alter table public.intake_outputs add column if not exists retired_batch_id uuid;
+alter table public.intake_outputs add column if not exists retirement_evidence jsonb not null default '{}'::jsonb;
+
+create index if not exists idx_intake_sessions_retired_lost_key
+  on public.intake_sessions (retired_lost_key, created_at desc);
+
+create index if not exists idx_intake_outputs_retired_lost_key
+  on public.intake_outputs (retired_lost_key, created_at desc);
 
 create index if not exists idx_intake_sessions_client_draft_id
   on public.intake_sessions (client_draft_id);
@@ -94,6 +131,7 @@ alter table public.intake_outputs enable row level security;
 alter table public.intake_events enable row level security;
 alter table public.claim_trace enable row level security;
 alter table public.admin_profiles enable row level security;
+alter table public.privacy_retirement_audits enable row level security;
 alter table public.privacy_requests enable row level security;
 
 grant usage on schema public to service_role;
@@ -102,6 +140,7 @@ grant select, insert, update, delete on public.intake_outputs to service_role;
 grant select, insert, update, delete on public.intake_events to service_role;
 grant select, insert, update, delete on public.claim_trace to service_role;
 grant select, insert, update, delete on public.admin_profiles to service_role;
+grant select, insert, update, delete on public.privacy_retirement_audits to service_role;
 grant select, insert, update, delete on public.privacy_requests to service_role;
 
 drop view if exists public.intake_kpi_events;
