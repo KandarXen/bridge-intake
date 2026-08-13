@@ -1,6 +1,6 @@
-# Bridge To AI Intake App - v1.71.5 Retired Draft Resume Block
+# Bridge To AI Intake App - v1.71.6 AFPA Gauge Readability
 
-This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, the required high-value "Try This This Week" prompt in the free report, selectable report export formats, searchable/sortable admin interview index, deterministic final-section safety net, and the clearer core-question/follow-up progress language. v1.71.5 retires selected abandoned draft sessions affected by the lost encryption-key window so returning users start a new clean interview.
+This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, the required high-value "Try This This Week" prompt in the free report, selectable report export formats, searchable/sortable admin interview index, deterministic final-section safety net, the clearer core-question/follow-up progress language, and the retired lost-key draft block. v1.71.6 improves AFPA welcome-gauge readability by putting the gauge label on a stable high-contrast pill.
 
 ## Snapshot First Campaign
 
@@ -23,7 +23,7 @@ This build keeps the trust-first, controlled industry-adaptive intake, live-inte
 
 ## What Changed
 
-- Header version is now `v1.71.5`.
+- Header version is now `v1.71.6`.
 - Added `/snapshot` and `/snapshot-first` rewrites to `vercel.json`.
 - Added `snapshot.html` and `snapshot-first.html` static entry files for reliable clean URLs.
 - Added campaign variant detection from path or `campaign=snapshot_first`.
@@ -455,3 +455,5 @@ validate-output.js
 - v1.71.4 adds support for Supabase recovery links that arrive with `token_hash` instead of an `access_token` URL fragment, restores in-progress recovery sessions across refreshes, and blocks password update attempts unless a recovery/admin session is active.
 
 - v1.71.5 blocks resume/save/delete access for retired abandoned draft IDs, currently including the two known Susgrainable / Marc Wandler sessions from the lost-key period, and clears stale browser resume pointers when the server marks a draft expired.
+
+- v1.71.6 improves AFPA welcome-gauge readability by moving the gauge label onto a stable high-contrast pill and aligning the visible version across intake variants.

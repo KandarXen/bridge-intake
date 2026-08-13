@@ -451,6 +451,7 @@
     justify-content: center;
     position: relative;
     overflow: hidden;
+    gap: 0.3rem;
   }
 
   .time-gauge::after {
@@ -471,9 +472,16 @@
   }
 
   .gauge-label {
-    color: var(--ink-mid);
+    max-width: 78%;
+    color: var(--ink);
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid rgba(13, 110, 94, 0.16);
+    border-radius: 999px;
+    padding: 0.22rem 0.55rem;
     font-size: 0.8rem;
     font-weight: 700;
+    line-height: 1.25;
+    text-align: center;
     z-index: 1;
   }
 
@@ -1492,7 +1500,7 @@
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag" id="header-tag">Business Discovery Session</span>
-      <span class="header-version">v1.71.5</span>
+      <span class="header-version">v1.71.6</span>
   </div>
 </header>
 
