@@ -1492,7 +1492,7 @@
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag" id="header-tag">Business Discovery Session</span>
-      <span class="header-version">v1.71.2</span>
+      <span class="header-version">v1.71.5</span>
   </div>
 </header>
 
@@ -2906,6 +2906,13 @@ async function loadDraft(clientDraftIdOverride = '') {
     });
     if (!resp.ok) return null;
     const data = await resp.json();
+    if (data.expired) {
+      try {
+        if (!clientDraftIdOverride || clientDraftIdOverride === sessionId) localStorage.removeItem(SESSION_KEY);
+      } catch (e) { /* ignore */ }
+      if (clientDraftId === sessionId) clientDraftId = '';
+      return null;
+    }
     return data.found ? data.payload : null;
   } catch (e) { return null; }
 }

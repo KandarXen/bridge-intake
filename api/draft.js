@@ -2,6 +2,23 @@ import { encryptJson, decryptJson } from '../lib/crypto.js';
 import { getIntakeSession, updateIntakeSession, upsertIntakeSession } from '../lib/supabase-rest.js';
 import { assertRateLimit, assertTrustedOrigin, safeError, timingSafeEqualText } from '../lib/security.js';
 
+const DEFAULT_INVALIDATED_DRAFT_IDS = new Set([
+  'b376650f-1021-41ef-a254-0458af10bf74',
+  '7a124715-be84-48b8-8412-84f0e65fd40b'
+]);
+
+function invalidatedDraftIds() {
+  const configured = String(process.env.BTAI_INVALIDATED_DRAFT_IDS || '')
+    .split(',')
+    .map(value => value.trim().toLowerCase())
+    .filter(Boolean);
+  return new Set([...DEFAULT_INVALIDATED_DRAFT_IDS, ...configured]);
+}
+
+function isInvalidatedDraftId(clientDraftId) {
+  return invalidatedDraftIds().has(String(clientDraftId || '').trim().toLowerCase());
+}
+
 function publicLabels(payload) {
   const allowLabels = String(process.env.BTAI_STORE_RECORD_LABELS || '').toLowerCase() === 'true';
   return {
@@ -13,6 +30,16 @@ function publicLabels(payload) {
 async function saveDraft(payload) {
   const clientDraftId = String(payload?.clientDraftId || '').trim();
   if (!clientDraftId) return { status: 400, body: { error: 'Missing clientDraftId' } };
+  if (isInvalidatedDraftId(clientDraftId)) {
+    return {
+      status: 409,
+      body: {
+        saved: false,
+        expired: true,
+        reason: 'This saved interview session has been retired. Start a new interview.'
+      }
+    };
+  }
   const draftResumeToken = String(payload?.draftResumeToken || '').trim();
   if (draftResumeToken.length < 32) return { status: 400, body: { error: 'Missing draft resume token' } };
 
@@ -43,6 +70,16 @@ function canAccessDraft(payload, providedToken) {
 async function loadDraft(clientDraftId, draftResumeToken) {
   const id = String(clientDraftId || '').trim();
   if (!id) return { status: 400, body: { error: 'Missing clientDraftId' } };
+  if (isInvalidatedDraftId(id)) {
+    return {
+      status: 200,
+      body: {
+        found: false,
+        expired: true,
+        reason: 'This saved interview session has been retired. Start a new interview.'
+      }
+    };
+  }
 
   const record = await getIntakeSession(id);
   if (!record) return { status: 200, body: { found: false } };
@@ -63,6 +100,9 @@ async function loadDraft(clientDraftId, draftResumeToken) {
 async function deleteDraft(clientDraftId, draftResumeToken) {
   const id = String(clientDraftId || '').trim();
   if (!id) return { status: 200, body: { deleted: false, reason: 'No clientDraftId' } };
+  if (isInvalidatedDraftId(id)) {
+    return { status: 200, body: { deleted: false, expired: true, reason: 'Retired draft was left unchanged.' } };
+  }
   const record = await getIntakeSession(id);
   if (record?.encrypted_payload) {
     const payload = decryptJson(record.encrypted_payload);

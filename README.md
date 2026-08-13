@@ -1,6 +1,6 @@
-# Bridge To AI Intake App - v1.71.4 Admin Password Recovery Link Hotfix
+# Bridge To AI Intake App - v1.71.5 Retired Draft Resume Block
 
-This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, the required high-value "Try This This Week" prompt in the free report, selectable report export formats, searchable/sortable admin interview index, deterministic final-section safety net, and the clearer core-question/follow-up progress language. v1.71.2 adds a reusable **Snapshot First** campaign URL for a shorter free first-pass intake while preserving the full diagnostic at the normal URL.
+This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, the required high-value "Try This This Week" prompt in the free report, selectable report export formats, searchable/sortable admin interview index, deterministic final-section safety net, and the clearer core-question/follow-up progress language. v1.71.5 retires selected abandoned draft sessions affected by the lost encryption-key window so returning users start a new clean interview.
 
 ## Snapshot First Campaign
 
@@ -23,7 +23,7 @@ This build keeps the trust-first, controlled industry-adaptive intake, live-inte
 
 ## What Changed
 
-- Header version is now `v1.71.4`.
+- Header version is now `v1.71.5`.
 - Added `/snapshot` and `/snapshot-first` rewrites to `vercel.json`.
 - Added `snapshot.html` and `snapshot-first.html` static entry files for reliable clean URLs.
 - Added campaign variant detection from path or `campaign=snapshot_first`.
@@ -453,3 +453,5 @@ validate-output.js
 - v1.71.3 fixes forgotten-password recovery for MFA admin accounts. Recovery links now open the reset panel, preserve recovery session tokens, verify the authenticator code before updating the password when AAL2 is required, and avoid using the known-old-password change flow for forgotten passwords.
 
 - v1.71.4 adds support for Supabase recovery links that arrive with `token_hash` instead of an `access_token` URL fragment, restores in-progress recovery sessions across refreshes, and blocks password update attempts unless a recovery/admin session is active.
+
+- v1.71.5 blocks resume/save/delete access for retired abandoned draft IDs, currently including the two known Susgrainable / Marc Wandler sessions from the lost-key period, and clears stale browser resume pointers when the server marks a draft expired.
