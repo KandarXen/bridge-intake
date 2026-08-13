@@ -1,6 +1,6 @@
-# Bridge To AI Intake App - v1.71.13 Admin HTML Report Export
+# Bridge To AI Intake App - v1.71.14 Generic Root Intake Branding
 
-This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, the required high-value "Try This This Week" prompt in the free report, selectable report export formats, searchable/sortable admin interview index, deterministic final-section safety net, the clearer core-question/follow-up progress language, and the retired lost-key draft block. v1.71.13 keeps the retirement controls and adds an admin-only ZIP export for all decryptable HTML reports stored in Supabase.
+This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, the required high-value "Try This This Week" prompt in the free report, selectable report export formats, searchable/sortable admin interview index, deterministic final-section safety net, the clearer core-question/follow-up progress language, and the retired lost-key draft block. v1.71.14 keeps the admin HTML export and restores generic Bridge To AI branding on the root full-length intake while leaving AFPA branding behind the AFPA campaign URL.
 
 ## Snapshot First Campaign
 
@@ -23,7 +23,7 @@ This build keeps the trust-first, controlled industry-adaptive intake, live-inte
 
 ## What Changed
 
-- Header version is now `v1.71.13`.
+- Header version is now `v1.71.14`.
 - Added `/snapshot` and `/snapshot-first` rewrites to `vercel.json`.
 - Added `snapshot.html` and `snapshot-first.html` static entry files for reliable clean URLs.
 - Added campaign variant detection from path or `campaign=snapshot_first`.
@@ -471,3 +471,5 @@ validate-output.js
 - v1.71.12 adds lost-key trial data retirement controls: participant notification wording, audit/runbook documents, Supabase quarantine SQL, retired-lost-key schema columns, and clean 410-style handling for retired or old-key encrypted draft/report records.
 
 - v1.71.13 adds an admin-only ZIP export for all decryptable HTML reports in Supabase, with a MANIFEST.json that lists included reports and skipped retired/lost-key rows.
+
+- v1.71.14 restores generic Bridge To AI branding on `intake.bridgetoai.ca/`, keeps AFPA language controlled by `partner=AFPA`, and preserves `/snapshot` as the short `snapshot_first` interview.
