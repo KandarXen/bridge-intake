@@ -114,6 +114,10 @@
     max-width: 1120px;
   }
 
+  #screen-start {
+    max-width: 1060px;
+  }
+
   .welcome-layout {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(360px, 430px);
@@ -206,6 +210,28 @@
     font-size: 0.88rem;
     line-height: 1.55;
     margin: -0.35rem 0 1rem;
+  }
+
+  .start-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.95rem 1rem;
+    align-items: start;
+  }
+
+  .start-form-grid .name-field,
+  .start-form-grid .privacy-guidance,
+  .start-form-grid .consent-box {
+    margin: 0;
+  }
+
+  .field-span-2 {
+    grid-column: 1 / -1;
+  }
+
+  .start-actions {
+    display: grid;
+    gap: 0.75rem;
   }
 
   .splash-copy {
@@ -1502,7 +1528,8 @@
       grid-template-columns: 1fr;
     }
 
-    #screen-welcome {
+    #screen-welcome,
+    #screen-start {
       max-width: 640px;
     }
 
@@ -1529,6 +1556,14 @@
       box-shadow: none;
       background: transparent;
     }
+
+    .start-form-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .field-span-2 {
+      grid-column: auto;
+    }
   }
 </style>
 </head>
@@ -1545,7 +1580,7 @@
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag" id="header-tag">Business Discovery Session</span>
-      <span class="header-version">v1.71.9</span>
+      <span class="header-version">v1.71.10</span>
   </div>
 </header>
 
@@ -1675,7 +1710,8 @@
         <div class="welcome-form-title">Start here</div>
         <p class="start-hint">Tell us where to send your free snapshot, then use your microphone or keyboard for the interview.</p>
 
-        <div class="resume-card" id="resume-card">
+        <div class="start-form-grid">
+        <div class="resume-card field-span-2" id="resume-card">
           <div class="resume-title">Resume your previous session?</div>
           <div class="resume-body" id="resume-summary">We found saved progress from this browser.</div>
           <div class="resume-actions">
@@ -1738,7 +1774,7 @@
           <input type="text" id="owner-work-status" placeholder="e.g. full-time owner, semi-retired, side business, managing a team..." autocomplete="off" />
         </div>
 
-        <div class="name-field">
+        <div class="name-field field-span-2">
           <label>Which departments or functions does your business have? <span style="font-weight:400;color:var(--ink-soft);">(tap all that apply)</span></label>
           <div class="dept-grid">
             <label class="dept-pill"><input type="checkbox" value="Sales"><span>Sales</span></label>
@@ -1771,13 +1807,16 @@
           </label>
         </div>
 
-        <div id="turnstile-wrap" style="display:none; margin: 14px 0;"></div>
+        <div class="start-actions field-span-2">
+          <div id="turnstile-wrap" style="display:none;"></div>
 
-        <div id="welcome-error" class="error-banner">Please fill in your name, valid email, business name, business type, and privacy consent before continuing.</div>
+          <div id="welcome-error" class="error-banner">Please fill in your name, valid email, business name, business type, and privacy consent before continuing.</div>
 
-        <button class="btn-primary" onclick="startInterview(event)" style="width:100%;">
-          Start the interview ->
-        </button>
+          <button class="btn-primary" onclick="startInterview(event)" style="width:100%;">
+            Start the interview ->
+          </button>
+        </div>
+        </div>
       </div>
   </div>
 
