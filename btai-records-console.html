@@ -479,7 +479,7 @@
         <h1>BTAI Records Console</h1>
         <p>Retrieve secure intake records, generate reports, download privacy proof, and review partner aggregate intelligence from one admin-only dashboard.</p>
       </div>
-      <div class="version-pill">v1.71.2</div>
+      <div class="version-pill">v1.71.3</div>
     </div>
 
     <div id="admin-record-controls" class="record-strip auth-locked">
@@ -717,6 +717,7 @@
     const mfaSecretWrap = document.getElementById('mfa-secret-wrap');
     let adminAccessToken = sessionStorage.getItem('btaiAdminAccessToken') || '';
     let adminRefreshToken = sessionStorage.getItem('btaiAdminRefreshToken') || '';
+    let passwordRecoveryMode = sessionStorage.getItem('btaiAdminPasswordRecoveryMode') === 'true';
     let adminMfaFactors = [];
     let pendingMfaFactorId = '';
     let timerStartedAt = 0;
@@ -738,15 +739,39 @@
     function loadRecoveryTokenFromUrl() {
       const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
       const query = new URLSearchParams(window.location.search);
+      const error = hash.get('error_description') || query.get('error_description') || hash.get('error') || query.get('error') || '';
+      if (error) {
+        passwordResetPanel.classList.remove('auth-locked');
+        adminAuthStatus.textContent = `Password reset link failed: ${error}. Request a fresh reset email.`;
+        history.replaceState(null, '', '/btai-records-console');
+        return true;
+      }
       const token = hash.get('access_token') || query.get('access_token') || '';
+      const refreshToken = hash.get('refresh_token') || query.get('refresh_token') || '';
       const type = hash.get('type') || query.get('type') || '';
       if (!token || type !== 'recovery') return false;
       adminAccessToken = token;
+      adminRefreshToken = refreshToken;
+      passwordRecoveryMode = true;
       sessionStorage.setItem('btaiAdminAccessToken', adminAccessToken);
+      if (adminRefreshToken) sessionStorage.setItem('btaiAdminRefreshToken', adminRefreshToken);
+      sessionStorage.setItem('btaiAdminPasswordRecoveryMode', 'true');
       passwordResetPanel.classList.remove('auth-locked');
-      adminAuthStatus.textContent = 'Password reset link accepted. Enter a new password below.';
+      adminAuthStatus.textContent = 'Password reset link accepted. If MFA is enabled, enter the authenticator code too, then set the new password. The old password is not required.';
       history.replaceState(null, '', '/btai-records-console');
       return true;
+    }
+
+    function adminTokenAal() {
+      const parts = String(adminAccessToken || '').split('.');
+      if (parts.length < 2) return '';
+      try {
+        let base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        while (base64.length % 4) base64 += '=';
+        return (JSON.parse(atob(base64)) || {}).aal || '';
+      } catch (err) {
+        return '';
+      }
     }
 
     function formatMs(ms) {
@@ -1068,6 +1093,7 @@
       pendingMfaFactorId = '';
       sessionStorage.removeItem('btaiAdminAccessToken');
       sessionStorage.removeItem('btaiAdminRefreshToken');
+      sessionStorage.removeItem('btaiAdminPasswordRecoveryMode');
     }
 
     function qrImageSrc(qrCode) {
@@ -1121,6 +1147,9 @@
         return `${text}\n\nMeaning: the browser/request email does not match the email stored inside the secure intake session.`;
       }
       if (/Supabase Auth|auth\/v1|Invalid login credentials|Email not confirmed|SUPABASE_ANON_KEY|Supabase Auth is not configured|Could not reach Supabase Auth/i.test(text)) {
+        if (/AAL2 session is required/i.test(text)) {
+          return `${text}\n\nMeaning: MFA is enabled for this admin account. Enter a fresh authenticator code and click Set New Password again. The console will verify MFA first, then update the password from the recovery session.`;
+        }
         return `${text}\n\nMeaning: the admin sign-in request reached the server, but Supabase Auth could not complete it. Check the admin password first, then confirm SUPABASE_URL and SUPABASE_ANON_KEY are set in Vercel for Production and that the site was redeployed after the env changes.`;
       }
       if (/Supabase/i.test(text)) {
@@ -1185,11 +1214,23 @@
       }
       adminAuthStatus.textContent = 'Updating password...';
       try {
+        const code = document.getElementById('admin-mfa-code').value.trim();
+        if (passwordRecoveryMode && adminTokenAal() !== 'aal2') {
+          if (!code) {
+            adminAuthStatus.textContent = 'This recovery session needs MFA before the password can be changed. Enter the 6-digit authenticator code, then click Set New Password again.';
+            return;
+          }
+          adminAuthStatus.textContent = 'Verifying MFA for password reset...';
+          const verified = await adminSession('verify-mfa', { code });
+          setAdminTokens(verified);
+          adminAuthStatus.textContent = 'MFA verified. Updating password...';
+        }
         await adminSession('update-password', { password });
         document.getElementById('admin-new-password').value = '';
         document.getElementById('admin-new-password-confirm').value = '';
         passwordResetPanel.classList.add('auth-locked');
         clearAdminTokens();
+        passwordRecoveryMode = false;
         adminAuthStatus.textContent = 'Password updated. Sign in with the new password.';
       } catch (err) {
         adminAuthStatus.textContent = `Password update failed: ${friendlyAdminError(err.message)}`;

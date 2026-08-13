@@ -150,6 +150,18 @@ async function updatePassword(token, body) {
     err.statusCode = 400;
     throw err;
   }
+  if (!token) {
+    const err = new Error('Password reset session is required. Request a password reset email and open the recovery link first.');
+    err.statusCode = 401;
+    throw err;
+  }
+  const user = await getSupabaseUser(token);
+  const appMeta = user?.app_metadata || {};
+  if (!(user?.id && (appMeta.btai_admin === true || appMeta.role === 'btai_admin'))) {
+    const err = new Error('This password reset session is not authorized for BTAI admin');
+    err.statusCode = 403;
+    throw err;
+  }
   await supabaseAuth('user', {
     method: 'PUT',
     token,

@@ -1,4 +1,4 @@
-# Bridge To AI Intake App - v1.71.2 Admin MFA Sign-In Hotfix
+# Bridge To AI Intake App - v1.71.3 Admin Password Recovery MFA Hotfix
 
 This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, the required high-value "Try This This Week" prompt in the free report, selectable report export formats, searchable/sortable admin interview index, deterministic final-section safety net, and the clearer core-question/follow-up progress language. v1.71.2 adds a reusable **Snapshot First** campaign URL for a shorter free first-pass intake while preserving the full diagnostic at the normal URL.
 
@@ -23,7 +23,7 @@ This build keeps the trust-first, controlled industry-adaptive intake, live-inte
 
 ## What Changed
 
-- Header version is now `v1.71.2`.
+- Header version is now `v1.71.3`.
 - Added `/snapshot` and `/snapshot-first` rewrites to `vercel.json`.
 - Added `snapshot.html` and `snapshot-first.html` static entry files for reliable clean URLs.
 - Added campaign variant detection from path or `campaign=snapshot_first`.
@@ -449,3 +449,5 @@ validate-output.js
 - v1.71.1 adds the production Cloudflare Turnstile site key to public intake configuration and carries forward the MFA admin hardening baseline.
 
 - v1.71.2 fixes admin MFA sign-in when a verified authenticator factor already exists and the code is entered before pressing Sign In.
+
+- v1.71.3 fixes forgotten-password recovery for MFA admin accounts. Recovery links now open the reset panel, preserve recovery session tokens, verify the authenticator code before updating the password when AAL2 is required, and avoid using the known-old-password change flow for forgotten passwords.
