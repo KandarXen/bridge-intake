@@ -817,6 +817,28 @@
   .name-field input:focus,
   .name-field select:focus { border-color: var(--bridge-teal); }
 
+  .privacy-guidance {
+    margin: 1.25rem 0 0.95rem;
+    padding: 0.95rem 1rem;
+    border: 1px solid rgba(13, 110, 94, 0.24);
+    border-left: 4px solid var(--bridge-teal);
+    border-radius: var(--radius);
+    background: #f4fbf8;
+    color: var(--ink-mid);
+    font-size: 0.86rem;
+    line-height: 1.5;
+  }
+
+  .privacy-guidance strong {
+    display: block;
+    color: var(--ink);
+    margin-bottom: 0.25rem;
+  }
+
+  .privacy-guidance span {
+    display: block;
+  }
+
   .consent-box {
     margin: 1.25rem 0 1.5rem;
     padding: 1rem;
@@ -1504,7 +1526,7 @@
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag" id="header-tag">Business Discovery Session</span>
-      <span class="header-version">v1.71.7</span>
+      <span class="header-version">v1.71.8</span>
   </div>
 </header>
 
@@ -1741,16 +1763,7 @@
           <label for="business-niche">Is there a more specific niche we should understand? <span style="font-weight:400;color:var(--ink-soft);">(optional)</span></label>
           <input type="text" id="business-niche" placeholder="e.g. wholesale bakery, kombucha producer, grant consultant..." autocomplete="off" />
         </div>
-
-        <div class="name-field">
-          <label for="share-comfort">For this first intake, how much detail are you comfortable sharing?</label>
-          <select id="share-comfort">
-            <option value="Directional only">Directional only</option>
-            <option value="General ranges are okay">General ranges are okay</option>
-            <option value="I may share more in a private scoping session">I may share more in a private scoping session</option>
-            <option value="Not sure yet">Not sure yet</option>
-          </select>
-        </div>
+        <input type="hidden" id="answer-specificity-profile" value="not_started" />
 
         <div class="name-field">
           <label for="website-url">Business website <span style="font-weight:400;color:var(--ink-soft);">(optional)</span></label>
@@ -1781,6 +1794,10 @@
             <label class="dept-pill"><input type="checkbox" value="Admin"><span>Admin</span></label>
             <label class="dept-pill"><input type="checkbox" value="It's mostly just me"><span>It's mostly just me</span></label>
           </div>
+        </div>
+        <div class="privacy-guidance" id="privacy-guidance">
+          <strong>Privacy guidance for this first intake</strong>
+          <span>General business context is enough. Please avoid private financials, customer names, supplier names, recipes, formulas, payroll, invoices, contracts, passwords, API keys, or confidential records. If a detail feels sensitive, describe it directionally instead.</span>
         </div>
 
         <div class="consent-box">
@@ -2094,7 +2111,7 @@ const INDUSTRY_GUIDANCE = {
   }
 };
 
-const SENSITIVE_DETAIL_WARNING = 'For this first intake, general ranges and directional examples are enough. Please avoid private financials, recipes, customer names, supplier contracts, payroll details, invoices, or confidential formulas.';
+const SENSITIVE_DETAIL_WARNING = 'General ranges are enough. Please do not include customer names or exact confidential figures.';
 const FULL_MAX_ADAPTIVE_PROBES = 5;
 const SNAPSHOT_MAX_ADAPTIVE_PROBES = 2;
 const APPROVED_PROBE_TYPES = ['clarify', 'prioritize', 'range', 'severity', 'frequency', 'blocker', 'owner/readiness', 'risk', 'low-risk pilot', 'voice/tone'];
@@ -2331,7 +2348,8 @@ let completionTestMode = false;
 let businessName = '';
 let businessCategory = '';
 let businessNiche = '';
-let shareComfort = 'Directional only';
+let shareComfort = 'Inferred from answers';
+let answerSpecificityProfile = { level: 'not_started', label: 'Not started', confidenceLabel: 'Needs answers', averageWordsPerAnswer: 0, sensitiveRiskSignalCount: 0 };
 let websiteUrl = '';
 let companySize = '';
 let ownerWorkStatus = '';
@@ -2570,7 +2588,8 @@ function applyPartnerBranding() {
 }
 
 function answerQuality(text) {
-  const wordCount = countWords(text);
+  const source = String(text || '');
+  const wordCount = countWords(source);
   let bucket = 'empty';
   if (wordCount >= 60) bucket = 'rich';
   else if (wordCount >= 25) bucket = 'useful';
@@ -2578,12 +2597,18 @@ function answerQuality(text) {
   else if (wordCount >= 6) bucket = 'short';
   else if (wordCount > 0) bucket = 'minimal';
 
+  const hasNumber = /\d/.test(source);
+  const hasMoneyOrExactFigure = /(?:\$\s?\d|\b\d+(?:,\d{3})+(?:\.\d+)?\b|\b\d+(?:\.\d+)?\s?(?:%|percent|dollars?|k|m|million|thousand)\b)/i.test(source);
+  const hasSensitiveRiskSignal = hasMoneyOrExactFigure || /\b(customer names?|supplier names?|payroll|invoice|contract|password|api key|recipe|formula|margin|profit|revenue|bank|tax)\b/i.test(source);
+
   return {
     wordCount,
     bucket,
     isShortAnswer: wordCount > 0 && wordCount < 12,
-    hasNumber: /\d/.test(String(text || '')),
-    hasExampleLanguage: /\b(example|for instance|usually|often|when|because|customer|client|order|job|week|month|hours?)\b/i.test(String(text || ''))
+    hasNumber,
+    hasMoneyOrExactFigure,
+    hasSensitiveRiskSignal,
+    hasExampleLanguage: /\b(example|for instance|usually|often|when|because|customer|client|order|job|week|month|hours?)\b/i.test(source)
   };
 }
 
@@ -2596,6 +2621,65 @@ function allAnswerTexts() {
     ...masteryFollowups,
     ...probeAnswers
   ].filter(text => String(text || '').trim());
+}
+
+function inferAnswerSpecificityProfile() {
+  const texts = allAnswerTexts();
+  const qualities = texts.map(answerQuality);
+  const answeredCount = qualities.length;
+  const totalWordCount = qualities.reduce((sum, q) => sum + q.wordCount, 0);
+  const averageWordsPerAnswer = answeredCount ? Math.round(totalWordCount / answeredCount) : 0;
+  const usefulAnswerCount = qualities.filter(q => ['useful', 'rich'].includes(q.bucket)).length;
+  const shortAnswerCount = qualities.filter(q => q.wordCount > 0 && q.wordCount < 12).length;
+  const exampleSignalCount = qualities.filter(q => q.hasExampleLanguage).length;
+  const numericSignalCount = qualities.filter(q => q.hasNumber).length;
+  const sensitiveRiskSignalCount = qualities.filter(q => q.hasSensitiveRiskSignal).length;
+  const richAnswerCount = qualities.filter(q => q.bucket === 'rich').length;
+
+  let level = 'not_started';
+  let label = 'Not started';
+  let confidenceLabel = 'Needs answers';
+  if (answeredCount) {
+    level = 'directional';
+    label = 'Directional';
+    confidenceLabel = 'Directional signal';
+  }
+  if (averageWordsPerAnswer >= 18 || usefulAnswerCount >= 2 || exampleSignalCount >= 2) {
+    level = 'developing';
+    label = 'Developing context';
+    confidenceLabel = 'Stated by the business where specific; otherwise directional';
+  }
+  if (averageWordsPerAnswer >= 32 || usefulAnswerCount >= 4 || richAnswerCount >= 2) {
+    level = 'specific';
+    label = 'Specific enough for first-pass analysis';
+    confidenceLabel = 'Stated by the business, with assumptions labelled';
+  }
+  if (sensitiveRiskSignalCount > 0) {
+    confidenceLabel = 'Contains sensitive-detail risk signals; exact details require private scoping';
+  }
+
+  return {
+    level,
+    label,
+    confidenceLabel,
+    answeredCount,
+    totalWordCount,
+    averageWordsPerAnswer,
+    shortAnswerCount,
+    usefulAnswerCount,
+    richAnswerCount,
+    exampleSignalCount,
+    numericSignalCount,
+    sensitiveRiskSignalCount
+  };
+}
+
+function syncAnswerSpecificityProfile() {
+  answerSpecificityProfile = inferAnswerSpecificityProfile();
+  shareComfort = answerSpecificityProfile.label || 'Inferred from answers';
+  const field = document.getElementById('answer-specificity-profile');
+  if (field) field.value = JSON.stringify(answerSpecificityProfile);
+  return answerSpecificityProfile;
 }
 
 function interviewKpiSummary() {
@@ -2621,6 +2705,7 @@ function interviewKpiSummary() {
     answeredProbeCount,
     elapsedSeconds,
     businessNiche,
+    answerSpecificityProfile: syncAnswerSpecificityProfile(),
     shareComfort,
     intakeVariant,
     questionSet: isSnapshotFirstCampaign() ? 'snapshot_first_short_set' : 'full_diagnostic_set'
@@ -2649,7 +2734,8 @@ function logHermesEvent(eventType, status = 'info', details = {}) {
       businessName,
       businessCategory,
       businessNiche,
-      shareComfort,
+    answerSpecificityProfile: syncAnswerSpecificityProfile(),
+    shareComfort,
       companySize,
       ownerWorkStatus,
       partner: campaignPartner,
@@ -2669,7 +2755,8 @@ function logHermesEvent(eventType, status = 'info', details = {}) {
         questionSet: isSnapshotFirstCampaign() ? 'snapshot_first_short_set' : 'full_diagnostic_set',
         hasWebsite: !!websiteUrl,
         businessNiche,
-        shareComfort,
+    answerSpecificityProfile: syncAnswerSpecificityProfile(),
+    shareComfort,
         departments,
         privacyConsent,
         privacyPolicyVersion: PRIVACY_POLICY_VERSION,
@@ -2760,7 +2847,7 @@ function readWelcomeFields() {
   businessName = document.getElementById('business-name').value.trim();
   businessCategory = document.getElementById('business-category').value.trim();
   businessNiche = document.getElementById('business-niche').value.trim();
-  shareComfort = document.getElementById('share-comfort').value.trim() || 'Directional only';
+  syncAnswerSpecificityProfile();
   websiteUrl = document.getElementById('website-url').value.trim();
   companySize = document.getElementById('company-size').value.trim();
   ownerWorkStatus = document.getElementById('owner-work-status').value.trim();
@@ -2776,7 +2863,7 @@ function applyWelcomeFields() {
   document.getElementById('business-name').value = businessName || '';
   document.getElementById('business-category').value = businessCategory || '';
   document.getElementById('business-niche').value = businessNiche || '';
-  document.getElementById('share-comfort').value = shareComfort || 'Directional only';
+  syncAnswerSpecificityProfile();
   document.getElementById('website-url').value = websiteUrl || '';
   document.getElementById('company-size').value = companySize || '';
   document.getElementById('owner-work-status').value = ownerWorkStatus || '';
@@ -2807,6 +2894,7 @@ function buildDraftPayload(captureTranscript = true) {
     businessName,
     businessCategory,
     businessNiche,
+    answerSpecificityProfile: syncAnswerSpecificityProfile(),
     shareComfort,
     websiteUrl,
     companySize,
@@ -2935,7 +3023,8 @@ async function showResumeCardIfNeeded() {
   businessName = draft.businessName || '';
   businessCategory = draft.businessCategory || '';
   businessNiche = draft.businessNiche || '';
-  shareComfort = draft.shareComfort || 'Directional only';
+  answerSpecificityProfile = draft.answerSpecificityProfile || answerSpecificityProfile;
+  shareComfort = draft.shareComfort || answerSpecificityProfile.label || 'Inferred from answers';
   websiteUrl = draft.websiteUrl || '';
   companySize = draft.companySize || '';
   ownerWorkStatus = draft.ownerWorkStatus || '';
@@ -3035,7 +3124,8 @@ async function resumeSavedInterview() {
   businessName = draft.businessName || '';
   businessCategory = draft.businessCategory || '';
   businessNiche = draft.businessNiche || '';
-  shareComfort = draft.shareComfort || 'Directional only';
+  answerSpecificityProfile = draft.answerSpecificityProfile || answerSpecificityProfile;
+  shareComfort = draft.shareComfort || answerSpecificityProfile.label || 'Inferred from answers';
   websiteUrl = draft.websiteUrl || '';
   companySize = draft.companySize || '';
   ownerWorkStatus = draft.ownerWorkStatus || '';
@@ -3095,7 +3185,8 @@ function clearSavedInterview(resetFields = false) {
     businessName = '';
     businessCategory = '';
     businessNiche = '';
-    shareComfort = 'Directional only';
+    answerSpecificityProfile = { level: 'not_started', label: 'Not started', confidenceLabel: 'Needs answers', averageWordsPerAnswer: 0, sensitiveRiskSignalCount: 0 };
+    shareComfort = 'Inferred from answers';
     websiteUrl = '';
     companySize = '';
     ownerWorkStatus = '';
@@ -3175,7 +3266,7 @@ async function startInterview(evt) {
   businessName = document.getElementById('business-name').value.trim();
   businessCategory = document.getElementById('business-category').value.trim();
   businessNiche = document.getElementById('business-niche').value.trim();
-  shareComfort = document.getElementById('share-comfort').value.trim() || 'Directional only';
+  syncAnswerSpecificityProfile();
   websiteUrl = document.getElementById('website-url').value.trim();
   companySize = document.getElementById('company-size').value.trim();
   ownerWorkStatus = document.getElementById('owner-work-status').value.trim();
@@ -3253,7 +3344,7 @@ async function researchBusinessContext() {
     const resp = await fetch('/api/interview-ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ task: 'research-business', businessName, businessCategory, businessNiche, shareComfort, websiteUrl, companySize, ownerWorkStatus, departments }),
+      body: JSON.stringify({ task: 'research-business', businessName, businessCategory, businessNiche, answerSpecificityProfile: syncAnswerSpecificityProfile(), shareComfort, websiteUrl, companySize, ownerWorkStatus, departments }),
       signal: controller.signal
     });
     if (resp.ok) {
@@ -3272,7 +3363,7 @@ async function generateScenario() {
     const resp = await fetch('/api/interview-ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ task: 'scenario', businessCategory, businessNiche, shareComfort, businessContext })
+      body: JSON.stringify({ task: 'scenario', businessCategory, businessNiche, answerSpecificityProfile: syncAnswerSpecificityProfile(), shareComfort, businessContext })
     });
     if (resp.ok) {
       const data = await resp.json();
@@ -3743,7 +3834,7 @@ async function runDomainProbe(domainName) {
     const resp = await fetch('/api/interview-ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ task: 'probe', domain: domainName, qa: domainQA, businessCategory, businessNiche, shareComfort, companySize, ownerWorkStatus, departments, businessContext })
+      body: JSON.stringify({ task: 'probe', domain: domainName, qa: domainQA, businessCategory, businessNiche, answerSpecificityProfile: syncAnswerSpecificityProfile(), shareComfort, companySize, ownerWorkStatus, departments, businessContext })
     });
     if (resp.ok) {
       const data = await resp.json();
@@ -3815,7 +3906,7 @@ async function runMasteryFollowup(qIndex) {
     const resp = await fetch('/api/interview-ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ task: 'mastery-followup', area: q.domain, answer, businessCategory, businessNiche, shareComfort, companySize, ownerWorkStatus, departments, businessContext })
+      body: JSON.stringify({ task: 'mastery-followup', area: q.domain, answer, businessCategory, businessNiche, answerSpecificityProfile: syncAnswerSpecificityProfile(), shareComfort, companySize, ownerWorkStatus, departments, businessContext })
     });
     if (resp.ok) {
       const data = await resp.json();
@@ -4231,7 +4322,7 @@ Owner Email: ${clientEmail || '(not provided)'}
 Business Name: ${businessName}
 Business Category: ${businessCategory}
 Specific Niche: ${businessNiche || '(not specified)'}
-Detail-Sharing Comfort: ${shareComfort || '(not specified)'}
+Answer Specificity Profile: ${answerSpecificityProfile.label || shareComfort || '(not assessed)'} - ${answerSpecificityProfile.confidenceLabel || 'Needs answers'}
 Website URL: ${websiteUrl || '(not provided)'}
 Company Size: ${companySize ? companySize + ' people' : '(not specified)'}
 Owner Work Status / Capacity: ${ownerWorkStatus || '(not specified)'}
@@ -4367,6 +4458,7 @@ async function generateDNAWithClaude() {
         companySize,
         ownerWorkStatus,
         questionCount: QUESTIONS.length,
+        answerSpecificityProfile: syncAnswerSpecificityProfile(),
         soloOrNoStaff: isSoloOrNoStaff(),
         privacyConsent,
         privacyConsentAt,

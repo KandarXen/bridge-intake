@@ -1,6 +1,6 @@
-# Bridge To AI Intake App - v1.71.7 AFPA Gauge Subtext Readability
+# Bridge To AI Intake App - v1.71.8 Privacy Guidance And Inferred Answer Calibration
 
-This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, the required high-value "Try This This Week" prompt in the free report, selectable report export formats, searchable/sortable admin interview index, deterministic final-section safety net, the clearer core-question/follow-up progress language, and the retired lost-key draft block. v1.71.7 improves AFPA welcome-gauge readability by putting both gauge text lines on stable high-contrast pills.
+This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, the required high-value "Try This This Week" prompt in the free report, selectable report export formats, searchable/sortable admin interview index, deterministic final-section safety net, the clearer core-question/follow-up progress language, and the retired lost-key draft block. v1.71.8 removes the fuzzy first-page detail-comfort question, adds explicit privacy guidance before consent, and infers answer specificity from the interview as a hidden internal calibration signal.
 
 ## Snapshot First Campaign
 
@@ -23,7 +23,7 @@ This build keeps the trust-first, controlled industry-adaptive intake, live-inte
 
 ## What Changed
 
-- Header version is now `v1.71.7`.
+- Header version is now `v1.71.8`.
 - Added `/snapshot` and `/snapshot-first` rewrites to `vercel.json`.
 - Added `snapshot.html` and `snapshot-first.html` static entry files for reliable clean URLs.
 - Added campaign variant detection from path or `campaign=snapshot_first`.
@@ -198,7 +198,7 @@ This build keeps the trust-first, controlled industry-adaptive intake, live-inte
 - Welcome screen requires Privacy Policy consent before the interview can start.
 - Privacy consent version and timestamp are stored inside the encrypted intake record.
 - `privacy.html` provides a standalone Privacy Policy page linked from the welcome screen and footer.
-- The secure processing/KPI layer now captures partner/campaign tags, consent status, answer-depth buckets, short-answer rates, adaptive follow-up counts, completion summaries, business niche, share-comfort level, guardrail rejections, and report-pack generation events.
+- The secure processing/KPI layer now captures partner/campaign tags, consent status, answer-depth buckets, short-answer rates, adaptive follow-up counts, completion summaries, business niche, inferred answer-specificity profile, guardrail rejections, and report-pack generation events.
 - Supabase setup now includes the `intake_kpi_events` reporting view for aggregate AFPA/member intelligence reporting without decrypting raw interviews.
 - URL-based partner co-branding is supported. `partner=AFPA` changes the welcome page, completion copy, and consent language for the AFPA member program.
 - Partner consent explains that AFPA receives anonymized aggregate insights only, not raw member interviews or individual answers.
@@ -459,3 +459,5 @@ validate-output.js
 - v1.71.6 improves AFPA welcome-gauge readability by moving the gauge label onto a stable high-contrast pill and aligning the visible version across intake variants.
 
 - v1.71.7 fixes the remaining low-contrast gauge subtext by applying the same high-contrast treatment to both gauge copy lines.
+
+- v1.71.8 removes the first-page detail-comfort question, adds a clear privacy guidance block above consent, keeps a hidden `answerSpecificityProfile`, infers answer specificity from actual answer depth/risk signals, and uses softer in-question privacy hints.

@@ -8,6 +8,7 @@ import { assertRateLimit, assertTrustedOrigin, safeError } from '../lib/security
 function sanitizeEvent(body) {
   const details = body.details && typeof body.details === 'object' ? body.details : {};
   const allowLabels = String(process.env.BTAI_STORE_RECORD_LABELS || '').toLowerCase() === 'true';
+  const specificity = body.answerSpecificityProfile || details.answerSpecificityProfile || {};
   return {
     ts: new Date().toISOString(),
     app: 'intake.bridgetoai.ca',
@@ -19,6 +20,14 @@ function sanitizeEvent(body) {
     businessCategory: String(body.businessCategory || '').slice(0, 160),
     businessNiche: String(body.businessNiche || details.businessNiche || '').slice(0, 160),
     shareComfort: String(body.shareComfort || details.shareComfort || '').slice(0, 120),
+    answerSpecificityProfile: {
+      level: String(specificity.level || '').slice(0, 80),
+      label: String(specificity.label || '').slice(0, 120),
+      confidenceLabel: String(specificity.confidenceLabel || '').slice(0, 180),
+      answeredCount: Number.isFinite(specificity.answeredCount) ? specificity.answeredCount : undefined,
+      averageWordsPerAnswer: Number.isFinite(specificity.averageWordsPerAnswer) ? specificity.averageWordsPerAnswer : undefined,
+      sensitiveRiskSignalCount: Number.isFinite(specificity.sensitiveRiskSignalCount) ? specificity.sensitiveRiskSignalCount : undefined
+    },
     companySize: String(body.companySize || '').slice(0, 80),
     ownerWorkStatus: String(body.ownerWorkStatus || '').slice(0, 160),
     eventType: String(body.eventType || 'unknown').slice(0, 80),
@@ -32,6 +41,14 @@ function sanitizeEvent(body) {
       hasWebsite: !!details.hasWebsite,
       businessNiche: details.businessNiche ? String(details.businessNiche).slice(0, 160) : undefined,
       shareComfort: details.shareComfort ? String(details.shareComfort).slice(0, 120) : undefined,
+      answerSpecificityProfile: {
+        level: String(specificity.level || '').slice(0, 80),
+        label: String(specificity.label || '').slice(0, 120),
+        confidenceLabel: String(specificity.confidenceLabel || '').slice(0, 180),
+        answeredCount: Number.isFinite(specificity.answeredCount) ? specificity.answeredCount : undefined,
+        averageWordsPerAnswer: Number.isFinite(specificity.averageWordsPerAnswer) ? specificity.averageWordsPerAnswer : undefined,
+        sensitiveRiskSignalCount: Number.isFinite(specificity.sensitiveRiskSignalCount) ? specificity.sensitiveRiskSignalCount : undefined
+      },
       departments: Array.isArray(details.departments) ? details.departments.slice(0, 20).map(v => String(v).slice(0, 80)) : undefined,
       partner: String(body.partner || details.partner || 'BTAI').slice(0, 80),
       campaign: String(body.campaign || details.campaign || 'general_intake').slice(0, 120),
