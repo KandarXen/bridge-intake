@@ -479,7 +479,7 @@
         <h1>BTAI Records Console</h1>
         <p>Retrieve secure intake records, generate reports, download privacy proof, and review partner aggregate intelligence from one admin-only dashboard.</p>
       </div>
-      <div class="version-pill">v1.71.3</div>
+      <div class="version-pill">v1.71.4</div>
     </div>
 
     <div id="admin-record-controls" class="record-strip auth-locked">
@@ -736,7 +736,18 @@
       }
     }
 
-    function loadRecoveryTokenFromUrl() {
+    function acceptPasswordRecoverySession(accessToken, refreshToken = '') {
+      adminAccessToken = accessToken;
+      adminRefreshToken = refreshToken;
+      passwordRecoveryMode = true;
+      sessionStorage.setItem('btaiAdminAccessToken', adminAccessToken);
+      if (adminRefreshToken) sessionStorage.setItem('btaiAdminRefreshToken', adminRefreshToken);
+      sessionStorage.setItem('btaiAdminPasswordRecoveryMode', 'true');
+      passwordResetPanel.classList.remove('auth-locked');
+      adminAuthStatus.textContent = 'Password reset link accepted. If MFA is enabled, enter the authenticator code too, then set the new password. The old password is not required.';
+    }
+
+    async function loadRecoveryTokenFromUrl() {
       const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
       const query = new URLSearchParams(window.location.search);
       const error = hash.get('error_description') || query.get('error_description') || hash.get('error') || query.get('error') || '';
@@ -749,15 +760,37 @@
       const token = hash.get('access_token') || query.get('access_token') || '';
       const refreshToken = hash.get('refresh_token') || query.get('refresh_token') || '';
       const type = hash.get('type') || query.get('type') || '';
-      if (!token || type !== 'recovery') return false;
-      adminAccessToken = token;
-      adminRefreshToken = refreshToken;
-      passwordRecoveryMode = true;
-      sessionStorage.setItem('btaiAdminAccessToken', adminAccessToken);
-      if (adminRefreshToken) sessionStorage.setItem('btaiAdminRefreshToken', adminRefreshToken);
-      sessionStorage.setItem('btaiAdminPasswordRecoveryMode', 'true');
+      if (token && type === 'recovery') {
+        acceptPasswordRecoverySession(token, refreshToken);
+        history.replaceState(null, '', '/btai-records-console');
+        return true;
+      }
+      const tokenHash = hash.get('token_hash') || query.get('token_hash') || '';
+      if (tokenHash && type === 'recovery') {
+        passwordResetPanel.classList.remove('auth-locked');
+        adminAuthStatus.textContent = 'Verifying password reset link...';
+        try {
+          const data = await adminSession('verify-recovery-token', { tokenHash, type });
+          acceptPasswordRecoverySession(data.accessToken || '', data.refreshToken || '');
+        } catch (err) {
+          adminAuthStatus.textContent = `Password reset link failed: ${friendlyAdminError(err.message)}`;
+        }
+        history.replaceState(null, '', '/btai-records-console');
+        return true;
+      }
+      if (query.get('code')) {
+        passwordResetPanel.classList.remove('auth-locked');
+        adminAuthStatus.textContent = 'Password reset link returned a PKCE code instead of a recovery session. Request the reset from this console after the current rate limit clears, then use the newest email link.';
+        history.replaceState(null, '', '/btai-records-console');
+        return true;
+      }
+      return false;
+    }
+
+    function restoreRecoveryPanelFromSession() {
+      if (!passwordRecoveryMode || !adminAccessToken) return false;
       passwordResetPanel.classList.remove('auth-locked');
-      adminAuthStatus.textContent = 'Password reset link accepted. If MFA is enabled, enter the authenticator code too, then set the new password. The old password is not required.';
+      adminAuthStatus.textContent = 'Password reset session restored. Enter the new password, confirm it, enter your authenticator code if required, then click Set New Password.';
       history.replaceState(null, '', '/btai-records-console');
       return true;
     }
@@ -1214,6 +1247,10 @@
       }
       adminAuthStatus.textContent = 'Updating password...';
       try {
+        if (!adminAccessToken) {
+          adminAuthStatus.textContent = 'No password reset session is active. Request a password reset email, open the newest recovery link, and confirm this page says the reset link was accepted before setting the new password.';
+          return;
+        }
         const code = document.getElementById('admin-mfa-code').value.trim();
         if (passwordRecoveryMode && adminTokenAal() !== 'aal2') {
           if (!code) {
@@ -1618,7 +1655,11 @@ Conclusion: ${proof.privacyConclusion || 'not returned'}`;
       }
     });
 
-    if (!loadRecoveryTokenFromUrl()) refreshAdminAuthStatus();
+    (async () => {
+      if (await loadRecoveryTokenFromUrl()) return;
+      if (restoreRecoveryPanelFromSession()) return;
+      refreshAdminAuthStatus();
+    })();
   </script>
 </body>
 </html>
