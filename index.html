@@ -471,25 +471,29 @@
     z-index: 1;
   }
 
-  .gauge-label {
-    max-width: 78%;
+  .gauge-label,
+  .gauge-sub {
+    max-width: 82%;
     color: var(--ink);
-    background: rgba(255, 255, 255, 0.94);
-    border: 1px solid rgba(13, 110, 94, 0.16);
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid rgba(13, 110, 94, 0.18);
     border-radius: 999px;
-    padding: 0.22rem 0.55rem;
-    font-size: 0.8rem;
+    padding: 0.22rem 0.58rem;
     font-weight: 700;
     line-height: 1.25;
     text-align: center;
     z-index: 1;
+    box-shadow: 0 2px 8px rgba(15, 15, 15, 0.08);
+  }
+
+  .gauge-label {
+    font-size: 0.78rem;
   }
 
   .gauge-sub {
-    color: var(--ink-soft);
-    font-size: 0.68rem;
-    margin-top: 0.25rem;
-    z-index: 1;
+    color: var(--ink-mid);
+    font-size: 0.7rem;
+    margin-top: 0;
   }
 
   .payoff-chart {
@@ -1500,7 +1504,7 @@
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag" id="header-tag">Business Discovery Session</span>
-      <span class="header-version">v1.71.6</span>
+      <span class="header-version">v1.71.7</span>
   </div>
 </header>
 
