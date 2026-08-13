@@ -189,6 +189,25 @@
     display: none;
   }
 
+  .welcome-layout.wrapper-only {
+    grid-template-columns: minmax(0, 820px);
+    justify-content: center;
+  }
+
+  .wrapper-action-row {
+    display: flex;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+    margin-top: 1.1rem;
+  }
+
+  .start-hint {
+    color: var(--ink-mid);
+    font-size: 0.88rem;
+    line-height: 1.55;
+    margin: -0.35rem 0 1rem;
+  }
+
   .splash-copy {
     min-width: 0;
     display: flex;
@@ -1514,7 +1533,7 @@
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag" id="header-tag">Business Discovery Session</span>
-      <span class="header-version">v1.71.8</span>
+      <span class="header-version">v1.71.9</span>
   </div>
 </header>
 
@@ -1590,18 +1609,12 @@
       </section>
     </div>
 
-    <div class="welcome-layout" id="welcome-detail">
+    <div class="welcome-layout wrapper-only" id="welcome-detail">
       <div class="welcome-copy-panel">
-        <div class="welcome-eyebrow" id="welcome-eyebrow">Confidential - for your eyes only</div>
-        <h1 class="welcome-headline" id="welcome-headline">Let's understand your business <em>before</em> we talk about AI.</h1>
+        <div class="welcome-eyebrow" id="welcome-eyebrow">AFPA Member Intake</div>
+        <h1 class="welcome-headline" id="welcome-headline">A secure adaptive interview for your business.</h1>
         <p class="welcome-body" id="welcome-body">
-          This session usually takes about 20-30 minutes. There are no right or wrong answers.
-          General ranges and directional examples are enough for this first report; please do not
-          enter private financials, recipes, customer lists, supplier contracts, payroll details,
-          invoices, or confidential operating data. The interview includes core questions and may
-          add short follow-up questions when an answer needs more context. More detailed answers
-          usually help us move faster and reduce the need for follow-ups. Your answers are
-          encrypted, stored securely, and used only to prepare your private AI opportunity report.
+          This co-branded AFPA intake helps Bridge To AI prepare your private AI Opportunity Snapshot. AFPA receives anonymous group-level insights only, never your raw answers or individual interview record.
         </p>
 
         <div class="ai-payoff-dashboard" aria-label="Illustrative AI payoff dashboard">
@@ -1616,94 +1629,39 @@
               <div class="gauge-sub" id="gauge-sub">often hiding in repeated admin</div>
             </div>
             <div class="payoff-chart" aria-label="Illustrative workflow friction chart">
-              <div class="chart-row">
-                <span class="chart-label">Follow-up</span>
-                <span class="chart-track"><span class="chart-fill" style="width:82%"></span></span>
-                <span class="chart-value">High</span>
-              </div>
-              <div class="chart-row">
-                <span class="chart-label">Retyping</span>
-                <span class="chart-track"><span class="chart-fill" style="width:68%"></span></span>
-                <span class="chart-value">Med</span>
-              </div>
-              <div class="chart-row">
-                <span class="chart-label">Searching</span>
-                <span class="chart-track"><span class="chart-fill" style="width:74%"></span></span>
-                <span class="chart-value">High</span>
-              </div>
-              <div class="chart-row">
-                <span class="chart-label">Approvals</span>
-                <span class="chart-track"><span class="chart-fill" style="width:46%"></span></span>
-                <span class="chart-value">Check</span>
-              </div>
+              <div class="chart-row"><span class="chart-label">Follow-up</span><span class="chart-track"><span class="chart-fill" style="width:82%"></span></span><span class="chart-value">High</span></div>
+              <div class="chart-row"><span class="chart-label">Retyping</span><span class="chart-track"><span class="chart-fill" style="width:68%"></span></span><span class="chart-value">Med</span></div>
+              <div class="chart-row"><span class="chart-label">Searching</span><span class="chart-track"><span class="chart-fill" style="width:74%"></span></span><span class="chart-value">High</span></div>
+              <div class="chart-row"><span class="chart-label">Approvals</span><span class="chart-track"><span class="chart-fill" style="width:46%"></span></span><span class="chart-value">Check</span></div>
             </div>
           </div>
           <div class="payoff-path">
-            <div class="path-step">
-              <strong id="path-title-1">Messy workflow</strong>
-              <span id="path-copy-1">Where work repeats, waits, or depends on memory.</span>
-            </div>
-            <div class="path-step">
-              <strong id="path-title-2">AI-fit signal</strong>
-              <span id="path-copy-2">What can be drafted, organized, checked, or summarized.</span>
-            </div>
-            <div class="path-step">
-              <strong id="path-title-3">First useful win</strong>
-              <span id="path-copy-3">One safe place to test AI without overbuilding.</span>
-            </div>
+            <div class="path-step"><strong id="path-title-1">Secure AFPA intake</strong><span id="path-copy-1">Private answers. Anonymous group-level partner insight only.</span></div>
+            <div class="path-step"><strong id="path-title-2">Better answers, better snapshot</strong><span id="path-copy-2">Use practical examples. A rough answer is fine.</span></div>
+            <div class="path-step"><strong id="path-title-3">Voice saves time</strong><span id="path-copy-3">Use your microphone if you can, or type instead.</span></div>
           </div>
         </div>
 
-        <div class="snapshot-outcomes" aria-label="Snapshot outcomes">
-          <div class="outcome-chip">
-            <strong id="outcome-title-1">Best first use case</strong>
-            <span id="outcome-copy-1">Find the workflow where AI is most likely to help first.</span>
-          </div>
-          <div class="outcome-chip">
-            <strong id="outcome-title-2">Readiness signals</strong>
-            <span id="outcome-copy-2">See whether you are ready now or need cleanup first.</span>
-          </div>
-          <div class="outcome-chip">
-            <strong id="outcome-title-3">A practical next move</strong>
-            <span id="outcome-copy-3">Get one useful step you can try without buying anything.</span>
-          </div>
+        <div class="snapshot-outcomes" aria-label="What to know before starting">
+          <div class="outcome-chip"><strong id="outcome-title-1">Free snapshot</strong><span id="outcome-copy-1">You receive a private first-pass AI Opportunity Snapshot.</span></div>
+          <div class="outcome-chip"><strong id="outcome-title-2">Adaptive interview</strong><span id="outcome-copy-2">A few answers may trigger short follow-ups for clarity.</span></div>
+          <div class="outcome-chip"><strong id="outcome-title-3">Deeper diagnosis optional</strong><span id="outcome-copy-3">You can choose a paid, more detailed AI diagnosis later.</span></div>
         </div>
 
-        <div class="snapshot-result-panel">
-          <div class="snapshot-result-title" id="snapshot-result-title">What your free snapshot can show you</div>
-          <ul class="snapshot-result-list">
-            <li><span class="result-check">?</span><span id="result-item-1">Where repeated work is costing time, consistency, or follow-up.</span></li>
-            <li><span class="result-check">?</span><span id="result-item-2">Which AI help looks safe to try first, and what should stay human-reviewed.</span></li>
-            <li><span class="result-check">?</span><span id="result-item-3">Whether your templates, forms, emails, SOPs, or spreadsheets are enough to start from.</span></li>
-            <li><span class="result-check">?</span><span id="result-item-4">What a deeper interview would need before anyone promises a build plan.</span></li>
-          </ul>
-        </div>
-
-        <div class="evidence-first-box">
-          <strong id="evidence-title">Evidence-first, privacy-aware, built for useful answers</strong>
-          <p id="evidence-copy">
-            We have programmed the analysis to work from what you actually tell us. If the answers are vague, the snapshot will say so. If you are honest about what is messy, slow, repeated, or unclear, the report can point to a more useful first AI win, the cleanup needed first, and the work that should stay human-reviewed.
-          </p>
-        </div>
-
-        <div class="white-label-note" id="white-label-note">
-          <strong>For associations, training groups, and business communities:</strong>
-          this intake can be adapted to help you teach practical AI based on what your members actually need.
-        </div>
-
-        <div class="welcome-steps">
-          <p>How this works</p>
-          <ul class="step-list">
-            <li><span class="step-num">1</span> <span id="step-one-text">You'll start with a quick scenario, then move through 8 areas of your business and a short reflection on you as the owner.</span></li>
-            <li><span class="step-num">2</span> Speak your answer using the microphone, or type it directly.</li>
-            <li><span class="step-num">3</span> Review what was captured, edit if needed, then hit Continue.</li>
-            <li><span class="step-num">4</span> <span id="step-four-text">A few answers may trigger a quick follow-up so we can understand the real issue instead of guessing. Your progress is saved securely as you go, and your first report is based on directional business signals rather than confidential operating details.</span></li>
-          </ul>
+        <div class="wrapper-action-row">
+          <button class="btn-primary" type="button" onclick="goToStartHere()">Begin my discovery session -></button>
+          <button class="btn-secondary" type="button" onclick="openSnapshotResume()">Resume previous session</button>
         </div>
       </div>
 
+    </div>
+  </div>
+
+  <!-- -- Screen 2: Start Here -- -->
+  <div class="screen" id="screen-start">
       <div class="welcome-form-panel">
         <div class="welcome-form-title">Start here</div>
+        <p class="start-hint">Tell us where to send your free snapshot, then use your microphone or keyboard for the interview.</p>
 
         <div class="resume-card" id="resume-card">
           <div class="resume-title">Resume your previous session?</div>
@@ -1784,8 +1742,8 @@
           </div>
         </div>
         <div class="privacy-guidance" id="privacy-guidance">
-          <strong>Privacy guidance for this first intake</strong>
-          <span>General business context is enough. Please avoid private financials, customer names, supplier names, recipes, formulas, payroll, invoices, contracts, passwords, API keys, or confidential records. If a detail feels sensitive, describe it directionally instead.</span>
+          <strong>Privacy guidance</strong>
+          <span>Keep it high-level. If a detail feels too private to post publicly, keep it broad here.</span>
         </div>
 
         <div class="consent-box">
@@ -1793,9 +1751,9 @@
             <input type="checkbox" id="privacy-consent" />
             <span>
               I agree to the <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>
-              and consent to Bridge To AI securely processing my interview responses to prepare my private AI opportunity report and related service materials.
+              and consent to Bridge To AI securely processing my answers for my private AI Opportunity Snapshot.
               <span class="partner-consent-note" id="partner-consent-note">
-                I understand that anonymized, aggregated insights from participating members may be shared with the partner organization for education, course planning, and member-support strategy. Raw interview records and individual answers are not shared with the partner.
+                AFPA may receive anonymous group-level insights to improve member education, but never my raw answers or individual interview record.
               </span>
             </span>
           </label>
@@ -1806,13 +1764,12 @@
         <div id="welcome-error" class="error-banner">Please fill in your name, valid email, business name, business type, and privacy consent before continuing.</div>
 
         <button class="btn-primary" onclick="startInterview(event)" style="width:100%;">
-          Begin my discovery session ->
+          Start the interview ->
         </button>
       </div>
-    </div>
   </div>
 
-  <!-- -- Screen 2: Interview -- -->
+  <!-- -- Screen 3: Interview -- -->
   <div class="screen" id="screen-interview">
     <div class="progress-wrap">
       <div class="progress-meta">
@@ -2026,16 +1983,16 @@ const PARTNER_PROFILES = {
     shortName: 'AFPA',
     headerTag: 'AFPA Member AI Readiness Intake',
     pill: 'AFPA Member Program',
-    eyebrow: 'Confidential AFPA member intake',
-    headline: 'Help shape practical AI training for Alberta food processors.',
-    body: 'This session usually takes about 20-30 minutes. Your answers help prepare your private AI opportunity report and help AFPA understand, in anonymized aggregate form, what members need most from upcoming AI education. General ranges and directional examples are enough; please avoid private financials, recipes, customer lists, supplier contracts, payroll details, invoices, or confidential operating data. The interview includes core questions and may add short follow-up questions when an answer needs more context. More detailed answers usually help us move faster and reduce the need for follow-ups. Your answers are encrypted and stored securely.',
-    banner: 'This co-branded intake is provided for AFPA members and powered by Bridge To AI. AFPA receives anonymized aggregate insights for education and program planning, not raw member interview files.',
-    stepOne: 'You will move through practical business areas that help identify where AI education, workflow support, and safer implementation guidance may help AFPA members.',
-    stepFour: 'A few answers may trigger a quick follow-up when more context is needed. Your progress is saved securely as you go, and you can resume if you need to come back later.',
+    eyebrow: 'AFPA Member Intake',
+    headline: 'A secure adaptive interview for your business.',
+    body: 'This co-branded AFPA intake helps Bridge To AI prepare your private AI Opportunity Snapshot. AFPA receives anonymous group-level insights only, never your raw answers or individual interview record.',
+    banner: 'AFPA Member Intake, powered by Bridge To AI. Your raw answers are not shared with AFPA.',
+    stepOne: 'This secure adaptive interview looks for practical AI opportunities in your business.',
+    stepFour: 'Better answers create a better snapshot. Use your microphone if you can.',
     completion: 'Your AFPA member AI readiness intake has been encrypted and securely saved. Bridge To AI will use it to prepare your private AI opportunity report. AFPA may receive anonymized aggregate insights to help shape member education, but your raw interview record is not shared with AFPA.',
     nextSteps: [
       ['Bridge To AI prepares your free snapshot', 'Your answers will be used to prepare a private AI Opportunity Snapshot focused on practical next steps for your business.'],
-      ['AFPA receives anonymized member insights', 'AFPA may receive aggregate themes to help shape the December AI course and future member support. Individual answers and raw records are not shared.'],
+      ['AFPA receives anonymous group-level insights', 'AFPA may use group themes to improve member education. Your raw answers are not shared.'],
       ['You choose whether to go deeper', 'If you ask for follow-up, Bridge To AI can discuss deeper reports, implementation planning, or custom AI workbench support.']
     ]
   }
@@ -3038,6 +2995,10 @@ function configureSnapshotFrontDoor() {
 }
 
 function openSnapshotStart() {
+  goToStartHere();
+}
+
+function goToStartHere() {
   const splash = document.getElementById('snapshot-splash');
   const detail = document.getElementById('welcome-detail');
   if (splash) {
@@ -3045,9 +3006,10 @@ function openSnapshotStart() {
     splash.classList.remove('active');
   }
   if (detail) detail.classList.remove('is-hidden');
+  showScreen('screen-start');
+  logHermesEvent('start_here_opened', 'success', { entryPoint: 'welcome_wrapper' });
   const firstInput = document.getElementById('client-name');
   if (firstInput) setTimeout(() => firstInput.focus(), 80);
-  window.scrollTo(0, 0);
 }
 
 function openSnapshotResume() {
@@ -3276,7 +3238,7 @@ async function startInterview(evt) {
   if (startBtn) { startBtn.disabled = true; startBtn.textContent = 'Setting up your session...'; }
   await researchBusinessContext();
   if (!isSnapshotFirstCampaign()) await generateScenario();
-  if (startBtn) { startBtn.disabled = false; startBtn.textContent = 'Begin my discovery session ->'; }
+  if (startBtn) { startBtn.disabled = false; startBtn.textContent = 'Start the interview ->'; }
   saveDraft(false, true);
 
   showScreen('screen-interview');
@@ -3906,7 +3868,7 @@ function prevQuestion() {
 // -- Word count -------------------------------------------------------------
 document.getElementById('transcript').addEventListener('input', () => { updateWordCount(); saveDraft(); });
 
-document.querySelectorAll('#screen-welcome input, #screen-welcome select').forEach(input => {
+document.querySelectorAll('#screen-start input, #screen-start select').forEach(input => {
   input.addEventListener('input', () => saveDraft(false));
   input.addEventListener('change', () => saveDraft(false));
 });

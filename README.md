@@ -1,6 +1,6 @@
-# Bridge To AI Intake App - v1.71.8 Privacy Guidance And Inferred Answer Calibration
+# Bridge To AI Intake App - v1.71.9 AFPA Wrapper Start Flow
 
-This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, the required high-value "Try This This Week" prompt in the free report, selectable report export formats, searchable/sortable admin interview index, deterministic final-section safety net, the clearer core-question/follow-up progress language, and the retired lost-key draft block. v1.71.8 removes the fuzzy first-page detail-comfort question, adds explicit privacy guidance before consent, and infers answer specificity from the interview as a hidden internal calibration signal.
+This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, the required high-value "Try This This Week" prompt in the free report, selectable report export formats, searchable/sortable admin interview index, deterministic final-section safety net, the clearer core-question/follow-up progress language, and the retired lost-key draft block. v1.71.9 turns the AFPA front door into a shorter wrapper, moves setup and consent into a separate Start Here screen, and keeps the voice interview as the third step.
 
 ## Snapshot First Campaign
 
@@ -23,7 +23,7 @@ This build keeps the trust-first, controlled industry-adaptive intake, live-inte
 
 ## What Changed
 
-- Header version is now `v1.71.8`.
+- Header version is now `v1.71.9`.
 - Added `/snapshot` and `/snapshot-first` rewrites to `vercel.json`.
 - Added `snapshot.html` and `snapshot-first.html` static entry files for reliable clean URLs.
 - Added campaign variant detection from path or `campaign=snapshot_first`.
@@ -461,3 +461,5 @@ validate-output.js
 - v1.71.7 fixes the remaining low-contrast gauge subtext by applying the same high-contrast treatment to both gauge copy lines.
 
 - v1.71.8 removes the first-page detail-comfort question, adds a clear privacy guidance block above consent, keeps a hidden `answerSpecificityProfile`, infers answer specificity from actual answer depth/risk signals, and uses softer in-question privacy hints.
+
+- v1.71.9 turns the first AFPA page into a concise wrapper, moves identity/business setup and consent to a separate Start Here screen, shortens the privacy and partner consent language, and keeps the secure adaptive voice interview as the third step.
