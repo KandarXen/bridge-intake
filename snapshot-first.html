@@ -385,19 +385,70 @@
     line-height: 1.35;
   }
 
-  .sparkline {
-    height: 86px;
-    display: flex;
-    align-items: flex-end;
-    gap: 8px;
-    margin-top: 0.7rem;
+  .opportunity-map {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 0.55rem;
+    align-items: stretch;
+    margin-top: 0.75rem;
   }
 
-  .spark-bar {
-    flex: 1;
-    min-width: 12px;
-    border-radius: 999px 999px 4px 4px;
-    background: linear-gradient(180deg, #f2d184, #ffffff);
+  .map-column {
+    display: flex;
+    flex-direction: column;
+    gap: 0.42rem;
+    min-height: 116px;
+    padding: 0.75rem;
+    border: 1px solid rgba(13, 110, 94, 0.12);
+    border-radius: 8px;
+    background: linear-gradient(180deg, #ffffff, #f7fbf8);
+  }
+
+  .map-kicker {
+    color: var(--bridge-teal);
+    font-size: 0.64rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .map-title {
+    color: var(--ink);
+    font-size: 0.82rem;
+    font-weight: 850;
+    line-height: 1.2;
+  }
+
+  .map-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.34rem;
+    margin-top: auto;
+  }
+
+  .map-tags span {
+    border-radius: 999px;
+    background: #e8f4f1;
+    color: var(--bridge-teal);
+    padding: 0.22rem 0.45rem;
+    font-size: 0.64rem;
+    font-weight: 800;
+    line-height: 1.1;
+  }
+
+  .map-arrow {
+    align-self: center;
+    color: #ffffff;
+    background: rgba(16, 63, 56, 0.88);
+    border: 1px solid rgba(255,255,255,0.28);
+    border-radius: 999px;
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    box-shadow: 0 10px 22px rgba(13, 47, 41, 0.18);
   }
 
   .friction-list {
@@ -1550,6 +1601,15 @@
       grid-template-columns: 1fr;
     }
 
+    .opportunity-map {
+      grid-template-columns: 1fr;
+    }
+
+    .map-arrow {
+      justify-self: center;
+      transform: rotate(90deg);
+    }
+
     .welcome-form-panel {
       padding: 0;
       border: 0;
@@ -1580,7 +1640,7 @@
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag" id="header-tag">Business Discovery Session</span>
-      <span class="header-version">v1.71.10</span>
+      <span class="header-version">v1.71.11</span>
   </div>
 </header>
 
@@ -1629,13 +1689,24 @@
 
         <div class="visual-card">
           <strong style="display:block;color:var(--ink);font-size:0.86rem;">From busywork to first win</strong>
-          <div class="sparkline" aria-hidden="true">
-            <span class="spark-bar" style="height:34%"></span>
-            <span class="spark-bar" style="height:48%"></span>
-            <span class="spark-bar" style="height:42%"></span>
-            <span class="spark-bar" style="height:64%"></span>
-            <span class="spark-bar" style="height:76%"></span>
-            <span class="spark-bar" style="height:92%"></span>
+          <div class="opportunity-map" aria-label="Illustrative path from workflow drag to first AI win">
+            <div class="map-column">
+              <span class="map-kicker">Drag</span>
+              <span class="map-title">Work repeats or waits</span>
+              <div class="map-tags"><span>retyping</span><span>searching</span><span>follow-up</span></div>
+            </div>
+            <span class="map-arrow" aria-hidden="true">-></span>
+            <div class="map-column">
+              <span class="map-kicker">Signal</span>
+              <span class="map-title">A safe AI task appears</span>
+              <div class="map-tags"><span>draft</span><span>sort</span><span>summarize</span></div>
+            </div>
+            <span class="map-arrow" aria-hidden="true">-></span>
+            <div class="map-column">
+              <span class="map-kicker">Win</span>
+              <span class="map-title">One practical next move</span>
+              <div class="map-tags"><span>save time</span><span>reduce misses</span><span>start small</span></div>
+            </div>
           </div>
         </div>
 
