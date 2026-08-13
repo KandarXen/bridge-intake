@@ -479,7 +479,7 @@
         <h1>BTAI Records Console</h1>
         <p>Retrieve secure intake records, generate reports, download privacy proof, and review partner aggregate intelligence from one admin-only dashboard.</p>
       </div>
-      <div class="version-pill">v1.71.4</div>
+      <div class="version-pill">v1.71.13</div>
     </div>
 
     <div id="admin-record-controls" class="record-strip auth-locked">
@@ -581,6 +581,7 @@
             <div class="action-stack-title">Utilities</div>
             <div class="button-row">
               <button id="download-md-btn" class="secondary" type="button">Venture DNA .md</button>
+              <button id="export-html-reports-btn" class="secondary" type="button">All HTML Reports</button>
               <button id="refresh-status-btn" class="secondary" type="button">Report Status</button>
               <button id="send-free-report-btn" class="secondary" type="button">Send Free Email</button>
             </div>
@@ -1569,6 +1570,27 @@ Conclusion: ${proof.privacyConclusion || 'not returned'}`;
 
     document.getElementById('download-aggregate-md-btn').addEventListener('click', () => {
       downloadAggregateReport('markdown');
+    });
+
+    document.getElementById('export-html-reports-btn').addEventListener('click', async () => {
+      const values = formValues();
+      if (!hasAdminAuth(values)) {
+        statusEl.textContent = 'Admin authentication is required to export all HTML reports.';
+        return;
+      }
+      setBusy(true, 'Building ZIP of all decryptable HTML reports from secure storage...');
+      try {
+        const data = await postJson('/api/admin-output', {
+          action: 'export-html-reports'
+        }, values.adminSecret);
+        downloadZip(data.filename || 'BTAI_All_HTML_Reports.zip', data.contentBase64);
+        const manifest = data.manifest || {};
+        statusEl.textContent = `Downloaded ${data.filename || 'BTAI_All_HTML_Reports.zip'}\nHTML reports included: ${manifest.includedReports || 0}\nRows scanned: ${manifest.totalRowsScanned || 0}\nRows skipped: ${manifest.skippedReports || 0}\nSkipped details are included in MANIFEST.json inside the ZIP.`;
+      } catch (err) {
+        statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;
+      } finally {
+        setBusy(false);
+      }
     });
 
     document.getElementById('send-free-report-btn').addEventListener('click', async () => {

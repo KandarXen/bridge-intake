@@ -1,5 +1,6 @@
 import { decryptJson } from '../lib/crypto.js';
-import { getLatestIntakeOutput, getRecentIntakeSessions, insertIntakeEvent } from '../lib/supabase-rest.js';
+import { createZipBuffer } from '../lib/docx.js';
+import { getIntakeOutputsByTypes, getLatestIntakeOutput, getRecentIntakeSessions, insertIntakeEvent } from '../lib/supabase-rest.js';
 import { assertRateLimit, assertTrustedOrigin, authorizedAdminRequest, safeError } from '../lib/security.js';
 import { isLostKeyDecryptError, retiredLostKeyMessage } from '../lib/retirement.js';
 
@@ -146,6 +147,129 @@ async function listRecords(req, res) {
   });
 }
 
+const HTML_REPORT_OUTPUT_TYPES = [
+  'report_free_snapshot_html',
+  'report_detailed_growth_html',
+  'report_full_roadmap_html',
+  'report_btai_advisor_brief_html'
+];
+
+function reportFolder(outputType) {
+  if (outputType === 'report_free_snapshot_html') return 'Free_Snapshots';
+  if (outputType === 'report_detailed_growth_html') return 'Detailed_Reports';
+  if (outputType === 'report_full_roadmap_html') return 'Action_Plans';
+  if (outputType === 'report_btai_advisor_brief_html') return 'Advisor_Briefs';
+  return 'HTML_Reports';
+}
+
+function uniqueZipName(baseName, usedNames) {
+  const cleaned = String(baseName || 'report.html')
+    .replace(/[\\/:*?"<>|]+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 140) || 'report.html';
+  const stem = cleaned.toLowerCase().endsWith('.html') ? cleaned.slice(0, -5) : cleaned;
+  let candidate = `${stem || 'report'}.html`;
+  let i = 2;
+  while (usedNames.has(candidate.toLowerCase())) {
+    candidate = `${stem || 'report'}_${i}.html`;
+    i += 1;
+  }
+  usedNames.add(candidate.toLowerCase());
+  return candidate;
+}
+
+async function exportHtmlReports(req, res) {
+  const rows = await getIntakeOutputsByTypes(HTML_REPORT_OUTPUT_TYPES, { limit: 10000 });
+  const files = [];
+  const manifest = {
+    generatedAt: new Date().toISOString(),
+    outputTypes: HTML_REPORT_OUTPUT_TYPES,
+    totalRowsScanned: rows.length,
+    includedReports: 0,
+    skippedReports: 0,
+    skipped: []
+  };
+  const usedNames = new Set();
+
+  for (const row of rows) {
+    const item = {
+      outputId: row.id,
+      recordId: row.client_draft_id || '',
+      outputType: row.output_type || '',
+      createdAt: row.created_at || '',
+      retiredLostKey: !!row.retired_lost_key
+    };
+
+    if (row.retired_lost_key) {
+      manifest.skippedReports += 1;
+      manifest.skipped.push({ ...item, reason: 'retired_lost_key' });
+      continue;
+    }
+
+    let payload;
+    try {
+      payload = row.encrypted_payload ? decryptJson(row.encrypted_payload) : null;
+    } catch (err) {
+      manifest.skippedReports += 1;
+      manifest.skipped.push({
+        ...item,
+        reason: isLostKeyDecryptError(err) ? 'decrypt_failed_lost_or_previous_key' : 'decrypt_failed',
+        message: err.message || ''
+      });
+      continue;
+    }
+
+    if (!payload?.contentBase64) {
+      manifest.skippedReports += 1;
+      manifest.skipped.push({ ...item, reason: 'no_html_contentBase64' });
+      continue;
+    }
+
+    const fallbackName = `${safeFilename(payload.businessName || row.client_draft_id || 'Bridge_To_AI')}_${safeFilename(row.output_type)}.html`;
+    const filename = uniqueZipName(payload.filename || fallbackName, usedNames);
+    files.push({
+      name: `${reportFolder(row.output_type)}/${filename}`,
+      content: Buffer.from(payload.contentBase64, 'base64')
+    });
+    manifest.includedReports += 1;
+  }
+
+  files.push({
+    name: 'MANIFEST.json',
+    content: JSON.stringify(manifest, null, 2)
+  });
+  files.push({
+    name: 'README.txt',
+    content: [
+      'Bridge To AI HTML report export',
+      `Generated: ${manifest.generatedAt}`,
+      `Rows scanned: ${manifest.totalRowsScanned}`,
+      `HTML reports included: ${manifest.includedReports}`,
+      `Rows skipped: ${manifest.skippedReports}`,
+      '',
+      'Skipped rows are listed in MANIFEST.json. Retired/lost-key or undecryptable rows were not included.'
+    ].join('\n')
+  });
+
+  const zip = createZipBuffer(files);
+  await logAdminAccess('all-html-reports', 'admin_all_html_reports_exported', 'success', {
+    adminAction: 'export_all_html_reports_zip',
+    rawDnaAccessed: false,
+    reportFilesIncluded: manifest.includedReports,
+    skippedReports: manifest.skippedReports,
+    outputRowsScanned: manifest.totalRowsScanned,
+    retiredLostKeySkipped: manifest.skipped.filter(item => item.reason === 'retired_lost_key').length
+  });
+
+  return res.status(200).json({
+    success: true,
+    filename: `BTAI_All_HTML_Reports_${new Date().toISOString().slice(0, 10)}.zip`,
+    contentBase64: zip.toString('base64'),
+    manifest
+  });
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   try {
@@ -163,6 +287,15 @@ export default async function handler(req, res) {
     } catch (err) {
       console.error('admin record index error:', err);
       return res.status(500).json({ error: 'Server error', message: err.message });
+    }
+  }
+
+  if (action === 'export-html-reports') {
+    try {
+      return await exportHtmlReports(req, res);
+    } catch (err) {
+      console.error('admin HTML report export error:', err);
+      return res.status(Number(err?.statusCode) || 500).json({ error: err.message || 'HTML report export failed' });
     }
   }
 
