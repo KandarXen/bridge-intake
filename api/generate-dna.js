@@ -170,6 +170,17 @@ function reidentifyText(text, mapping) {
   return output;
 }
 
+function applyPrivacyRedactions(text, redactionMap = []) {
+  let output = String(text || '');
+  const entries = [...(redactionMap || [])]
+    .filter(item => item && item.original && item.token)
+    .sort((a, b) => String(b.original).length - String(a.original).length);
+  for (const item of entries) {
+    output = output.replace(new RegExp(escapeRegExp(item.original), 'g'), item.token);
+  }
+  return output;
+}
+
 async function saveAnonymizationMapping(clientDraftId, mapping, stats) {
   try {
     const hasMapping = mapping && Object.keys(mapping).length > 0;
@@ -311,10 +322,11 @@ export default async function handler(req, res) {
       ...retentionMetadata('first_intake'),
       proofStatus: 'passed'
     });
-    const privacyGate = runPrivacyGate(prompt, { purpose: 'venture_dna_generation' });
+    const participantPrivacySource = String(sourceMeta?.privacyScanText || '').trim();
+    const privacyGate = runPrivacyGate(participantPrivacySource || prompt, { purpose: 'venture_dna_generation' });
     const privacyGateSave = await savePrivacyGateRecord(clientDraftId, privacyGate, 'venture_dna_generation');
     await logPrivacyProof(clientDraftId, 'privacy_gate_scan_completed', privacyGateSave.saved ? 'success' : 'failed', gateProofDetails(privacyGate, {
-      payloadType: 'raw_interview_prompt',
+      payloadType: participantPrivacySource ? 'participant_supplied_interview_text' : 'raw_interview_prompt',
       privacyGateOutputId: privacyGateSave.outputId || '',
       privacyGateSaveReason: privacyGateSave.reason || '',
       proofStatus: privacyGateSave.saved ? (privacyGate.requiresReview ? 'review_required' : 'passed') : 'failed'
@@ -328,7 +340,7 @@ export default async function handler(req, res) {
         });
       }
       await logPrivacyProof(clientDraftId, 'privacy_gate_quarantine_created', 'success', gateProofDetails(privacyGate, {
-        payloadType: 'raw_interview_prompt',
+        payloadType: participantPrivacySource ? 'participant_supplied_interview_text' : 'raw_interview_prompt',
         aiPayloadBlocked: true,
         aiReceivesSanitizedPayloadOnly: false,
         proofStatus: 'review_required'
@@ -345,7 +357,10 @@ export default async function handler(req, res) {
       });
     }
 
-    const hermesPrivacy = anonymizePrompt(privacyGate.sanitizedText);
+    const gatedPrompt = participantPrivacySource
+      ? applyPrivacyRedactions(prompt, privacyGate.redactionMap)
+      : privacyGate.sanitizedText;
+    const hermesPrivacy = anonymizePrompt(gatedPrompt);
     await logPrivacyProof(clientDraftId, 'privacy_proof_anonymization_completed', 'success', {
       privacyProofType: 'anonymization',
       payloadType: 'sanitized_interview_prompt',

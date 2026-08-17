@@ -2050,7 +2050,7 @@
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag" id="header-tag">Business Discovery Session</span>
-      <span class="header-version">v1.72.8</span>
+      <span class="header-version">v1.72.9</span>
   </div>
 </header>
 
@@ -4780,9 +4780,21 @@ async function submitInterview() {
     logHermesEvent('submission_failed', 'failed', { emailDelivered: false, error: err.message || 'Submission failed', ...interviewKpiSummary() });
     if (window.processingTimer) clearInterval(window.processingTimer);
     showScreen('screen-complete');
+    updateCompletionCampaignOptions();
+    if (err.privacyReviewRequired) {
+      document.getElementById('complete-message').textContent =
+        `Thank you, ${clientName}. Your interview was encrypted and saved, but the Bridge To AI Privacy Gate paused automatic report generation because sensitive details may be present. The Bridge Team will review the sanitized record before preparing or sending your report.`;
+      const status = document.getElementById('followup-save-status');
+      if (status) status.textContent = 'Privacy review required before automatic report delivery.';
+      const deliveryButton = document.getElementById('report-delivery-btn');
+      if (deliveryButton) {
+        deliveryButton.textContent = 'Privacy review required before report delivery';
+        deliveryButton.disabled = true;
+      }
+      return;
+    }
     document.getElementById('complete-message').textContent =
       `Thank you, ${clientName}. Your interview is complete and securely saved. Use the button below to send your free report.`;
-    updateCompletionCampaignOptions();
   }
 }
 
@@ -4847,6 +4859,57 @@ function animateProcessingSteps() {
 }
 
 // -- Build prompt for Claude ------------------------------------------------
+function buildPrivacyScanText() {
+  const boundaryCategoryPattern = /\b(?:private financials?|recipes?|formulas?|customer lists?|customer names?|client lists?|client names?|supplier contracts?|customer contracts?|vendor contracts?|contracts?|payroll|invoices?|confidential operating data|confidential formulas?|regulated data)\b/gi;
+  const answerForPrivacyScan = (question, value) => {
+    const answer = String(value || '').trim();
+    if (!answer) return '';
+    if (question?.domain === 'Risk & Boundaries' || question?.type === 'Do Not Automate') {
+      return answer.replace(boundaryCategoryPattern, '[BOUNDARY_CATEGORY]');
+    }
+    return answer;
+  };
+  const lines = [
+    'PARTICIPANT-PROVIDED INTAKE DATA',
+    `Business Name: ${businessName || ''}`,
+    `Business Category: ${businessCategory || ''}`,
+    `Specific Niche: ${businessNiche || ''}`,
+    `Detail-Sharing Comfort: ${shareComfort || ''}`,
+    `Website URL: ${websiteUrl || ''}`,
+    `Company Size: ${companySize || ''}`,
+    `Owner Work Status / Capacity: ${ownerWorkStatus || ''}`,
+    `Departments / Functions: ${departments.join(', ')}`
+  ];
+
+  QUESTIONS.forEach((q, i) => {
+    const answer = answerForPrivacyScan(q, answers[i]);
+    if (!answer) return;
+    lines.push(`\n[${q.domain} - ${q.type}]`);
+    lines.push(answer);
+  });
+
+  Object.keys(domainProbes || {}).forEach(domain => {
+    const probe = domainProbes[domain];
+    if (!probe?.answer) return;
+    lines.push(`\n[Adaptive follow-up - ${domain}]`);
+    lines.push(String(probe.answer || '').trim());
+  });
+
+  snapshotAnswersArchive.forEach(item => {
+    if (!item?.answer) return;
+    lines.push(`\n[Snapshot archive - ${item.domain || ''} - ${item.type || ''}]`);
+    lines.push(String(item.answer || '').trim());
+  });
+
+  if (scenarioGood || scenarioBad) {
+    lines.push('\n[Voice and standards answers]');
+    if (scenarioGood) lines.push(`Best reply: ${scenarioGood}`);
+    if (scenarioBad) lines.push(`Off-brand reply: ${scenarioBad}`);
+  }
+
+  return lines.join('\n').trim();
+}
+
 function buildPrompt() {
   // -- Business answers, grouped by domain, with any AI probe appended --
   let businessBlock = '';
@@ -5066,6 +5129,7 @@ async function generateDNAWithClaude() {
         campaign: campaignId,
         partnerDisplayName,
         intakeVariant,
+        privacyScanText: buildPrivacyScanText(),
         questionSet: isSnapshotFirstCampaign() ? 'snapshot_first_short_set' : 'full_diagnostic_set',
         businessCategory,
         companySize,
@@ -5085,8 +5149,17 @@ async function generateDNAWithClaude() {
     })
   });
 
-  if (!response.ok) throw new Error('DNA generation failed');
   const data = await response.json();
+  if (!response.ok) {
+    if (response.status === 409 && /Privacy review required/i.test(data.error || data.message || '')) {
+      if (data.secureStorage) lastSecureStorage = data.secureStorage;
+      const privacyErr = new Error(data.message || 'Privacy review required before report generation can continue');
+      privacyErr.privacyReviewRequired = true;
+      privacyErr.privacyGate = data.privacyGate || null;
+      throw privacyErr;
+    }
+    throw new Error(data.message || data.error || 'DNA generation failed');
+  }
   if (data.hermesPrivacy) {
     logHermesEvent('tokenization_result', data.hermesPrivacy.anonymized ? 'success' : 'failed', {
       privacyProofType: 'browser_confirmation_anonymization',
