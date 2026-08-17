@@ -412,6 +412,23 @@
     margin-top: 1.35rem;
   }
 
+  .afpa-resume-status {
+    display: none;
+    width: fit-content;
+    max-width: 100%;
+    margin-top: 0.85rem;
+    border: 1px solid #f2c4b5;
+    border-radius: 10px;
+    background: #fff7f3;
+    color: #8d2b14;
+    padding: 0.65rem 0.8rem;
+    font-size: 0.86rem;
+    font-weight: 800;
+    line-height: 1.35;
+  }
+
+  .afpa-resume-status.active { display: block; }
+
   .afpa-front-trust {
     display: grid;
     grid-template-columns: 58px minmax(0, 1fr);
@@ -1987,6 +2004,7 @@
             <button class="btn-primary" type="button" onclick="openAfpaCourseStart()">Continue to interview</button>
             <button class="btn-secondary" type="button" onclick="openAfpaCourseResume()">Resume previous session</button>
           </div>
+          <div class="afpa-resume-status" id="afpa-resume-status" role="status"></div>
           <div class="afpa-front-trust">
             <img src="/assets/brand/sil-trust-seal.png" alt="Bridge To AI Secure Intelligence Layer">
             <span><strong>Privacy-first processing.</strong> Your raw answers are used for your private report. AFPA receives anonymized aggregate themes for education planning, not individual interview files.</span>
@@ -3474,7 +3492,7 @@ async function maybeContinueDeepInterviewFromLink() {
   if (!draft) return false;
   try { localStorage.setItem(SESSION_KEY, recordId); } catch (e) { /* resume unavailable */ }
   lastLoadedDraft = { ...draft, clientDraftId: draft.clientDraftId || recordId };
-  await resumeSavedInterview();
+  await resumeSavedInterview({ requireCampaignMatch: false });
   if (isSnapshotFirstCampaign()) {
     continueIntoDeepDiagnostic();
     return true;
@@ -3482,10 +3500,24 @@ async function maybeContinueDeepInterviewFromLink() {
   return false;
 }
 
+function normalizeCampaignValue(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function draftMatchesCurrentCampaign(draft) {
+  if (!draft) return false;
+  return (
+    normalizeCampaignValue(draft.campaignPartner || CONFIG.DEFAULT_PARTNER) === normalizeCampaignValue(campaignPartner || CONFIG.DEFAULT_PARTNER) &&
+    normalizeCampaignValue(draft.campaignId || CONFIG.DEFAULT_CAMPAIGN) === normalizeCampaignValue(campaignId || CONFIG.DEFAULT_CAMPAIGN) &&
+    normalizeCampaignValue(draft.intakeVariant || activeIntakeVariant()) === normalizeCampaignValue(intakeVariant || activeIntakeVariant())
+  );
+}
+
 async function showResumeCardIfNeeded() {
   const draft = await loadDraft();
   const card = document.getElementById('resume-card');
   if (!card || !draft) return;
+  if (!draftMatchesCurrentCampaign(draft)) return;
   lastLoadedDraft = draft;
 
   clientDraftId = draft.clientDraftId || '';
@@ -3584,15 +3616,29 @@ function openAfpaCourseStart() {
   window.scrollTo(0, 0);
 }
 
-function openAfpaCourseResume() {
-  openAfpaCourseStart();
-  const card = document.getElementById('resume-card');
-  if (card && card.style.display !== 'none') {
-    resumeSavedInterview();
+function showAfpaResumeStatus(message) {
+  const status = document.getElementById('afpa-resume-status');
+  if (!status) return;
+  status.textContent = message;
+  status.classList.add('active');
+}
+
+async function openAfpaCourseResume() {
+  const status = document.getElementById('afpa-resume-status');
+  if (status) {
+    status.textContent = 'Checking this browser for a saved AFPA session...';
+    status.classList.add('active');
+  }
+
+  const draft = lastLoadedDraft || await loadDraft();
+  if (!draft || !draft.interviewStarted || !draftMatchesCurrentCampaign(draft)) {
+    lastLoadedDraft = null;
+    showAfpaResumeStatus('No active AFPA December course session is available in this browser. Use Continue to interview to start a new one.');
     return;
   }
-  const summary = document.getElementById('resume-summary');
-  if (summary) summary.textContent = 'If this browser has a saved AFPA intake session, it will appear here. Otherwise, start a new interview below.';
+
+  lastLoadedDraft = draft;
+  await resumeSavedInterview();
 }
 
 function openSnapshotStart() {
@@ -3608,21 +3654,23 @@ function openSnapshotStart() {
   window.scrollTo(0, 0);
 }
 
-function openSnapshotResume() {
+async function openSnapshotResume() {
   openSnapshotStart();
   const card = document.getElementById('resume-card');
   if (card && card.style.display !== 'none') {
-    resumeSavedInterview();
+    await resumeSavedInterview();
     return;
   }
   const summary = document.getElementById('resume-summary');
   if (summary) summary.textContent = 'If this browser has a saved session, it will appear here. Otherwise, start a new snapshot below.';
 }
 
-async function resumeSavedInterview() {
+async function resumeSavedInterview(options = {}) {
+  const requireCampaignMatch = options.requireCampaignMatch !== false;
   draftAutosaveEnabled = true;
   const draft = lastLoadedDraft || await loadDraft();
   if (!draft) return;
+  if (requireCampaignMatch && !draftMatchesCurrentCampaign(draft)) return;
 
   clientDraftId = draft.clientDraftId || '';
   clientName = draft.clientName || '';
