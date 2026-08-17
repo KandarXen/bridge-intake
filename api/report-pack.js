@@ -6,7 +6,7 @@ import { gateProofDetails, publicGateSummary, runPrivacyGate } from '../lib/priv
 import { validateDnaOutput } from '../lib/validate-output.js';
 import { assertRateLimit, assertTrustedOrigin, authorizedAdminRequest, safeError } from '../lib/security.js';
 
-const APP_VERSION = 'v1.72.15';
+const APP_VERSION = 'v1.72.16';
 
 const REPORTS = {
   free: {
@@ -15,7 +15,7 @@ const REPORTS = {
     docxOutputType: 'report_free_snapshot_docx',
     htmlOutputType: 'report_free_snapshot_html',
     filename: 'Level1_report',
-    maxTokens: 2600
+    maxTokens: 2100
   },
   detailed: {
     title: 'Detailed AI Readiness & Opportunity Report',
@@ -283,7 +283,12 @@ function paymentConfig() {
   };
 }
 
-function reportPrivacyStatement() {
+function reportPrivacyStatement(tier = '') {
+  if (tier === 'free') {
+    return `## Privacy Note
+
+Your raw interview stays in the secure record. Partners, where applicable, receive anonymized aggregate themes only, not your individual answers.`;
+  }
   return `## How This Was Handled Privately
 
 Your raw interview was not attached to this report. The working record is stored securely, direct identifiers are removed or replaced where practical before AI analysis, and the private re-identification map is encrypted at rest using AES-256-GCM.
@@ -307,12 +312,11 @@ A workbench is a private operating dashboard built around your business so repea
   }
   return `## If You Want The Next Layer
 
-This free snapshot gives you the first useful read. The deeper interview is where Bridge To AI confirms the sequence, pressure-tests the assumptions, and decides whether a paid report, action plan, or workbench recommendation is actually worth preparing.
+If the snapshot feels accurate, the deeper interview is the no-payment context step. It helps Bridge To AI decide whether you need a paid report, action plan, workbench, or just a practical conversation.
 
-- Continue the deeper interview: use the continuation link in your report email, or reply to Bridge To AI and ask us to reopen your secure interview.
-- Detailed AI Opportunity Report - ${level2Price}: available after the deeper interview gives enough context.
-- Preliminary AI Action Plan - ${level3Price}: available after workflow priorities and risk controls are confirmed.
-- Implementation or workbench support: ${consultUrl || 'Reply to the Bridge To AI email thread to request a conversation.'}`;
+- Continue the deeper interview: use the link in your report email.
+- Paid reports, from ${level2Price}: best considered after the missing context is confirmed.
+- Implementation/workbench support: ${consultUrl || 'reply to Bridge To AI to request a conversation.'}`;
 }
 
 function splitSentences(text = '') {
@@ -343,14 +347,21 @@ function enforceFreeQuickReadBullets(markdown) {
   const after = source.slice(sectionEnd);
   const lines = section.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
   const hasBullets = lines.some(line => /^[-*]\s+/.test(line));
-  if (hasBullets) return source;
+  if (hasBullets) {
+    const tightenedLines = lines.map(line => {
+      if (!/^[-*]\s+/.test(line)) return line;
+      return `- ${tightenBulletText(line.replace(/^[-*]\s+/, '')).split(/(?<=[.!?])\s+/).slice(0, 1).join(' ')}`;
+    });
+    return `${before}${tightenedLines.join('\n')}\n${after}`;
+  }
 
   let lead = lines.find(line => /^Here is what I am seeing\.?$/i.test(line)) || 'Here is what I am seeing.';
   const candidates = lines.filter(line => line !== lead);
   const bullets = candidates
     .map(tightenBulletText)
+    .map(item => item.split(/(?<=[.!?])\s+/).slice(0, 1).join(' '))
     .filter(Boolean)
-    .slice(0, 7);
+    .slice(0, 5);
 
   if (bullets.length < 3) return source;
   return `${before}${lead}\n\n${bullets.map(item => `- ${item}`).join('\n')}\n${after}`;
@@ -364,7 +375,7 @@ function shapeReportMarkdown(markdown, tier) {
 function decorateReportMarkdown(markdown, tier) {
   const sections = [shapeReportMarkdown(markdown, tier)];
   if (tier !== 'btai') sections.push(clientUpgradeSection(tier));
-  sections.push(reportPrivacyStatement());
+  sections.push(reportPrivacyStatement(tier));
   return sections.filter(Boolean).join('\n\n');
 }
 
@@ -734,10 +745,15 @@ function promptForTier(tier, dna) {
 
 Generate REPORT 1: Free AI Opportunity Snapshot.
 
-Target: 1-2 pages in markdown. Prefer tight sections, short bullets, and compact tables.
+Target: under 900 words in markdown. Prefer tight sections, short bullets, and compact tables.
 Purpose: useful no-cost report that proves Bridge To AI understood the business.
 Tone: client-facing, practical, plain-spoken, specific, and evidence-first. This should sound like Darren saying, "Here is what I noticed, here is the real pinch point, and here is what I would do first." Do not make this sound like an AI sales pitch or a consultant deck.
 Important: the free report must impress through clarity, not volume. Its job is to show one likely first opportunity, the evidence behind it, and one useful next move. Do not give a full diagnosis.
+Evidence style:
+- Acknowledge what the client told us; do not keep repeating their words back to them.
+- Use at most one short direct quote in the whole free report, and only if the exact wording matters.
+- Prefer concise synthesis over recap. Assume the client remembers what they answered.
+- Evidence should feel like "we heard you and understood the pattern," not like a transcript summary.
 Paid-ladder boundary:
 - The free report may name one primary opportunity and one backup opportunity only if needed.
 - The free report must not fully rank the implementation sequence.
@@ -764,11 +780,11 @@ Write this as one short lead sentence followed by exactly 5 high-signal bullet p
 ## 2. Snapshot Scorecard
 Use the required 5-row scorecard table. Keep each cell short and specific. This should feel like the visual front door of the report.
 ## 3. Best First AI Opportunity
-Write 2 short paragraphs only. Name the one best first opportunity and why it appears to matter. Include one sentence about what should stay human-reviewed.
+Write 1 short paragraph only. Name the one best first opportunity, why it appears to matter, and what should stay human-reviewed.
 ## 4. Try This This Week
-Give one short, safe, copy/paste-ready AI prompt or exercise. Make it specific and useful this week. Keep the section under 260 words total.
+Give one short, safe, copy/paste-ready AI prompt or exercise. Make it specific and useful this week. Keep the section under 180 words total.
 ## 5. What The Deeper Interview Would Confirm
-Use 3 bullets only. Explain what still needs confirmation before Bridge To AI should rank the work, scope implementation, or recommend a workbench.
+Use 2 bullets only. Explain what still needs confirmation before Bridge To AI should rank the work, scope implementation, or recommend a workbench.
 
 VENTURE DNA:
 ${dna}`;
