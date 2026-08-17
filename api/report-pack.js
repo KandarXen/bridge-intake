@@ -4,9 +4,9 @@ import { createReportHtml } from '../lib/report-html.js';
 import { getIntakeEvents, getIntakeSession, getLatestIntakeOutput, insertIntakeEvent, insertIntakeOutput } from '../lib/supabase-rest.js';
 import { gateProofDetails, publicGateSummary, runPrivacyGate } from '../lib/privacy-gate.js';
 import { validateDnaOutput } from '../lib/validate-output.js';
-import { assertRateLimit, assertTrustedOrigin, assertTurnstile, authorizedAdminRequest, safeError } from '../lib/security.js';
+import { assertRateLimit, assertTrustedOrigin, authorizedAdminRequest, safeError } from '../lib/security.js';
 
-const APP_VERSION = 'v1.72.7';
+const APP_VERSION = 'v1.72.8';
 
 const REPORTS = {
   free: {
@@ -1780,7 +1780,6 @@ export default async function handler(req, res) {
     assertTrustedOrigin(req);
     assertRateLimit(req, { key: `report-pack:${action || 'unknown'}`, limit: action === 'generate-free-email' ? 8 : 12, windowMs: 60_000 });
     if (action === 'generate-free-email') {
-      await assertTurnstile(req);
       return res.status(200).json(await generateFreeAndEmail(clientDraftId, req.body?.clientEmail || ''));
     }
     if (!(await authorizedAdminRequest(req))) return res.status(401).json({ error: 'Unauthorized' });
