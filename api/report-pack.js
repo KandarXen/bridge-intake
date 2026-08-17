@@ -6,7 +6,7 @@ import { gateProofDetails, publicGateSummary, runPrivacyGate } from '../lib/priv
 import { validateDnaOutput } from '../lib/validate-output.js';
 import { assertRateLimit, assertTrustedOrigin, authorizedAdminRequest, safeError } from '../lib/security.js';
 
-const APP_VERSION = 'v1.72.12';
+const APP_VERSION = 'v1.72.13';
 
 const REPORTS = {
   free: {
@@ -15,7 +15,7 @@ const REPORTS = {
     docxOutputType: 'report_free_snapshot_docx',
     htmlOutputType: 'report_free_snapshot_html',
     filename: 'Level1_report',
-    maxTokens: 4200
+    maxTokens: 2600
   },
   detailed: {
     title: 'Detailed AI Readiness & Opportunity Report',
@@ -307,18 +307,12 @@ A workbench is a private operating dashboard built around your business so repea
   }
   return `## If You Want The Next Layer
 
-This free snapshot is meant to give you one useful first read, not hold the value hostage.
-
-The Snapshot Scorecard is directional, not a measurement claim. It is there to show the first signals Bridge To AI sees from your answers: where work is dragging, where AI may fit, what may need cleanup, what should stay human-reviewed, and what first move looks useful.
-
-The best next step is not to buy a deeper report cold. First, continue the deeper interview while the context is fresh. That gives Bridge To AI enough information to rank the work properly, pressure-test the scorecard, spot what should wait, identify cleanup needs, and decide whether a paid report or action plan is actually worth preparing.
+This free snapshot gives you the first useful read. The deeper interview is where Bridge To AI confirms the sequence, pressure-tests the assumptions, and decides whether a paid report, action plan, or workbench recommendation is actually worth preparing.
 
 - Continue the deeper interview: use the continuation link in your report email, or reply to Bridge To AI and ask us to reopen your secure interview.
-- Detailed AI Opportunity Report - ${level2Price}: Available after the deeper interview gives enough context.
-- Preliminary AI Action Plan - ${level3Price}: Available after the deeper interview confirms workflow priorities, risk controls, and scoping questions.
-- Talk with Bridge To AI about implementation or a custom workbench: ${consultUrl || 'Reply to the Bridge To AI email thread to request a conversation.'}
-
-A workbench is a private operating dashboard built around your business so repeated workflows can run from one place instead of being scattered across notes, spreadsheets, prompts, files, and tools.`;
+- Detailed AI Opportunity Report - ${level2Price}: available after the deeper interview gives enough context.
+- Preliminary AI Action Plan - ${level3Price}: available after workflow priorities and risk controls are confirmed.
+- Implementation or workbench support: ${consultUrl || 'Reply to the Bridge To AI email thread to request a conversation.'}`;
 }
 
 function splitSentences(text = '') {
@@ -740,14 +734,15 @@ function promptForTier(tier, dna) {
 
 Generate REPORT 1: Free AI Opportunity Snapshot.
 
-Target: 2-4 pages in markdown.
+Target: 1-2 pages in markdown. Prefer tight sections, short bullets, and compact tables.
 Purpose: useful no-cost report that proves Bridge To AI understood the business.
 Tone: client-facing, practical, plain-spoken, specific, and evidence-first. This should sound like Darren saying, "Here is what I noticed, here is the real pinch point, and here is what I would do first." Do not make this sound like an AI sales pitch or a consultant deck.
-Important: the free report must give real value, but it must stop before becoming a paid implementation plan. Its job is to show likely opportunities and give the client one useful, specific next move they could act on without buying anything.
+Important: the free report must impress through clarity, not volume. Its job is to show one likely first opportunity, the evidence behind it, and one useful next move. Do not give a full diagnosis.
 Paid-ladder boundary:
-- The free report may name likely opportunity areas, but it should not fully rank the implementation sequence.
-- The free report may give one first move, but it should not provide a full 30-day action plan.
-- The free report may mention what appears ready or risky, but it should not deeply diagnose dependencies, numerical readiness scores, implementation phases, tool maps, ROI, time savings, or success metrics.
+- The free report may name one primary opportunity and one backup opportunity only if needed.
+- The free report must not fully rank the implementation sequence.
+- The free report may give one first move, but it must not provide a full 30-day action plan.
+- The free report may mention what appears ready or risky, but it must not deeply diagnose dependencies, numerical readiness scores, implementation phases, tool maps, ROI, time savings, or success metrics.
 - The free report may invite a deeper report, but it should not sound like the build is already scoped or say things like "a few hours of build time" unless the Venture DNA directly proves that.
 - The final Bridge To AI Note should be short. It should say the snapshot is directional and that the next layer ranks, sequences, and pressure-tests the work.
 Opportunity rule: do not make email automation the default first opportunity. Look first for where the owner or highest-value person is losing time on repeated work. Only recommend email if the Venture DNA proves it is the real bottleneck.
@@ -760,28 +755,20 @@ Use exactly five rows:
 - First Useful Win
 Allowed Directional Read phrases include: High friction, Medium friction, Good AI fit, Cleanup first, Ready to test, Human review needed, Needs confirmation. Pick the clearest plain-English phrase for each row.
 Every row must be grounded in the Venture DNA. If the evidence is thin, use "Needs confirmation" and say what is missing. Do not invent exact hours saved, percentages, dollar savings, ROI, benchmark comparisons, readiness scores, or fake chart values.
-Required free value moment: include one section called "Try This This Week". It must give the client a copy/paste-ready AI prompt they can use in ChatGPT, Claude, or another AI tool using only non-sensitive information. The prompt must be based on the client's own words from the Venture DNA and should create a useful result in less than one hour.
-The prompt must quietly contain expert-level context for their industry, customer type, and business situation without saying "act as a top expert" or similar gimmicky role language. Encode the expertise through the instructions: who the audience is, what they care about, what outcome matters, what tone to use, what to avoid, what format to produce, and what a good answer should feel like.
-The "Try This This Week" prompt must explicitly tell the client not to paste private financials, customer names, supplier names, recipes, payroll, invoices, contracts, confidential formulas, or other sensitive details into public AI tools.
-After the prompt, explain what to look for in the AI output and why this small exercise matters. It should teach them one practical AI habit, not just give them a task.
+Required free value moment: include one section called "Try This This Week". It must give one short, copy/paste-ready AI prompt or exercise the client can use with non-sensitive information. Keep the prompt under 170 words. The prompt must explicitly tell the client not to paste private financials, customer names, supplier names, recipes, payroll, invoices, contracts, confidential formulas, or other sensitive details into public AI tools.
 
 Required structure:
 # [Business Name] - Free AI Opportunity Snapshot
 ## 1. Quick Read
-Write this as one short lead sentence followed by 5-7 high-signal bullet points. Start with "Here is what I am seeing." Avoid "The intake indicates". Each bullet should be 1-2 sentences and should name a useful finding, why it matters, or what to do first. Cover the likely pinch point, first AI-fit workflow, readiness or cleanup issue, human-review boundary, first useful move, and any important "needs confirmation" gap if the evidence is thin. Do not turn this into long paragraphs.
+Write this as one short lead sentence followed by exactly 5 high-signal bullet points. Start with "Here is what I am seeing." Avoid "The intake indicates". Each bullet must be 1 sentence only. Cover the likely pinch point, first AI-fit workflow, readiness or cleanup issue, human-review boundary, and first useful move. Do not turn this into long paragraphs.
 ## 2. Snapshot Scorecard
 Use the required 5-row scorecard table. Keep each cell short and specific. This should feel like the visual front door of the report.
-## 3. What Is Already Working
-Use a table: Strength | Why It Matters
-## 4. Where AI Looks Useful First
-Use a table: Priority | Opportunity | Why It Matters | First Step
-## 5. One Growth Leak To Fix First
-## 6. First Recommended Move
-## 7. Try This This Week
-Give one copy/paste-ready AI prompt with expert-level context embedded in plain language. Make it safe, specific, and useful this week.
-## 8. What To Avoid For Now
-## 9. Bridge To AI Note
-Keep this to 2-3 short paragraphs. Do not introduce new implementation details here. The message is: this snapshot shows likely opportunities and one useful first win; the paid report ranks the work, identifies cleanup, and lays out the first 30 days.
+## 3. Best First AI Opportunity
+Write 2 short paragraphs only. Name the one best first opportunity and why it appears to matter. Include one sentence about what should stay human-reviewed.
+## 4. Try This This Week
+Give one short, safe, copy/paste-ready AI prompt or exercise. Make it specific and useful this week. Keep the section under 260 words total.
+## 5. What The Deeper Interview Would Confirm
+Use 3 bullets only. Explain what still needs confirmation before Bridge To AI should rank the work, scope implementation, or recommend a workbench.
 
 VENTURE DNA:
 ${dna}`;
@@ -1535,7 +1522,7 @@ async function generateFreeAndEmail(clientDraftId, providedEmail = '') {
   }));
 
   let internalBrief = { attempted: false, generated: false };
-  if (String(process.env.BTAI_GENERATE_INTERNAL_BRIEF_AFTER_FREE || 'true').toLowerCase() !== 'false') {
+  if (String(process.env.BTAI_GENERATE_INTERNAL_BRIEF_AFTER_FREE || 'false').toLowerCase() === 'true') {
     try {
       const briefResult = await getOrGenerateOne(clientDraftId, 'btai');
       internalBrief = { attempted: true, generated: !!briefResult.generated, alreadyReady: !briefResult.generated };
