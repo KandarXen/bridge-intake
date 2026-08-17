@@ -6,7 +6,7 @@ import { gateProofDetails, publicGateSummary, runPrivacyGate } from '../lib/priv
 import { validateDnaOutput } from '../lib/validate-output.js';
 import { assertRateLimit, assertTrustedOrigin, authorizedAdminRequest, safeError } from '../lib/security.js';
 
-const APP_VERSION = 'v1.72.9';
+const APP_VERSION = 'v1.72.10';
 
 const REPORTS = {
   free: {
@@ -225,12 +225,14 @@ async function approvePrivacyGate(clientDraftId, purpose = 'all', reviewNote = '
 }
 
 async function prepareSanitizedAiSource(clientDraftId, sourceText, purpose) {
-  const gate = runPrivacyGate(sourceText, { purpose });
+  const shouldSanitizeOnly = String(purpose || '').startsWith('report_');
+  const gate = runPrivacyGate(sourceText, { purpose, mode: shouldSanitizeOnly ? 'sanitize-only' : undefined });
   const saved = await savePrivacyGateRecord(clientDraftId, gate, purpose);
   await logReportEvent(clientDraftId, 'privacy_gate_scan_completed', saved.saved ? 'success' : 'failed', privacyProofDefaults(gateProofDetails(gate, {
     payloadType: 'encrypted_venture_dna_record',
     privacyGateOutputId: saved.outputId || '',
     privacyGateSaveReason: saved.reason || '',
+    reportAiPayloadSanitizeOnly: shouldSanitizeOnly,
     proofStatus: saved.saved ? (gate.requiresReview ? 'review_required' : 'passed') : 'failed'
   })));
 
