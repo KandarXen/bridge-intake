@@ -1720,8 +1720,8 @@
   .completion-layout {
     width: min(100%, 980px);
     display: grid;
-    grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
-    gap: 1.15rem;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.85rem;
     align-items: start;
     text-align: left;
   }
@@ -1742,6 +1742,74 @@
 
   .completion-column .next-steps {
     max-width: none;
+  }
+
+  .completion-swimlanes {
+    display: grid;
+    gap: 0.85rem;
+  }
+
+  .completion-lane {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr) auto;
+    gap: 1rem;
+    align-items: center;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface-raised);
+    padding: 1rem;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+  }
+
+  .completion-lane-icon {
+    width: 52px;
+    height: 52px;
+    display: grid;
+    place-items: center;
+    border-radius: 14px;
+    background: var(--bridge-teal-light);
+    color: var(--bridge-teal);
+    font-size: 1.35rem;
+    font-weight: 900;
+  }
+
+  .completion-lane h3 {
+    margin: 0 0 0.25rem;
+    color: var(--ink);
+    font-size: 1rem;
+  }
+
+  .completion-lane p {
+    margin: 0;
+    color: var(--ink-mid);
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+
+  .completion-lane-action {
+    display: grid;
+    justify-items: end;
+    gap: 0.4rem;
+    min-width: 220px;
+  }
+
+  .email-confirm-pill {
+    display: inline-flex;
+    max-width: 280px;
+    border: 1px solid #c8e5dd;
+    border-radius: 999px;
+    background: #effaf7;
+    color: var(--bridge-teal);
+    padding: 0.38rem 0.62rem;
+    font-size: 0.82rem;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+  }
+
+  .completion-note {
+    color: var(--ink-soft);
+    font-size: 0.82rem;
+    line-height: 1.45;
   }
 
   .completion-send-box {
@@ -1854,6 +1922,19 @@
   }
 
   .complete-footer a { color: var(--bridge-teal); text-decoration: none; }
+
+  @media (max-width: 760px) {
+    .completion-lane {
+      grid-template-columns: 1fr;
+    }
+    .completion-lane-action {
+      justify-items: stretch;
+      min-width: 0;
+    }
+    .email-confirm-pill {
+      max-width: 100%;
+    }
+  }
 
   /* -- Error banner -- */
   .error-banner {
@@ -2422,51 +2503,52 @@
 
       <div class="completion-layout">
         <section class="completion-column" aria-labelledby="free-report-title">
-          <div class="next-steps">
-            <div class="next-steps-title">What happens next</div>
-
-            <div class="next-step-card">
-              <div class="next-step-num">1</div>
-              <div class="next-step-content">
-                <div class="next-step-title" id="free-report-title">Your free snapshot is prepared</div>
-                <div class="next-step-desc" id="next-desc-1">Bridge To AI creates a private AI Opportunity Snapshot from your completed intake and sends it to the email address you provided.</div>
+          <div class="completion-swimlanes">
+            <article class="completion-lane">
+              <div class="completion-lane-icon">1</div>
+              <div>
+                <h3 id="free-report-title">Your free report is prepared by email</h3>
+                <p id="next-desc-1">Bridge To AI sends your private AI Opportunity Snapshot to the email address you provided at the start.</p>
               </div>
-            </div>
-
-            <div class="next-step-card">
-              <div class="next-step-num">2</div>
-              <div class="next-step-content">
-                <div class="next-step-title" id="next-title-2">You choose whether to go deeper</div>
-                <div class="next-step-desc" id="next-desc-2">The free snapshot is directional. If you want more detail, Bridge To AI can prepare a paid opportunity report or implementation roadmap from the same secure record.</div>
-              </div>
-            </div>
-
-            <div class="next-step-card">
-              <div class="next-step-num">3</div>
-              <div class="next-step-content">
-                <div class="next-step-title" id="next-title-3">Your raw interview stays secure</div>
-                <div class="next-step-desc" id="next-desc-3">Your raw interview is stored securely. Partners receive only anonymized aggregate insights where applicable, not your individual answers.</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="completion-send-box">
-            <div class="name-field">
-              <label id="followup-choice-title">Where should we take things after sending your free report?</label>
-              <p class="completion-send-copy">Pick the follow-up level you are comfortable with. Either way, your free report is the next step.</p>
-              <div class="followup-options">
-                <label class="followup-option"><input type="radio" name="btai-followup" value="yes"><span id="followup-label-yes">Send my free report and include a next-step conversation option.</span></label>
-                <label class="followup-option"><input type="radio" name="btai-followup" value="maybe" checked><span id="followup-label-maybe">Send my free report first. I may look at next steps later.</span></label>
-                <label class="followup-option"><input type="radio" name="btai-followup" value="no"><span id="followup-label-no">Just send my free report.</span></label>
-              </div>
-              <div class="partner-consent-note active" id="followup-privacy-note" style="display:block;">
-                Your choice only controls whether Bridge To AI follows up directly. A partner organization will not receive your individual answer unless you separately agree.
-              </div>
-              <div class="completion-action-row">
+              <div class="completion-lane-action">
+                <span class="email-confirm-pill" id="completion-email-pill">Send to: your email</span>
                 <button type="button" class="btn-primary" id="report-delivery-btn" onclick="handleReportDeliveryButton()">Email my free report</button>
-                <span id="followup-save-status" style="display:inline-block;color:var(--muted);font-size:0.9rem;"></span>
+                <span id="followup-save-status" class="completion-note"></span>
               </div>
-            </div>
+            </article>
+
+            <article class="completion-lane">
+              <div class="completion-lane-icon">2</div>
+              <div>
+                <h3 id="next-title-2">Your email includes the next options</h3>
+                <p id="next-desc-2">The report email will include links for the Detailed AI Opportunity Report, Preliminary AI Action Plan, and implementation/workbench support if you want to go further.</p>
+              </div>
+              <div class="completion-lane-action">
+                <span class="completion-note">No decision needed on this page.</span>
+              </div>
+            </article>
+
+            <article class="completion-lane">
+              <div class="completion-lane-icon">3</div>
+              <div>
+                <h3 id="next-title-3">AFPA receives aggregate themes only</h3>
+                <p id="next-desc-3">Your individual answers and raw interview record are not shared with AFPA. AFPA may receive anonymized themes to help shape member AI education.</p>
+              </div>
+              <div class="completion-lane-action">
+                <span class="completion-note">Privacy-first partner reporting.</span>
+              </div>
+            </article>
+
+            <article class="completion-lane">
+              <div class="completion-lane-icon">4</div>
+              <div>
+                <h3>Questions or delivery trouble?</h3>
+                <p>Reach the Bridge Team at <a href="mailto:team@bridgetoai.ca">team@bridgetoai.ca</a>. If automatic delivery does not confirm, we can recover the report from the secure record.</p>
+              </div>
+              <div class="completion-lane-action">
+                <span class="completion-note">Your answers remain private.</span>
+              </div>
+            </article>
           </div>
 
           <div class="deepen-interview-box" id="deepen-interview-box">
@@ -2477,41 +2559,10 @@
             <button type="button" class="btn-secondary" id="continue-deep-btn" onclick="continueIntoDeepDiagnostic()">Continue deeper interview</button>
           </div>
         </section>
-
-        <aside class="completion-column" id="paid-reports-column" aria-labelledby="paid-reports-title">
-          <div class="next-steps">
-            <div class="next-steps-title" id="paid-reports-title">Want more than the free snapshot?</div>
-
-            <div class="next-step-card">
-              <div class="next-step-num">A</div>
-              <div class="next-step-content">
-                <div class="next-step-title">Detailed AI Opportunity Report</div>
-                <div class="next-step-desc">A deeper diagnosis of your highest-value AI opportunities, readiness gaps, and first practical projects. Suggested launch price: $147.</div>
-              </div>
-            </div>
-
-            <div class="next-step-card">
-              <div class="next-step-num">B</div>
-              <div class="next-step-content">
-                <div class="next-step-title">Preliminary AI Action Plan</div>
-                <div class="next-step-desc">A more complete planning document with prioritized workflows, implementation phases, risk controls, and questions to confirm before a build. Suggested launch price: $397.</div>
-              </div>
-            </div>
-
-            <div class="next-step-card">
-              <div class="next-step-num">C</div>
-              <div class="next-step-content">
-                <div class="next-step-title">Implementation support</div>
-                <div class="next-step-desc">A workbench is a private operating dashboard built around your business so repeated workflows can run from one place instead of scattered notes, files, prompts, and tools.</div>
-              </div>
-            </div>
-          </div>
-        </aside>
       </div>
 
       <p class="complete-footer">
-        Questions? Reach the Bridge Team at <a href="mailto:team@bridgetoai.ca">team@bridgetoai.ca</a><br>
-        Your answers are private and will never be shared outside of your engagement.
+        Protected by Bridge To AI's Secure Intelligence Layer.
       </p>
     </div>
   </div>
@@ -3764,30 +3815,30 @@ function showScreen(id) {
 
 function updateCompletionCampaignOptions() {
   const deepenBox = document.getElementById('deepen-interview-box');
-  const paidColumn = document.getElementById('paid-reports-column');
   const completionLayout = document.querySelector('#screen-complete .completion-layout');
+  const emailPill = document.getElementById('completion-email-pill');
   const snapshotMode = isSnapshotFirstCampaign();
   if (deepenBox) deepenBox.classList.toggle('active', snapshotMode);
-  if (paidColumn) paidColumn.classList.toggle('is-hidden', snapshotMode);
   if (completionLayout) completionLayout.classList.toggle('snapshot-simple', snapshotMode);
+  if (emailPill) emailPill.textContent = `Send to: ${clientEmail || 'the email you provided'}`;
 
   if (snapshotMode) {
-    setText('complete-message', `Thank you, ${clientName}. Your free AI Opportunity Snapshot has been encrypted and securely saved. It will be used only to prepare your private first-pass report - never shared, never sold, never made public.`);
-    setText('free-report-title', 'Your free AI Opportunity Snapshot is prepared');
-    setText('next-title-2', 'You can stop here or continue deeper');
-    setText('next-title-3', 'Your raw interview stays secure');
-    setText('next-desc-1', 'Bridge To AI prepares a private first-pass AI Opportunity Snapshot from your completed interview and sends it to the email address you provided. This free snapshot does not create a business voice/DNA profile.');
-    setText('next-desc-2', 'The snapshot is intentionally short and directional. If you want more detail, you can continue into the deeper diagnostic from this same secure interview session.');
+    setText('complete-message', `Thank you, ${clientName}. Your snapshot interview is complete and securely saved.`);
+    setText('free-report-title', 'Your free snapshot is sent by email');
+    setText('next-title-2', 'Your email includes deeper options');
+    setText('next-title-3', 'Your raw answers stay secure');
+    setText('next-desc-1', 'Bridge To AI prepares your private first-pass AI Opportunity Snapshot and sends it to the email address confirmed here.');
+    setText('next-desc-2', 'The email includes links if you want the deeper diagnostic, action plan, or implementation/workbench support.');
     setText('next-desc-3', 'Your raw answers are stored securely. Partners receive only anonymized aggregate insights where applicable, not your individual answers.');
-    setText('followup-choice-title', 'After your free snapshot, may Bridge To AI follow up?');
-    setText('followup-label-yes', 'Yes, send my free report and include a next-step conversation option.');
-    setText('followup-label-maybe', 'Send my free report first. I may look at next steps later.');
-    setText('followup-label-no', 'Just send my free report.');
   } else {
-    setText('followup-choice-title', 'Where should we take things after sending your free report?');
-    setText('followup-label-yes', 'Send my free report and include a next-step conversation option.');
-    setText('followup-label-maybe', 'Send my free report first. I may look at next steps later.');
-    setText('followup-label-no', 'Just send my free report.');
+    setText('free-report-title', 'Your free report is sent by email');
+    setText('next-title-2', 'Your email includes next options');
+    setText('next-title-3', activePartnerProfile() ? 'AFPA receives aggregate themes only' : 'Your raw answers stay secure');
+    setText('next-desc-1', 'Bridge To AI prepares your private AI Opportunity Snapshot and sends it to the email address confirmed here.');
+    setText('next-desc-2', 'The email includes links if you want the Detailed AI Opportunity Report, Preliminary AI Action Plan, or implementation/workbench support.');
+    setText('next-desc-3', activePartnerProfile()
+      ? 'Your individual answers and raw interview record are not shared with AFPA. AFPA may receive anonymized themes to help shape member AI education.'
+      : 'Your raw answers are stored securely and used only for your Bridge To AI engagement.');
   }
 }
 
@@ -4730,7 +4781,8 @@ async function submitInterview() {
     if (window.processingTimer) clearInterval(window.processingTimer);
     showScreen('screen-complete');
     document.getElementById('complete-message').textContent =
-      `Thank you, ${clientName}. Your interview is complete. We could not confirm automatic report delivery, so use the button below to send your free report. If it still does not confirm, contact team@bridgetoai.ca and we can recover it from the secure record.`;
+      `Thank you, ${clientName}. Your interview is complete and securely saved. Use the button below to send your free report.`;
+    updateCompletionCampaignOptions();
   }
 }
 
