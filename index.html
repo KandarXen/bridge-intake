@@ -1795,15 +1795,65 @@
 
   .email-confirm-pill {
     display: inline-flex;
-    max-width: 280px;
+    align-items: center;
+    gap: 0.45rem;
+    width: min(100%, 420px);
     border: 1px solid #c8e5dd;
     border-radius: 999px;
     background: #effaf7;
     color: var(--bridge-teal);
-    padding: 0.38rem 0.62rem;
-    font-size: 0.82rem;
+    padding: 0.3rem 0.45rem 0.3rem 0.72rem;
+    font-size: 0.76rem;
     font-weight: 800;
-    overflow-wrap: anywhere;
+    white-space: nowrap;
+  }
+
+  .email-confirm-pill:focus-within {
+    border-color: var(--bridge-teal);
+    box-shadow: 0 0 0 3px rgba(0, 112, 96, 0.12);
+  }
+
+  .email-confirm-pill span {
+    flex: 0 0 auto;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .email-confirm-pill input {
+    min-width: 0;
+    width: 100%;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: 0.82rem;
+    text-align: left;
+  }
+
+  .email-confirm-pill input::placeholder {
+    color: var(--ink-soft);
+  }
+
+  .field-status {
+    min-height: 1.1rem;
+    margin-top: 0.3rem;
+    color: var(--ink-soft);
+    font-size: 0.78rem;
+    line-height: 1.35;
+  }
+
+  .field-status.ok {
+    color: var(--bridge-teal);
+  }
+
+  .field-status.error {
+    color: #a33a24;
+  }
+
+  .name-field input.field-invalid {
+    border-color: #c45a42;
+    box-shadow: 0 0 0 3px rgba(196, 90, 66, 0.12);
   }
 
   .completion-note {
@@ -2050,7 +2100,7 @@
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag" id="header-tag">Business Discovery Session</span>
-      <span class="header-version">v1.72.10</span>
+      <span class="header-version">v1.72.11</span>
   </div>
 </header>
 
@@ -2322,6 +2372,7 @@
         <div class="name-field">
           <label for="client-email">Email for your report link</label>
           <input type="email" id="client-email" placeholder="e.g. jane@yourbusiness.ca" autocomplete="email" />
+          <div class="field-status" id="client-email-status" aria-live="polite"></div>
         </div>
 
         <div class="name-field">
@@ -2511,7 +2562,10 @@
                 <p id="next-desc-1">Bridge To AI sends your private AI Opportunity Snapshot to the email address you provided at the start.</p>
               </div>
               <div class="completion-lane-action">
-                <span class="email-confirm-pill" id="completion-email-pill">Send to: your email</span>
+                <label class="email-confirm-pill" for="completion-email-input">
+                  <span>Send to</span>
+                  <input type="email" id="completion-email-input" autocomplete="email" inputmode="email" placeholder="your email" />
+                </label>
                 <button type="button" class="btn-primary" id="report-delivery-btn" onclick="handleReportDeliveryButton()">Email my free report</button>
                 <span id="followup-save-status" class="completion-note"></span>
               </div>
@@ -2543,7 +2597,7 @@
               <div class="completion-lane-icon">4</div>
               <div>
                 <h3>Questions or delivery trouble?</h3>
-                <p>Reach the Bridge Team at <a href="mailto:team@bridgetoai.ca">team@bridgetoai.ca</a>. If automatic delivery does not confirm, we can recover the report from the secure record.</p>
+                <p>Reach the Bridge Team at <a href="mailto:team@bridgetoai.ca">team@bridgetoai.ca</a>. If report delivery does not confirm, we can recover the report from the secure record.</p>
               </div>
               <div class="completion-lane-action">
                 <span class="completion-note">Your answers remain private.</span>
@@ -3389,9 +3443,59 @@ function captureVisibleTranscript() {
   }
 }
 
+function normalizeEmail(value = '') {
+  return String(value || '').trim().toLowerCase();
+}
+
+function isValidEmail(value = '') {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(value));
+}
+
+function updateEmailFieldStatus(showEmpty = false) {
+  const input = document.getElementById('client-email');
+  const status = document.getElementById('client-email-status');
+  if (!input || !status) return true;
+  const value = normalizeEmail(input.value);
+  input.value = value;
+  input.classList.remove('field-invalid');
+  status.classList.remove('error', 'ok');
+  if (!value) {
+    status.textContent = showEmpty ? 'Please enter the email address where you want the report sent.' : '';
+    if (showEmpty) {
+      status.classList.add('error');
+      input.classList.add('field-invalid');
+    }
+    return false;
+  }
+  if (!isValidEmail(value)) {
+    status.textContent = 'That email address looks incomplete. Please check for a missing @, dot, or typo.';
+    status.classList.add('error');
+    input.classList.add('field-invalid');
+    return false;
+  }
+  status.textContent = 'Looks good. The report will be sent to this address unless you correct it later.';
+  status.classList.add('ok');
+  return true;
+}
+
+function updateCompletionEmailFieldStatus(showMessage = false) {
+  const input = document.getElementById('completion-email-input');
+  const status = document.getElementById('followup-save-status');
+  if (!input) return isValidEmail(clientEmail);
+  const value = normalizeEmail(input.value);
+  input.value = value;
+  if (!value || !isValidEmail(value)) {
+    if (status && showMessage) status.textContent = 'Please enter a valid email address before sending the free report.';
+    return false;
+  }
+  clientEmail = value;
+  if (status && showMessage) status.textContent = `Ready to send your free report to ${value}.`;
+  return true;
+}
+
 function readWelcomeFields() {
   clientName = document.getElementById('client-name').value.trim();
-  clientEmail = document.getElementById('client-email').value.trim();
+  clientEmail = normalizeEmail(document.getElementById('client-email').value);
   privacyConsent = document.getElementById('privacy-consent').checked;
   btaiFollowupInterest = document.querySelector('input[name="btai-followup"]:checked')?.value || btaiFollowupInterest || 'maybe';
   businessName = document.getElementById('business-name').value.trim();
@@ -3407,6 +3511,7 @@ function readWelcomeFields() {
 function applyWelcomeFields() {
   document.getElementById('client-name').value = clientName || '';
   document.getElementById('client-email').value = clientEmail || '';
+  updateEmailFieldStatus(false);
   document.getElementById('privacy-consent').checked = !!privacyConsent;
   const followupInput = document.querySelector(`input[name="btai-followup"][value="${btaiFollowupInterest || 'maybe'}"]`);
   if (followupInput) followupInput.checked = true;
@@ -3816,11 +3921,11 @@ function showScreen(id) {
 function updateCompletionCampaignOptions() {
   const deepenBox = document.getElementById('deepen-interview-box');
   const completionLayout = document.querySelector('#screen-complete .completion-layout');
-  const emailPill = document.getElementById('completion-email-pill');
+  const completionEmailInput = document.getElementById('completion-email-input');
   const snapshotMode = isSnapshotFirstCampaign();
   if (deepenBox) deepenBox.classList.toggle('active', snapshotMode);
   if (completionLayout) completionLayout.classList.toggle('snapshot-simple', snapshotMode);
-  if (emailPill) emailPill.textContent = `Send to: ${clientEmail || 'the email you provided'}`;
+  if (completionEmailInput) completionEmailInput.value = clientEmail || '';
 
   if (snapshotMode) {
     setText('complete-message', `Thank you, ${clientName}. Your snapshot interview is complete and securely saved.`);
@@ -3873,7 +3978,7 @@ function continueIntoDeepDiagnostic() {
 async function startInterview(evt) {
   initCampaignContext();
   clientName = document.getElementById('client-name').value.trim();
-  clientEmail = document.getElementById('client-email').value.trim();
+  clientEmail = normalizeEmail(document.getElementById('client-email').value);
   privacyConsent = document.getElementById('privacy-consent').checked;
   businessName = document.getElementById('business-name').value.trim();
   businessCategory = document.getElementById('business-category').value.trim();
@@ -3885,10 +3990,11 @@ async function startInterview(evt) {
   departments = Array.from(document.querySelectorAll('.dept-pill input:checked')).map(cb => cb.value);
   const err = document.getElementById('welcome-error');
 
-  if (!clientName || !clientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail) || !businessName || !businessCategory || !privacyConsent) {
+  const validEmail = updateEmailFieldStatus(true);
+  if (!clientName || !clientEmail || !validEmail || !businessName || !businessCategory || !privacyConsent) {
     logHermesEvent('interview_start_blocked', 'failed', {
       missingName: !clientName,
-      missingValidEmail: !clientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail),
+      missingValidEmail: !clientEmail || !validEmail,
       missingBusinessName: !businessName,
       missingBusinessCategory: !businessCategory,
       missingPrivacyConsent: !privacyConsent
@@ -4562,9 +4668,18 @@ function prevQuestion() {
 document.getElementById('transcript').addEventListener('input', () => { updateWordCount(); saveDraft(); });
 
 document.querySelectorAll('#screen-welcome input, #screen-welcome select').forEach(input => {
-  input.addEventListener('input', () => saveDraft(false));
-  input.addEventListener('change', () => saveDraft(false));
+  input.addEventListener('input', () => {
+    if (input.id === 'client-email') updateEmailFieldStatus(false);
+    saveDraft(false);
+  });
+  input.addEventListener('change', () => {
+    if (input.id === 'client-email') updateEmailFieldStatus(false);
+    saveDraft(false);
+  });
 });
+document.getElementById('client-email')?.addEventListener('blur', () => updateEmailFieldStatus(true));
+document.getElementById('completion-email-input')?.addEventListener('input', () => updateCompletionEmailFieldStatus(false));
+document.getElementById('completion-email-input')?.addEventListener('blur', () => updateCompletionEmailFieldStatus(true));
 document.querySelectorAll('.dept-pill input').forEach(input => input.addEventListener('change', () => saveDraft(false)));
 document.getElementById('privacy-consent').addEventListener('change', event => {
   privacyConsent = event.target.checked;
@@ -4613,9 +4728,9 @@ function saveFollowupPreference(silent = false) {
 
 function handleReportDeliveryButton() {
   saveFollowupPreference(true);
-  if (!clientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail)) {
+  if (!updateCompletionEmailFieldStatus(false)) {
     const status = document.getElementById('followup-save-status');
-    if (status) status.textContent = 'We need a valid email address from the intake before sending the report.';
+    if (status) status.textContent = 'Please correct the email address before sending the free report.';
     return;
   }
   if (completionTestMode) {
@@ -4774,7 +4889,8 @@ async function submitInterview() {
         : (activePartnerProfile()?.completion || `Thank you, ${clientName}. Your business profile has been encrypted and securely saved. It will be used only to prepare your custom AI plan - never shared, never sold, never made public.`);
     updateCompletionCampaignOptions();
     saveFollowupPreference(true);
-    triggerFreeReportDelivery({ automatic: true });
+    const status = document.getElementById('followup-save-status');
+    if (status) status.textContent = 'Confirm the email address, then send your free report.';
   } catch (err) {
     console.error('Submission error:', err);
     logHermesEvent('submission_failed', 'failed', { emailDelivered: false, error: err.message || 'Submission failed', ...interviewKpiSummary() });

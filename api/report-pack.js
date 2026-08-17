@@ -1,12 +1,12 @@
 ﻿import { decryptJson, encryptJson } from '../lib/crypto.js';
 import { createDocxBuffer, createZipBuffer } from '../lib/docx.js';
 import { createReportHtml } from '../lib/report-html.js';
-import { getIntakeEvents, getIntakeSession, getLatestIntakeOutput, insertIntakeEvent, insertIntakeOutput } from '../lib/supabase-rest.js';
+import { getIntakeEvents, getIntakeSession, getLatestIntakeOutput, insertIntakeEvent, insertIntakeOutput, updateIntakeSession } from '../lib/supabase-rest.js';
 import { gateProofDetails, publicGateSummary, runPrivacyGate } from '../lib/privacy-gate.js';
 import { validateDnaOutput } from '../lib/validate-output.js';
 import { assertRateLimit, assertTrustedOrigin, authorizedAdminRequest, safeError } from '../lib/security.js';
 
-const APP_VERSION = 'v1.72.10';
+const APP_VERSION = 'v1.72.11';
 
 const REPORTS = {
   free: {
@@ -1421,13 +1421,46 @@ async function sendFreeReportEmail({ clientDraftId, clientEmail, clientName, bus
   return response.json();
 }
 
+function normalizeEmail(value = '') {
+  return String(value || '').trim().toLowerCase();
+}
+
+function isValidEmail(value = '') {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(value));
+}
+
+async function resolveReportRecipientEmail(clientDraftId, sessionPayload, providedEmail = '') {
+  const sessionEmail = normalizeEmail(sessionPayload.clientEmail || '');
+  const requestEmail = normalizeEmail(providedEmail || '');
+  const recipientEmail = requestEmail || sessionEmail;
+  if (!recipientEmail) throw new Error('No client email found on the intake session');
+  if (!isValidEmail(recipientEmail)) throw new Error('The report email address is not valid');
+
+  if (requestEmail && requestEmail !== sessionEmail) {
+    const correctedPayload = {
+      ...sessionPayload,
+      clientEmail: requestEmail,
+      reportDeliveryEmailCorrectedAt: new Date().toISOString()
+    };
+    await updateIntakeSession(clientDraftId, {
+      encrypted_payload: encryptJson(correctedPayload),
+      updated_at: new Date().toISOString()
+    });
+    await logReportEvent(clientDraftId, 'free_report_delivery_email_corrected', 'success', privacyProofDefaults({
+      reportTier: 'free',
+      recipientCorrected: true,
+      piiLogged: false,
+      proofStatus: 'delivery_email_corrected_in_encrypted_session'
+    }));
+  }
+
+  return recipientEmail;
+}
+
 async function generateFreeAndEmail(clientDraftId, providedEmail = '') {
   const startedAt = Date.now();
   const sessionPayload = await getSessionPayload(clientDraftId);
-  const sessionEmail = String(sessionPayload.clientEmail || '').trim().toLowerCase();
-  const requestEmail = String(providedEmail || '').trim().toLowerCase();
-  if (!sessionEmail) throw new Error('No client email found on the intake session');
-  if (requestEmail && requestEmail !== sessionEmail) throw new Error('Client email does not match the secure intake session');
+  const recipientEmail = await resolveReportRecipientEmail(clientDraftId, sessionPayload, providedEmail);
 
   await logReportEvent(clientDraftId, 'free_report_delivery_started', 'success', privacyProofDefaults({
     reportTier: 'free',
@@ -1440,7 +1473,7 @@ async function generateFreeAndEmail(clientDraftId, providedEmail = '') {
   if (!htmlDoc?.contentBase64) throw new Error('Free HTML report was not generated');
   const result = await sendFreeReportEmail({
     clientDraftId,
-    clientEmail: sessionEmail,
+    clientEmail: recipientEmail,
     clientName: sessionPayload.clientName || '',
     businessName: sessionPayload.businessName || htmlDoc.businessName || '',
     reportFile: htmlDoc
@@ -1474,7 +1507,7 @@ async function generateFreeAndEmail(clientDraftId, providedEmail = '') {
       }));
     }
   }
-  return { emailed: true, id: result.id || '', recipient: sessionEmail, internalBrief };
+  return { emailed: true, id: result.id || '', recipient: recipientEmail, internalBrief };
 }
 
 async function status(clientDraftId) {
