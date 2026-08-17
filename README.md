@@ -1,6 +1,6 @@
-# Bridge To AI Intake App - v1.71.14 Generic Root Intake Branding
+﻿# Bridge To AI Intake App - v1.72.1 Report Branding & Readability
 
-This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, the required high-value "Try This This Week" prompt in the free report, selectable report export formats, searchable/sortable admin interview index, deterministic final-section safety net, the clearer core-question/follow-up progress language, and the retired lost-key draft block. v1.71.14 keeps the admin HTML export and restores generic Bridge To AI branding on the root full-length intake while leaving AFPA branding behind the AFPA campaign URL.
+This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, the required high-value "Try This This Week" prompt in the free report, selectable report export formats, searchable/sortable admin interview index, deterministic final-section safety net, the clearer core-question/follow-up progress language, the Snapshot First campaign URL, and the real Snapshot Scorecard in the free report. v1.72.1 adds the Bridge To AI brand system to the intake and snapshot forms, including optimized SIL/partner badge assets, branded header styling, trust panels, and a more vibrant report header.
 
 ## Snapshot First Campaign
 
@@ -18,12 +18,22 @@ This build keeps the trust-first, controlled industry-adaptive intake, live-inte
 - Snapshot mode is recorded in draft, KPI, and report-generation metadata as `intakeVariant: snapshot_first`.
 - Snapshot completion now offers an optional `Continue deeper interview` path. This keeps the free snapshot low-friction, then lets motivated users continue into the full diagnostic in the same secure browser session without re-entering their earlier answers.
 - Free-report email now uses the deeper interview as the primary next step. Paid report options are described as later choices after the deeper interview, not direct payment links from the free email.
+- Free Snapshot reports now include a directional **Snapshot Scorecard** covering Workflow Drag, AI Fit, Information Readiness, Human Review Boundary, and First Useful Win.
+- The snapshot landing page now previews that scorecard instead of showing illustrative time-savings or fake workflow-drag metrics.
 - The Business DNA prompt is aware that this is a shorter first-pass intake and must label deeper sequencing, readiness, ROI, and implementation assumptions as needing confirmation/private scoping.
 - The same SIL rules apply: consent, data minimization, sensitive-data warnings, pseudonymization/tokenization where practical, encrypted Supabase storage, encrypted re-identification maps, privacy-proof logging, report quality/sensitive-data scans, and partner aggregate-only boundaries.
 
 ## What Changed
 
-- Header version is now `v1.71.14`.
+- Header version is now `v1.72.1`.
+- Added optimized Bridge To AI logo assets under `assets/brand`.
+- Replaced the generic header mark with the Bridge To AI SIL small lock mark.
+- Added a Secure Intelligence Layer proof chip to the Snapshot splash page.
+- Added a Privacy-First AI Processing trust panel to the start form.
+- Added the Powered by Bridge To AI partner badge to the association/white-label explanation area.
+- Updated the footer privacy mark to use the Bridge To AI SIL small lock mark.
+- Refreshed HTML report header styling with brighter teal/gold branding and stronger title contrast.
+- Added report provenance to generated HTML report footers: `Built with Bridge To AI Intake v1.72.1` plus generation timestamp.
 - Added `/snapshot` and `/snapshot-first` rewrites to `vercel.json`.
 - Added `snapshot.html` and `snapshot-first.html` static entry files for reliable clean URLs.
 - Added campaign variant detection from path or `campaign=snapshot_first`.
@@ -71,10 +81,10 @@ This build keeps the trust-first, controlled industry-adaptive intake, live-inte
 - ZIP downloads now use a format key, so an older all-format ZIP is not reused when the admin asks for HTML-only or Markdown-only.
 - DOCX files are created only when DOCX is selected, reducing ZIP clutter and avoiding unnecessary Word conversion work.
 - Existing stored report markdown can be reused to create HTML or DOCX without re-running the AI generation step.
-- Free Snapshot reports now require a `Try This This Week` section with one copy/paste-ready AI prompt that creates a useful, safe win in under an hour.
+- Free Snapshot reports now require a `Snapshot Scorecard` section plus a `Try This This Week` section with one copy/paste-ready AI prompt that creates a useful, safe win in under an hour.
 - The free-report prompt must use the client's own words and quietly encode expert-level industry/customer context without gimmicky "act as a top expert" language.
 - The free-report prompt must tell clients not to paste private financials, customer names, supplier names, recipes, payroll, invoices, contracts, formulas, or other sensitive information into public AI tools.
-- The free-report quality gate now expects `## 8. Bridge To AI Note` because `Try This This Week` is section 6.
+- The free-report quality gate now expects `## 9. Bridge To AI Note` because the real Snapshot Scorecard is section 2.
 - Admin Report Actions are now grouped as Pack, Single Reports, Utilities, and Status inside a dominant full-width control block.
 - Admin records console now displays its own visible version number.
 - Admin records console now uses a wide top credential strip, warning strip, three action panels, interview index, and console output layout.
@@ -95,7 +105,7 @@ This build keeps the trust-first, controlled industry-adaptive intake, live-inte
 - The AFPA welcome copy now includes the same core-question/follow-up transparency.
 - The live progress counter now labels fixed prompts as `core step X of Y`.
 - Adaptive probes and mastery follow-ups now display as `Follow-up after core step X of Y` instead of pretending to be part of the fixed question count.
-- Client reports now normalize em dashes, curly quotes, and common mojibake sequences before storage to reduce broken copied/emailed characters such as `â€”`.
+- Client reports now normalize em dashes, curly quotes, and common mojibake sequences before storage to reduce broken copied/emailed characters such as `Ã¢â‚¬â€`.
 - HTML report attachments now declare `text/html; charset=utf-8`.
 - The client-facing privacy section is now shorter, plainer, and easier to trust at the end of a report.
 - The paid-report handoff section is now titled `If You Want The Next Layer` and explains that the free report is meant to provide real value, not hold the value hostage.
@@ -126,12 +136,12 @@ This build keeps the trust-first, controlled industry-adaptive intake, live-inte
 - The interview index shows recent Record IDs, business names, client names, client emails, category, partner/campaign, status, and updated date.
 - Clicking a row fills the Record ID and filename fields for faster Venture DNA retrieval or report generation.
 - The interview index can be downloaded as CSV for private BTAI admin use.
-- The index is protected by Supabase admin sign-in, MFA, admin app metadata, and `admin_profiles`; access logs an admin audit event.
+- The index is protected by `BTAI_ADMIN_SECRET` and logs an admin access audit event.
 - `vercel.json` now explicitly rewrites `/btai-records-console` to `/btai-records-console.html`.
 - The private records console file is now `btai-records-console.html`.
 - With Vercel `cleanUrls`, use `/btai-records-console` instead of `/admin` or `/admin.html`.
 - The obvious `admin.html` file is no longer included in the deploy package.
-- This is reduced visibility, not the security boundary. The real protection is Supabase admin authentication with MFA plus server-side authorization on the admin APIs.
+- This is reduced visibility, not the security boundary. The real protection remains `BTAI_ADMIN_SECRET` plus server-side authorization on the admin APIs.
 - Partner aggregate reports now exclude completion-page test records and obvious test Record IDs by default.
 - Partner aggregate reports now disclose how many test/demo records were excluded.
 - Admin now includes a **Partner Aggregate Intelligence** section.
@@ -198,7 +208,7 @@ This build keeps the trust-first, controlled industry-adaptive intake, live-inte
 - Welcome screen requires Privacy Policy consent before the interview can start.
 - Privacy consent version and timestamp are stored inside the encrypted intake record.
 - `privacy.html` provides a standalone Privacy Policy page linked from the welcome screen and footer.
-- The secure processing/KPI layer now captures partner/campaign tags, consent status, answer-depth buckets, short-answer rates, adaptive follow-up counts, completion summaries, business niche, inferred answer-specificity profile, guardrail rejections, and report-pack generation events.
+- The secure processing/KPI layer now captures partner/campaign tags, consent status, answer-depth buckets, short-answer rates, adaptive follow-up counts, completion summaries, business niche, share-comfort level, guardrail rejections, and report-pack generation events.
 - Supabase setup now includes the `intake_kpi_events` reporting view for aggregate AFPA/member intelligence reporting without decrypting raw interviews.
 - URL-based partner co-branding is supported. `partner=AFPA` changes the welcome page, completion copy, and consent language for the AFPA member program.
 - Partner consent explains that AFPA receives anonymized aggregate insights only, not raw member interviews or individual answers.
@@ -230,15 +240,11 @@ Required Vercel env vars:
 ```text
 SUPABASE_URL
 SUPABASE_SECRET_KEY
-SUPABASE_ANON_KEY
 BTAI_ENCRYPTION_KEY
-BTAI_ENCRYPTION_KEY_PREVIOUS
 ANTHROPIC_API_KEY
 RESEND_API_KEY
 BTAI_ADMIN_SECRET
 ```
-
-`BTAI_ENCRYPTION_KEY_PREVIOUS` is only needed after a key rotation so older encrypted records remain readable while new records use the current key.
 
 Recommended:
 
@@ -300,7 +306,7 @@ After a completed intake, use:
 /btai-records-console
 ```
 
-Sign in to `/btai-records-console` with a Supabase admin account and MFA, then paste the notification email's Record ID to download the decrypted `.md` file.
+Paste the notification email's Record ID and the private `BTAI_ADMIN_SECRET` to download the decrypted `.md` file.
 
 The DNA is decrypted server-side only after the admin secret is verified.
 
@@ -321,7 +327,7 @@ The internal BTAI Advisor Brief is for Bridge To AI only. It summarizes what to 
 
 ## Privacy Proof Export
 
-Use `/btai-records-console`, sign in with MFA, paste the Record ID, then click **Download Privacy Proof JSON**.
+Use `/btai-records-console`, paste the Record ID and `BTAI_ADMIN_SECRET`, then click **Download Privacy Proof JSON**.
 
 The export is designed for AFPA/client trust review. It includes sanitized event proof such as:
 
@@ -344,28 +350,6 @@ report_pack_zip_downloaded
 ```
 
 The proof export does not include raw interview answers, raw Venture DNA content, client email, private recipes, supplier/customer details, payroll, invoices, formulas, or confidential operating data.
-
-### Automated Privacy-Proof Smoke Test
-
-Run this after privacy/schema changes and before taking sensitive client data:
-
-```bash
-node scripts/privacy-proof-smoke-test.mjs
-```
-
-For production, sign in to `/btai-records-console` with the Supabase admin account and MFA, then click **Run Smoke Test** in the Privacy Proof panel. That runs the same synthetic proof check inside the Vercel runtime, using the deployed Supabase and encryption environment variables without exposing secret values.
-
-The test creates a synthetic non-client record in Supabase, logs the required privacy-proof events, stores only an encrypted synthetic payload, then verifies that consent, cross-border notice, retention/deletion policy, encrypted storage, anonymized AI-analysis evidence, admin access logging, and report privacy scan evidence all resolve to passing proof flags.
-
-Required local environment variables:
-
-```text
-SUPABASE_URL
-SUPABASE_SECRET_KEY
-BTAI_ENCRYPTION_KEY
-```
-
-Use `--json` for machine-readable output. Synthetic test records use a `privacy-smoke-...` Record ID and are intentionally marked with `syntheticTest: true`.
 
 ## Privacy Model
 
@@ -446,30 +430,3 @@ supabase-rest.js
 validate-output.js
 ```
 
-- v1.71.1 adds the production Cloudflare Turnstile site key to public intake configuration and carries forward the MFA admin hardening baseline.
-
-- v1.71.2 fixes admin MFA sign-in when a verified authenticator factor already exists and the code is entered before pressing Sign In.
-
-- v1.71.3 fixes forgotten-password recovery for MFA admin accounts. Recovery links now open the reset panel, preserve recovery session tokens, verify the authenticator code before updating the password when AAL2 is required, and avoid using the known-old-password change flow for forgotten passwords.
-
-- v1.71.4 adds support for Supabase recovery links that arrive with `token_hash` instead of an `access_token` URL fragment, restores in-progress recovery sessions across refreshes, and blocks password update attempts unless a recovery/admin session is active.
-
-- v1.71.5 blocks resume/save/delete access for retired abandoned draft IDs, currently including the two known Susgrainable / Marc Wandler sessions from the lost-key period, and clears stale browser resume pointers when the server marks a draft expired.
-
-- v1.71.6 improves AFPA welcome-gauge readability by moving the gauge label onto a stable high-contrast pill and aligning the visible version across intake variants.
-
-- v1.71.7 fixes the remaining low-contrast gauge subtext by applying the same high-contrast treatment to both gauge copy lines.
-
-- v1.71.8 removes the first-page detail-comfort question, adds a clear privacy guidance block above consent, keeps a hidden `answerSpecificityProfile`, infers answer specificity from actual answer depth/risk signals, and uses softer in-question privacy hints.
-
-- v1.71.9 turns the first AFPA page into a concise wrapper, moves identity/business setup and consent to a separate Start Here screen, shortens the privacy and partner consent language, and keeps the secure adaptive voice interview as the third step.
-
-- v1.71.10 makes the Start Here setup screen use a two-column desktop layout with full-width department selection and a mobile-friendly one-column fallback.
-
-- v1.71.11 redesigns the snapshot splash graphic by replacing the sparse decorative sparkline with a Drag -> Signal -> Win opportunity map that uses the available space more clearly on desktop and stacks cleanly on mobile.
-
-- v1.71.12 adds lost-key trial data retirement controls: participant notification wording, audit/runbook documents, Supabase quarantine SQL, retired-lost-key schema columns, and clean 410-style handling for retired or old-key encrypted draft/report records.
-
-- v1.71.13 adds an admin-only ZIP export for all decryptable HTML reports in Supabase, with a MANIFEST.json that lists included reports and skipped retired/lost-key rows.
-
-- v1.71.14 restores generic Bridge To AI branding on `intake.bridgetoai.ca/`, keeps AFPA language controlled by `partner=AFPA`, and preserves `/snapshot` as the short `snapshot_first` interview.

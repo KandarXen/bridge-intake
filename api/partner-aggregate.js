@@ -236,20 +236,17 @@ Test and completion-page demo records are excluded by default so partner reporti
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
   try {
     assertTrustedOrigin(req);
     assertRateLimit(req, { key: 'partner-aggregate', limit: 12, windowMs: 60_000 });
-  } catch (err) {
-    return safeError(res, err);
-  }
-  if (!(await authorizedAdminRequest(req))) return res.status(401).json({ error: 'Unauthorized' });
+    if (!(await authorizedAdminRequest(req))) return res.status(401).json({ error: 'Unauthorized' });
 
-  const partner = safeName(req.body?.partner || 'AFPA');
-  const campaign = String(req.body?.campaign || 'all').trim() || 'all';
-  const days = Math.max(1, Math.min(Number(req.body?.days) || 120, 1095));
-  const format = String(req.body?.format || 'markdown').toLowerCase();
+    const partner = safeName(req.body?.partner || 'AFPA');
+    const campaign = String(req.body?.campaign || 'all').trim() || 'all';
+    const days = Math.max(1, Math.min(Number(req.body?.days) || 120, 1095));
+    const format = String(req.body?.format || 'markdown').toLowerCase();
 
-  try {
     const rawEvents = await getPartnerKpiEvents({ partner, campaign, days });
     const filtered = excludeTestEvents(rawEvents);
     const events = filtered.events;
@@ -280,6 +277,6 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error('partner-aggregate error:', err);
-    return res.status(500).json({ error: 'Server error', message: err.message });
+    return safeError(res, err, 'Could not build partner aggregate report');
   }
 }

@@ -58,7 +58,41 @@ async function supabaseAuth(path, { method = 'GET', token = '', body = null } = 
 async function listMfaFactors(token) {
   const user = await getSupabaseUser(token);
   const userFactors = Array.isArray(user?.factors) ? user.factors : [];
-  return userFactors;
+  if (userFactors.length) return userFactors;
+
+  const { url, anonKey } = authConfig();
+  let resp;
+  try {
+    resp = await fetch(`${url}/rest/v1/auth/factors?select=id,factor_type,friendly_name,status&status=eq.verified`, {
+      method: 'GET',
+      headers: {
+        apikey: anonKey,
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json'
+      }
+    });
+  } catch (networkErr) {
+    const err = new Error(`Could not reach Supabase factor list. Check SUPABASE_URL and Supabase project availability. Detail: ${networkErr.message}`);
+    err.statusCode = 502;
+    throw err;
+  }
+
+  const raw = await resp.text();
+  let data = [];
+  try {
+    data = raw ? JSON.parse(raw) : [];
+  } catch (parseErr) {
+    data = [];
+  }
+
+  if (!resp.ok) {
+    const detail = data.msg || data.message || data.error_description || data.error || raw.slice(0, 300) || 'No response body returned.';
+    const err = new Error(`Supabase factor list failed with HTTP ${resp.status}: ${detail}`);
+    err.statusCode = resp.status;
+    throw err;
+  }
+
+  return Array.isArray(data) ? data : [];
 }
 
 async function signIn(body) {
@@ -143,54 +177,11 @@ async function requestPasswordReset(req, body) {
   };
 }
 
-async function verifyRecoveryToken(body) {
-  const tokenHash = String(body?.tokenHash || body?.token_hash || '').trim();
-  const type = String(body?.type || 'recovery').trim();
-  if (!tokenHash || type !== 'recovery') {
-    const err = new Error('Valid recovery token is required');
-    err.statusCode = 400;
-    throw err;
-  }
-  const session = await supabaseAuth('verify', {
-    method: 'POST',
-    body: {
-      type: 'recovery',
-      token_hash: tokenHash
-    }
-  });
-  const accessToken = session.access_token || '';
-  const user = await getSupabaseUser(accessToken);
-  const appMeta = user?.app_metadata || {};
-  if (!(user?.id && (appMeta.btai_admin === true || appMeta.role === 'btai_admin'))) {
-    const err = new Error('This recovery link is not authorized for BTAI admin');
-    err.statusCode = 403;
-    throw err;
-  }
-  return {
-    accessToken,
-    refreshToken: session.refresh_token || '',
-    expiresIn: session.expires_in || null,
-    mfaRequired: session.user?.aal !== 'aal2'
-  };
-}
-
 async function updatePassword(token, body) {
   const password = String(body?.password || '');
   if (password.length < 12) {
     const err = new Error('Password must be at least 12 characters');
     err.statusCode = 400;
-    throw err;
-  }
-  if (!token) {
-    const err = new Error('Password reset session is required. Request a password reset email and open the recovery link first.');
-    err.statusCode = 401;
-    throw err;
-  }
-  const user = await getSupabaseUser(token);
-  const appMeta = user?.app_metadata || {};
-  if (!(user?.id && (appMeta.btai_admin === true || appMeta.role === 'btai_admin'))) {
-    const err = new Error('This password reset session is not authorized for BTAI admin');
-    err.statusCode = 403;
     throw err;
   }
   await supabaseAuth('user', {
@@ -300,7 +291,6 @@ export default async function handler(req, res) {
     const action = String(req.body?.action || '').trim();
     if (action === 'sign-in') return res.status(200).json(await signIn(req.body));
     if (action === 'request-password-reset') return res.status(200).json(await requestPasswordReset(req, req.body));
-    if (action === 'verify-recovery-token') return res.status(200).json(await verifyRecoveryToken(req.body));
     if (action === 'update-password') return res.status(200).json(await updatePassword(bearerToken(req), req.body));
     if (action === 'enroll-mfa') return res.status(200).json(await enrollMfa(bearerToken(req)));
     if (action === 'refresh') return res.status(200).json(await refresh(req.body));

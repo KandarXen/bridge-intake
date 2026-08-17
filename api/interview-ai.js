@@ -1,5 +1,4 @@
 import { anonymizeText, privacyHeader, reidentifyText } from '../lib/privacy.js';
-import { assertRateLimit, assertTrustedOrigin, safeError } from '../lib/security.js';
 
 function normalizeUrl(rawUrl) {
   if (!rawUrl || typeof rawUrl !== 'string') return '';
@@ -111,7 +110,7 @@ async function callClaude(prompt, { maxTokens = 600, explicitIdentifiers = {} } 
 }
 
 async function researchBusiness(body) {
-  const { businessName, businessCategory, businessNiche, shareComfort, answerSpecificityProfile, websiteUrl, companySize, departments } = body || {};
+  const { businessName, businessCategory, businessNiche, shareComfort, websiteUrl, companySize, departments } = body || {};
   if (!businessCategory && !websiteUrl) return { context: fallbackContext({ businessCategory, websiteUrl }) };
 
   try {
@@ -123,7 +122,7 @@ Client-provided information:
 - Business name: ${businessName || '(not provided)'}
 - Business type/category: ${businessCategory || '(not provided)'}
 - Specific niche: ${businessNiche || '(not provided)'}
-- Answer specificity profile: ${answerSpecificityProfile?.label || shareComfort || '(not assessed yet)'}
+- Detail-sharing comfort: ${shareComfort || '(not provided)'}
 - Website URL: ${normalizedWebsiteUrl || '(not provided)'}
 - Company size: ${companySize || '(not provided)'}
 - Departments/functions: ${departments && departments.length ? departments.join(', ') : '(not provided)'}
@@ -192,11 +191,10 @@ function soloOrNoStaff(companySize, ownerWorkStatus, departments) {
 }
 
 async function probe(body) {
-  const { domain, qa, businessCategory, businessNiche, shareComfort, answerSpecificityProfile, companySize, ownerWorkStatus, departments = [], businessContext } = body || {};
+  const { domain, qa, businessCategory, businessNiche, shareComfort, companySize, ownerWorkStatus, departments = [], businessContext } = body || {};
   if (!qa) return { status: 400, body: { error: 'Missing qa' } };
   const contextBlock = businessContext ? `\n\nInternal context for sharper judgment only:\n${JSON.stringify(businessContext).slice(0, 3000)}\n\nUse this to understand likely workflows and industry patterns. Do not reveal background research.` : '';
-  const specificityLabel = answerSpecificityProfile?.label || shareComfort || 'not assessed yet';
-  const orgContext = `Specific niche: ${businessNiche || 'not specified'}. Inferred answer specificity: ${specificityLabel}. Company size: ${companySize || 'not specified'} people. Owner status/capacity: ${ownerWorkStatus || 'not specified'}. Departments/functions selected: ${Array.isArray(departments) && departments.length ? departments.join(', ') : 'not specified'}.`;
+  const orgContext = `Specific niche: ${businessNiche || 'not specified'}. Detail-sharing comfort: ${shareComfort || 'directional only'}. Company size: ${companySize || 'not specified'} people. Owner status/capacity: ${ownerWorkStatus || 'not specified'}. Departments/functions selected: ${Array.isArray(departments) && departments.length ? departments.join(', ') : 'not specified'}.`;
   const prompt = `You are conducting a business discovery interview for a ${businessCategory || 'small business'}.
 
 Organization context:
@@ -278,10 +276,8 @@ Write ONE short follow-up question that picks up a specific thing they actually 
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  const task = String(req.body?.task || '').trim();
   try {
-    assertTrustedOrigin(req);
-    assertRateLimit(req, { key: 'interview-ai', limit: 20, windowMs: 60_000 });
-    const task = String(req.body?.task || '').trim();
     let result;
     if (task === 'research-business') result = await researchBusiness(req.body);
     else if (task === 'scenario') result = await scenario(req.body);
@@ -293,6 +289,6 @@ export default async function handler(req, res) {
     return res.status(200).json(result);
   } catch (err) {
     console.error('interview-ai error:', err);
-    return safeError(res, err);
+    return res.status(200).json({ error: err.message });
   }
 }

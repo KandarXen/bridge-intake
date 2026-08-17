@@ -6,8 +6,8 @@
 
 import { encryptJson } from '../lib/crypto.js';
 import { insertClaimTrace, insertIntakeEvent, insertIntakeOutput, updateIntakeSession } from '../lib/supabase-rest.js';
+import { gateProofDetails, publicGateSummary, runPrivacyGate } from '../lib/privacy-gate.js';
 import { validateDnaOutput } from '../lib/validate-output.js';
-import { assertRateLimit, assertTrustedOrigin, assertTurnstile, safeError } from '../lib/security.js';
 
 async function logPrivacyProof(clientDraftId, eventType, status, details = {}) {
   try {
@@ -199,6 +199,33 @@ async function saveAnonymizationMapping(clientDraftId, mapping, stats) {
   }
 }
 
+async function savePrivacyGateRecord(clientDraftId, gateResult, sourceLabel = 'venture_dna_generation') {
+  try {
+    if (!clientDraftId) return { saved: false, reason: 'No clientDraftId for privacy gate storage' };
+    const row = await insertIntakeOutput({
+      client_draft_id: clientDraftId,
+      output_type: `privacy_gate_${sourceLabel}`,
+      encrypted_payload: encryptJson({
+        createdAt: new Date().toISOString(),
+        gateVersion: gateResult.gateVersion,
+        purpose: gateResult.purpose,
+        decision: gateResult.decision,
+        requiresReview: gateResult.requiresReview,
+        summary: gateResult.summary,
+        proofFindings: gateResult.proofFindings,
+        originalHash: gateResult.originalHash,
+        sanitizedHash: gateResult.sanitizedHash,
+        sanitizedText: gateResult.sanitizedText,
+        redactionMap: gateResult.redactionMap
+      })
+    });
+    return { saved: true, outputId: row?.id || '' };
+  } catch (err) {
+    console.error('Privacy Gate secure save failed:', err);
+    return { saved: false, reason: err.message };
+  }
+}
+
 async function saveCompletedDna(clientDraftId, dnaContent, meta = {}) {
   try {
     if (!clientDraftId) return { saved: false, reason: 'No clientDraftId for output storage' };
@@ -250,14 +277,12 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const { prompt, clientDraftId, sourceMeta } = req.body;
+  if (!prompt) {
+    return res.status(400).json({ error: 'Missing prompt' });
+  }
+
   try {
-    assertTrustedOrigin(req);
-    assertRateLimit(req, { key: 'generate-dna', limit: 6, windowMs: 60_000 });
-    await assertTurnstile(req);
-    const { prompt, clientDraftId, sourceMeta } = req.body;
-    if (!prompt) {
-      return res.status(400).json({ error: 'Missing prompt' });
-    }
     await logPrivacyProof(clientDraftId, 'privacy_proof_consent_recorded', sourceMeta?.privacyConsent ? 'success' : 'failed', {
       privacyProofType: 'consent',
       privacyConsentAccepted: !!sourceMeta?.privacyConsent,
@@ -286,11 +311,48 @@ export default async function handler(req, res) {
       ...retentionMetadata('first_intake'),
       proofStatus: 'passed'
     });
-    const hermesPrivacy = anonymizePrompt(prompt);
+    const privacyGate = runPrivacyGate(prompt, { purpose: 'venture_dna_generation' });
+    const privacyGateSave = await savePrivacyGateRecord(clientDraftId, privacyGate, 'venture_dna_generation');
+    await logPrivacyProof(clientDraftId, 'privacy_gate_scan_completed', privacyGateSave.saved ? 'success' : 'failed', gateProofDetails(privacyGate, {
+      payloadType: 'raw_interview_prompt',
+      privacyGateOutputId: privacyGateSave.outputId || '',
+      privacyGateSaveReason: privacyGateSave.reason || '',
+      proofStatus: privacyGateSave.saved ? (privacyGate.requiresReview ? 'review_required' : 'passed') : 'failed'
+    }));
+
+    if (privacyGate.requiresReview) {
+      if (clientDraftId) {
+        await updateIntakeSession(clientDraftId, {
+          status: 'privacy_review_required',
+          updated_at: new Date().toISOString()
+        });
+      }
+      await logPrivacyProof(clientDraftId, 'privacy_gate_quarantine_created', 'success', gateProofDetails(privacyGate, {
+        payloadType: 'raw_interview_prompt',
+        aiPayloadBlocked: true,
+        aiReceivesSanitizedPayloadOnly: false,
+        proofStatus: 'review_required'
+      }));
+      return res.status(409).json({
+        error: 'Privacy review required',
+        message: 'The interview appears to include sensitive information. The encrypted original has been preserved, a sanitized payload was created, and AI generation has been paused for Bridge To AI review.',
+        privacyGate: publicGateSummary(privacyGate),
+        secureStorage: {
+          saved: !!privacyGateSave.saved,
+          outputId: privacyGateSave.outputId || '',
+          reason: privacyGateSave.reason || ''
+        }
+      });
+    }
+
+    const hermesPrivacy = anonymizePrompt(privacyGate.sanitizedText);
     await logPrivacyProof(clientDraftId, 'privacy_proof_anonymization_completed', 'success', {
       privacyProofType: 'anonymization',
-      payloadType: 'interview_prompt',
-      aiPayloadType: 'anonymized_business_profile',
+      payloadType: 'sanitized_interview_prompt',
+      aiPayloadType: 'sanitized_anonymized_business_profile',
+      privacyGateVersion: privacyGate.gateVersion,
+      privacyGateDecision: privacyGate.decision,
+      sanitizedAiPayloadCreated: true,
       directIdentifiersRemoved: true,
       anonymizationReplacements: hermesPrivacy.stats.replacements || 0,
       proofStatus: 'passed'
@@ -342,6 +404,7 @@ export default async function handler(req, res) {
     const outputSave = await saveCompletedDna(clientDraftId, reidentifiedText, {
       truncated,
       sourceMeta: sourceMeta || {},
+      privacyGate: publicGateSummary(privacyGate),
       anonymizationStats: hermesPrivacy.stats,
       validation: {
         ...validation,
@@ -387,7 +450,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error('Server error:', err);
-    return safeError(res, err);
+    return res.status(500).json({ error: 'Server error', message: err.message });
   }
 }
 

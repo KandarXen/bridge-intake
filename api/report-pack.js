@@ -2,9 +2,11 @@
 import { createDocxBuffer, createZipBuffer } from '../lib/docx.js';
 import { createReportHtml } from '../lib/report-html.js';
 import { getIntakeEvents, getIntakeSession, getLatestIntakeOutput, insertIntakeEvent, insertIntakeOutput } from '../lib/supabase-rest.js';
+import { gateProofDetails, publicGateSummary, runPrivacyGate } from '../lib/privacy-gate.js';
 import { validateDnaOutput } from '../lib/validate-output.js';
 import { assertRateLimit, assertTrustedOrigin, assertTurnstile, authorizedAdminRequest, safeError } from '../lib/security.js';
-import { isLostKeyDecryptError, isRetiredLostKeyRecord, retiredLostKeyError } from '../lib/retirement.js';
+
+const APP_VERSION = 'v1.72.7';
 
 const REPORTS = {
   free: {
@@ -95,14 +97,7 @@ async function callClaude(prompt, maxTokens) {
 async function getDna(clientDraftId) {
   const output = await getLatestIntakeOutput(clientDraftId, 'venture_dna_markdown');
   if (!output) throw new Error('No Venture DNA output found for that Record ID');
-  if (output.retired_lost_key) throw retiredLostKeyError();
-  let decrypted;
-  try {
-    decrypted = decryptJson(output.encrypted_payload);
-  } catch (err) {
-    if (isLostKeyDecryptError(err)) throw retiredLostKeyError();
-    throw err;
-  }
+  const decrypted = decryptJson(output.encrypted_payload);
   if (!decrypted.dnaContent) throw new Error('Venture DNA output is empty');
   return {
     dnaContent: decrypted.dnaContent,
@@ -115,13 +110,7 @@ async function getDna(clientDraftId) {
 async function getSessionPayload(clientDraftId) {
   const session = await getIntakeSession(clientDraftId);
   if (!session?.encrypted_payload) throw new Error('No intake session found for that Record ID');
-  if (isRetiredLostKeyRecord(session)) throw retiredLostKeyError();
-  try {
-    return decryptJson(session.encrypted_payload);
-  } catch (err) {
-    if (isLostKeyDecryptError(err)) throw retiredLostKeyError();
-    throw err;
-  }
+  return decryptJson(session.encrypted_payload);
 }
 
 async function logReportEvent(clientDraftId, eventType, status, details = {}) {
@@ -162,6 +151,111 @@ function privacyProofDefaults(extra = {}) {
     proofStatus: 'passed',
     ...extra
   };
+}
+
+class PrivacyGateReviewError extends Error {
+  constructor(message, gateResult, saveResult = {}) {
+    super(message);
+    this.name = 'PrivacyGateReviewError';
+    this.privacyGate = publicGateSummary(gateResult);
+    this.secureStorage = {
+      saved: !!saveResult.saved,
+      outputId: saveResult.outputId || '',
+      reason: saveResult.reason || ''
+    };
+  }
+}
+
+async function savePrivacyGateRecord(clientDraftId, gateResult, sourceLabel) {
+  try {
+    const row = await insertIntakeOutput({
+      client_draft_id: clientDraftId,
+      output_type: `privacy_gate_${sourceLabel}`,
+      encrypted_payload: encryptJson({
+        createdAt: new Date().toISOString(),
+        gateVersion: gateResult.gateVersion,
+        purpose: gateResult.purpose,
+        decision: gateResult.decision,
+        requiresReview: gateResult.requiresReview,
+        summary: gateResult.summary,
+        proofFindings: gateResult.proofFindings,
+        originalHash: gateResult.originalHash,
+        sanitizedHash: gateResult.sanitizedHash,
+        sanitizedText: gateResult.sanitizedText,
+        redactionMap: gateResult.redactionMap
+      })
+    });
+    return { saved: true, outputId: row?.id || '' };
+  } catch (err) {
+    console.error('report privacy gate save failed:', err);
+    return { saved: false, reason: err.message };
+  }
+}
+
+async function latestPrivacyGateApproval(clientDraftId, purpose) {
+  const row = await getLatestIntakeOutput(clientDraftId, 'privacy_gate_admin_review');
+  if (!row) return null;
+  const payload = decryptJson(row.encrypted_payload);
+  const approvedPurpose = String(payload.purpose || 'all');
+  if (approvedPurpose === 'all' || approvedPurpose === purpose) return payload;
+  return null;
+}
+
+async function approvePrivacyGate(clientDraftId, purpose = 'all', reviewNote = '') {
+  const cleanPurpose = String(purpose || 'all').trim() || 'all';
+  const row = await insertIntakeOutput({
+    client_draft_id: clientDraftId,
+    output_type: 'privacy_gate_admin_review',
+    encrypted_payload: encryptJson({
+      approvedAt: new Date().toISOString(),
+      purpose: cleanPurpose,
+      reviewedBy: 'btai_admin',
+      reviewNote: String(reviewNote || '').slice(0, 1000),
+      approvalScope: cleanPurpose === 'all' ? 'all_privacy_gate_paused_payloads' : cleanPurpose
+    })
+  });
+  await logReportEvent(clientDraftId, 'privacy_gate_admin_review_approved', 'success', privacyProofDefaults({
+    privacyProofType: 'privacy_gate_admin_review',
+    privacyGatePurpose: cleanPurpose,
+    adminApprovedContinuation: true,
+    reviewOutputId: row?.id || '',
+    proofStatus: 'admin_review_approved'
+  }));
+  return { approved: true, purpose: cleanPurpose, outputId: row?.id || '' };
+}
+
+async function prepareSanitizedAiSource(clientDraftId, sourceText, purpose) {
+  const gate = runPrivacyGate(sourceText, { purpose });
+  const saved = await savePrivacyGateRecord(clientDraftId, gate, purpose);
+  await logReportEvent(clientDraftId, 'privacy_gate_scan_completed', saved.saved ? 'success' : 'failed', privacyProofDefaults(gateProofDetails(gate, {
+    payloadType: 'encrypted_venture_dna_record',
+    privacyGateOutputId: saved.outputId || '',
+    privacyGateSaveReason: saved.reason || '',
+    proofStatus: saved.saved ? (gate.requiresReview ? 'review_required' : 'passed') : 'failed'
+  })));
+
+  if (!gate.requiresReview) {
+    return { sanitizedText: gate.sanitizedText, gate, adminApproved: false };
+  }
+
+  const approval = await latestPrivacyGateApproval(clientDraftId, purpose);
+  if (approval) {
+    await logReportEvent(clientDraftId, 'privacy_gate_admin_review_used', 'success', privacyProofDefaults(gateProofDetails(gate, {
+      payloadType: 'encrypted_venture_dna_record',
+      privacyGateApprovalPurpose: approval.purpose || '',
+      privacyGateApprovedAt: approval.approvedAt || '',
+      adminApprovedContinuation: true,
+      aiReceivesSanitizedPayloadOnly: true,
+      proofStatus: 'admin_review_approved'
+    })));
+    return { sanitizedText: gate.sanitizedText, gate, adminApproved: true };
+  }
+
+  throw new PrivacyGateReviewError(
+    'Privacy Gate review required before report generation can continue',
+    gate,
+    saved
+  );
 }
 
 function priceLabel(envKey, fallback) {
@@ -213,7 +307,9 @@ A workbench is a private operating dashboard built around your business so repea
 
 This free snapshot is meant to give you one useful first read, not hold the value hostage.
 
-The best next step is not to buy a deeper report cold. First, continue the deeper interview while the context is fresh. That gives Bridge To AI enough information to rank the work properly, spot what should wait, identify cleanup needs, and decide whether a paid report or action plan is actually worth preparing.
+The Snapshot Scorecard is directional, not a measurement claim. It is there to show the first signals Bridge To AI sees from your answers: where work is dragging, where AI may fit, what may need cleanup, what should stay human-reviewed, and what first move looks useful.
+
+The best next step is not to buy a deeper report cold. First, continue the deeper interview while the context is fresh. That gives Bridge To AI enough information to rank the work properly, pressure-test the scorecard, spot what should wait, identify cleanup needs, and decide whether a paid report or action plan is actually worth preparing.
 
 - Continue the deeper interview: use the continuation link in your report email, or reply to Bridge To AI and ask us to reopen your secure interview.
 - Detailed AI Opportunity Report - ${level2Price}: Available after the deeper interview gives enough context.
@@ -285,7 +381,7 @@ function scanReportPrivacy(markdown) {
 
 const REPORT_COMPLETION_RULES = {
   free: [{
-    expected: '8. Bridge To AI Note',
+    expected: '9. Bridge To AI Note',
     variants: ['bridge to ai note', 'bridge to ai advisor note', 'note from bridge to ai']
   }],
   detailed: [{
@@ -455,7 +551,7 @@ function trimIncompleteTail(markdown) {
 
 function deterministicFinalSection(tier) {
   if (tier === 'free') {
-    return `## 8. Bridge To AI Note
+    return `## 9. Bridge To AI Note
 
 This snapshot is meant to give you a useful first read, not a finished implementation plan. I would use it to see the likely opportunities, spot the first practical win, and decide whether the next layer is worth a deeper look.
 
@@ -603,10 +699,19 @@ Important: the free report must give real value, but it must stop before becomin
 Paid-ladder boundary:
 - The free report may name likely opportunity areas, but it should not fully rank the implementation sequence.
 - The free report may give one first move, but it should not provide a full 30-day action plan.
-- The free report may mention what appears ready or risky, but it should not deeply diagnose dependencies, readiness scores, implementation phases, tool maps, or success metrics.
+- The free report may mention what appears ready or risky, but it should not deeply diagnose dependencies, numerical readiness scores, implementation phases, tool maps, ROI, time savings, or success metrics.
 - The free report may invite a deeper report, but it should not sound like the build is already scoped or say things like "a few hours of build time" unless the Venture DNA directly proves that.
 - The final Bridge To AI Note should be short. It should say the snapshot is directional and that the next layer ranks, sequences, and pressure-tests the work.
 Opportunity rule: do not make email automation the default first opportunity. Look first for where the owner or highest-value person is losing time on repeated work. Only recommend email if the Venture DNA proves it is the real bottleneck.
+Required snapshot artifact: include a section called "Snapshot Scorecard" near the top of the report. This is a directional scorecard, not a numeric score and not an ROI estimate. Use a markdown table with exactly these columns: Signal | Directional Read | What It Means | Evidence From Your Answers.
+Use exactly five rows:
+- Workflow Drag
+- AI Fit
+- Information Readiness
+- Human Review Boundary
+- First Useful Win
+Allowed Directional Read phrases include: High friction, Medium friction, Good AI fit, Cleanup first, Ready to test, Human review needed, Needs confirmation. Pick the clearest plain-English phrase for each row.
+Every row must be grounded in the Venture DNA. If the evidence is thin, use "Needs confirmation" and say what is missing. Do not invent exact hours saved, percentages, dollar savings, ROI, benchmark comparisons, readiness scores, or fake chart values.
 Required free value moment: include one section called "Try This This Week". It must give the client a copy/paste-ready AI prompt they can use in ChatGPT, Claude, or another AI tool using only non-sensitive information. The prompt must be based on the client's own words from the Venture DNA and should create a useful result in less than one hour.
 The prompt must quietly contain expert-level context for their industry, customer type, and business situation without saying "act as a top expert" or similar gimmicky role language. Encode the expertise through the instructions: who the audience is, what they care about, what outcome matters, what tone to use, what to avoid, what format to produce, and what a good answer should feel like.
 The "Try This This Week" prompt must explicitly tell the client not to paste private financials, customer names, supplier names, recipes, payroll, invoices, contracts, confidential formulas, or other sensitive details into public AI tools.
@@ -615,17 +720,19 @@ After the prompt, explain what to look for in the AI output and why this small e
 Required structure:
 # [Business Name] - Free AI Opportunity Snapshot
 ## 1. Quick Read
-Write this as 5-8 short plain-English paragraphs. Start with "Here is what I am seeing." Avoid "The intake indicates". Name the real pinch point in simple language.
-## 2. What Is Already Working
+Write this as one short lead sentence followed by 5-7 high-signal bullet points. Start with "Here is what I am seeing." Avoid "The intake indicates". Each bullet should be 1-2 sentences and should name a useful finding, why it matters, or what to do first. Cover the likely pinch point, first AI-fit workflow, readiness or cleanup issue, human-review boundary, first useful move, and any important "needs confirmation" gap if the evidence is thin. Do not turn this into long paragraphs.
+## 2. Snapshot Scorecard
+Use the required 5-row scorecard table. Keep each cell short and specific. This should feel like the visual front door of the report.
+## 3. What Is Already Working
 Use a table: Strength | Why It Matters
-## 3. Where AI Looks Useful First
+## 4. Where AI Looks Useful First
 Use a table: Priority | Opportunity | Why It Matters | First Step
-## 4. One Growth Leak To Fix First
-## 5. First Recommended Move
-## 6. Try This This Week
+## 5. One Growth Leak To Fix First
+## 6. First Recommended Move
+## 7. Try This This Week
 Give one copy/paste-ready AI prompt with expert-level context embedded in plain language. Make it safe, specific, and useful this week.
-## 7. What To Avoid For Now
-## 8. Bridge To AI Note
+## 8. What To Avoid For Now
+## 9. Bridge To AI Note
 Keep this to 2-3 short paragraphs. Do not introduce new implementation details here. The message is: this snapshot shows likely opportunities and one useful first win; the paid report ranks the work, identifies cleanup, and lays out the first 30 days.
 
 VENTURE DNA:
@@ -777,16 +884,19 @@ async function generateOne(clientDraftId, tier, options = {}) {
 
   const startedAt = Date.now();
   const { dnaContent, meta } = await getDna(clientDraftId);
+  const gatedSource = await prepareSanitizedAiSource(clientDraftId, dnaContent, `report_${tier}_generation`);
   const businessName = businessNameFromDna(dnaContent);
   await logReportEvent(clientDraftId, 'report_generation_started', 'success', privacyProofDefaults({
     partner: meta?.sourceMeta?.partner || 'BTAI',
     campaign: meta?.sourceMeta?.campaign || 'general_intake',
     reportTier: tier,
     reportOutputType: spec.htmlOutputType,
-    payloadType: 'encrypted_venture_dna_record',
+    payloadType: 'sanitized_venture_dna_record',
+    privacyGate: publicGateSummary(gatedSource.gate),
+    privacyGateAdminApproved: !!gatedSource.adminApproved,
     startedAt: new Date(startedAt).toISOString()
   }));
-  let generatedMarkdown = await callClaude(promptForTier(tier, dnaContent), spec.maxTokens);
+  let generatedMarkdown = await callClaude(promptForTier(tier, gatedSource.sanitizedText), spec.maxTokens);
   let completion = validateReportCompletion(generatedMarkdown, tier);
   if (!completion.completed) {
     await logReportEvent(clientDraftId, 'report_generation_quality_gate_failed', 'failed', privacyProofDefaults({
@@ -812,7 +922,7 @@ async function generateOne(clientDraftId, tier, options = {}) {
         generationMs: Date.now() - startedAt
       }));
       const repairedMarkdown = await callClaude(
-        repairPromptForTier(tier, generatedMarkdown, dnaContent, originalBlockingWarnings),
+        repairPromptForTier(tier, generatedMarkdown, gatedSource.sanitizedText, originalBlockingWarnings),
         Math.max(1800, Math.min(3200, Math.floor(spec.maxTokens * 0.6)))
       );
       const repairedCompletion = validateReportCompletion(repairedMarkdown, tier);
@@ -896,7 +1006,8 @@ async function generateOne(clientDraftId, tier, options = {}) {
     title: `${businessName} - ${spec.title}`,
     businessName,
     tierLabel: spec.title,
-    generatedAt: new Date().toISOString()
+    generatedAt: new Date().toISOString(),
+    intakeVersion: APP_VERSION
   });
   await logReportEvent(clientDraftId, 'report_privacy_scan_completed', privacyScan.reportApprovedForClientDelivery ? 'success' : 'warning', privacyProofDefaults({
     partner: meta?.sourceMeta?.partner || 'BTAI',
@@ -918,6 +1029,7 @@ async function generateOne(clientDraftId, tier, options = {}) {
       tier,
       businessName,
       markdown,
+      privacyGate: publicGateSummary(gatedSource.gate),
       validation,
       privacyScan
     })
@@ -935,6 +1047,7 @@ async function generateOne(clientDraftId, tier, options = {}) {
         businessName,
         filename: `${businessName}_${spec.filename}.docx`,
         contentBase64: docx.toString('base64'),
+        privacyGate: publicGateSummary(gatedSource.gate),
         validation,
         privacyScan
       })
@@ -951,6 +1064,7 @@ async function generateOne(clientDraftId, tier, options = {}) {
       filename: `${businessName}_${spec.filename}.html`,
       contentBase64: Buffer.from(htmlReport, 'utf8').toString('base64'),
       contentType: 'text/html; charset=utf-8',
+      privacyGate: publicGateSummary(gatedSource.gate),
       validation,
       privacyScan
     })
@@ -964,6 +1078,8 @@ async function generateOne(clientDraftId, tier, options = {}) {
     warningCount: validation.warnings?.length || 0,
     payloadType: includeDocx ? 'client_report_html_docx_and_markdown' : 'client_report_html_and_markdown',
     exportFormats: formats,
+    privacyGateDecision: gatedSource.gate.decision,
+    privacyGateRiskLevel: gatedSource.gate.summary.riskLevel,
     generationMs: Date.now() - startedAt,
     completedAt: new Date().toISOString()
   }));
@@ -972,6 +1088,7 @@ async function generateOne(clientDraftId, tier, options = {}) {
     generated: true,
     tier,
     businessName,
+    privacyGate: publicGateSummary(gatedSource.gate),
     markdownOutputId: mdRow?.id || '',
     docxOutputId: docxRow?.id || '',
     htmlOutputId: htmlRow?.id || '',
@@ -1029,13 +1146,7 @@ async function loadGenerated(clientDraftId, tier, format = 'docx') {
   const outputType = format === 'html' ? spec.htmlOutputType : spec.docxOutputType;
   const row = await getLatestIntakeOutput(clientDraftId, outputType);
   if (!row) return null;
-  if (row.retired_lost_key) throw retiredLostKeyError();
-  try {
-    return decryptJson(row.encrypted_payload);
-  } catch (err) {
-    if (isLostKeyDecryptError(err)) throw retiredLostKeyError();
-    throw err;
-  }
+  return decryptJson(row.encrypted_payload);
 }
 
 async function loadGeneratedMarkdown(clientDraftId, tier) {
@@ -1043,14 +1154,9 @@ async function loadGeneratedMarkdown(clientDraftId, tier) {
   if (!spec) throw new Error(`Unknown report tier: ${tier || 'blank'}`);
   const row = await getLatestIntakeOutput(clientDraftId, spec.outputType);
   if (!row) return null;
-  if (row.retired_lost_key) throw retiredLostKeyError();
-  try {
-    return decryptJson(row.encrypted_payload);
-  } catch (err) {
-    if (isLostKeyDecryptError(err)) throw retiredLostKeyError();
-    throw err;
-  }
+  return decryptJson(row.encrypted_payload);
 }
+
 async function ensureHtmlReport(clientDraftId, tier) {
   const existingHtml = await loadGenerated(clientDraftId, tier, 'html');
   if (existingHtml?.contentBase64) return existingHtml;
@@ -1062,7 +1168,8 @@ async function ensureHtmlReport(clientDraftId, tier) {
     title: `${businessName} - ${spec.title}`,
     businessName,
     tierLabel: spec.title,
-    generatedAt: markdownRecord.createdAt || new Date().toISOString()
+    generatedAt: markdownRecord.createdAt || new Date().toISOString(),
+    intakeVersion: APP_VERSION
   });
   const payload = {
     createdAt: new Date().toISOString(),
@@ -1244,31 +1351,48 @@ async function sendFreeReportEmail({ clientDraftId, clientEmail, clientName, bus
   const bccRecipient = process.env.INTAKE_BCC_RECIPIENT || 'darren.randles@gmail.com';
   const { level2Price, level3Price, level2Url, level3Url, consultUrl } = paymentConfig();
   const continueInterviewUrl = `https://intake.bridgetoai.ca/snapshot?continue=deep&recordId=${encodeURIComponent(clientDraftId)}`;
+  const publicBaseUrl = (process.env.BTAI_PUBLIC_BASE_URL || 'https://intake.bridgetoai.ca').replace(/\/+$/, '');
+  const lockMarkUrl = `${publicBaseUrl}/assets/brand/sil-lock-mark.png`;
+  const trustSealUrl = `${publicBaseUrl}/assets/brand/sil-trust-seal.png`;
   const html = `
     <div style="font-family:Inter,Arial,sans-serif;max-width:640px;margin:0 auto;color:#111827;">
-      <div style="background:#0d6e5e;padding:24px 30px;border-radius:12px 12px 0 0;">
-        <h1 style="color:#fff;font-size:20px;line-height:1.3;margin:0;">Your Bridge To AI opportunity snapshot is ready</h1>
+      <div style="background:#075648;padding:22px 30px;border-radius:12px 12px 0 0;border-bottom:5px solid #f3c74d;">
+        <div style="display:flex;align-items:center;gap:13px;">
+          <img src="${lockMarkUrl}" alt="" width="52" height="52" style="display:block;width:52px;height:52px;object-fit:contain;">
+          <div>
+            <div style="color:#dff7ef;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;font-weight:800;margin-bottom:4px;">Bridge To AI</div>
+            <h1 style="color:#fff;font-size:21px;line-height:1.3;margin:0;">Your opportunity snapshot is ready</h1>
+          </div>
+        </div>
       </div>
       <div style="border:1px solid #d9e7e3;border-top:0;padding:26px 30px;border-radius:0 0 12px 12px;background:#fafaf8;">
         <p style="font-size:15px;line-height:1.6;margin-top:0;">Hi ${escapeHtml(clientName || 'there')},</p>
         <p style="font-size:15px;line-height:1.6;">Thank you for completing the free interview. Your AI Opportunity Snapshot is attached as a clean HTML report you can read in your browser or print.</p>
+        <p style="font-size:15px;line-height:1.6;">Inside, you will see a Snapshot Scorecard, the likely first AI opportunity, what should stay human-reviewed, and one safe prompt or next move you can try without putting sensitive details into a public AI tool.</p>
         <p style="font-size:15px;line-height:1.6;">This first report is intentionally practical and directional. It avoids private financials, recipes, customer lists, supplier contracts, payroll details, invoices, and confidential formulas.</p>
+        <div style="display:flex;gap:14px;align-items:center;background:#ffffff;border:1px solid #d9e7e3;border-radius:10px;padding:12px 14px;margin:0 0 16px;">
+          <img src="${trustSealUrl}" alt="Secure Intelligence Layer" width="68" height="68" style="display:block;width:68px;height:68px;object-fit:contain;flex:0 0 auto;">
+          <div style="font-size:13px;line-height:1.45;color:#374151;">
+            <strong style="display:block;color:#075648;margin-bottom:3px;">Handled through the Bridge To AI Secure Intelligence Layer</strong>
+            Encrypted intake, controlled use, privacy-aware AI processing, and private report delivery.
+          </div>
+        </div>
         <div style="background:#e8f4f1;border:1px solid #b8ddd7;border-radius:10px;padding:14px 16px;color:#0d6e5e;font-size:14px;line-height:1.5;margin-bottom:16px;">
           <strong>Next step:</strong> Review the snapshot first. If it feels accurate, continue the deeper interview before buying a paid report. The deeper questions give Bridge To AI enough context to rank the work properly and decide what report level actually makes sense.
         </div>
         <div style="border:1px solid #e4e2dd;border-radius:10px;padding:16px 18px;background:#ffffff;font-size:14px;line-height:1.55;">
           <strong style="display:block;margin-bottom:8px;color:#111827;">What this snapshot does not fully cover yet</strong>
-          <div style="margin-bottom:10px;">The free report gives you the first layer. The deeper interview captures the extra context needed before Bridge To AI can responsibly prepare a detailed opportunity report, action plan, or workbench recommendation.</div>
+          <div style="margin-bottom:10px;">The free report gives you a directional scorecard and first useful move. The deeper interview captures the extra context needed before Bridge To AI can responsibly prepare a detailed opportunity report, action plan, or workbench recommendation.</div>
           ${ctaLineHtml('Continue the deeper interview', continueInterviewUrl, 'No payment is required to add the missing context. This is the best next step if you want a stronger report.')}
           <div style="margin-bottom:10px;color:#6b7280;font-size:13px;">Privacy note: this continuation link opens your saved secure interview. Please do not forward this email if you do not want someone else to access that continuation path.</div>
           ${ctaLineHtml(`Detailed AI Opportunity Report - ${level2Price}`, '', 'Best considered after the deeper interview confirms enough detail for ranking and first projects.')}
           ${ctaLineHtml(`Preliminary AI Action Plan - ${level3Price}`, '', 'Best considered after workflow priorities, risk controls, and scoping questions are clearer.')}
           ${ctaLineHtml('Talk with Bridge To AI about implementation or a custom workbench', consultUrl, 'Useful if you already know you want help turning the opportunity into a working system.')}
         </div>
-        <p style="font-size:13px;color:#6b7280;line-height:1.5;margin-bottom:0;margin-top:18px;">Record ID: <code>${escapeHtml(clientDraftId)}</code></p>
+        <p style="font-size:13px;color:#6b7280;line-height:1.5;margin-bottom:0;margin-top:18px;">Record ID: <code>${escapeHtml(clientDraftId)}</code><br>Built with Bridge To AI Intake ${escapeHtml(APP_VERSION)}</p>
       </div>
     </div>`;
-  const text = `Your Bridge To AI opportunity snapshot is ready.\n\nThe free report is attached.\n\nWhat this snapshot does not fully cover yet:\nThe free report gives you the first layer. The deeper interview captures the extra context needed before Bridge To AI can responsibly prepare a detailed opportunity report, action plan, or workbench recommendation.\n\nBest next step:\n- Continue the deeper interview: ${continueInterviewUrl}\n\nPrivacy note: this continuation link opens your saved secure interview. Please do not forward this email if you do not want someone else to access that continuation path.\n\nAfter the deeper interview:\n- Detailed AI Opportunity Report - ${level2Price}: deeper diagnosis, readiness gaps, and prioritized first projects.\n- Preliminary AI Action Plan - ${level3Price}: implementation phases, workflow priorities, and scoping questions.\n- Implementation support: help turning the plan into a working AI system or workbench after private scoping. ${consultUrl || 'Reply to this email to request a conversation.'}\n\nA workbench is a private operating dashboard built around your business so repeated workflows can run from one place.\n\nRecord ID: ${clientDraftId}`;
+  const text = `Your Bridge To AI opportunity snapshot is ready.\n\nThe free report is attached. Inside, you will see a Snapshot Scorecard, the likely first AI opportunity, what should stay human-reviewed, and one safe prompt or next move you can try without putting sensitive details into a public AI tool.\n\nHandled through the Bridge To AI Secure Intelligence Layer: encrypted intake, controlled use, privacy-aware AI processing, and private report delivery.\n\nWhat this snapshot does not fully cover yet:\nThe free report gives you a directional scorecard and first useful move. The deeper interview captures the extra context needed before Bridge To AI can responsibly prepare a detailed opportunity report, action plan, or workbench recommendation.\n\nBest next step:\n- Continue the deeper interview: ${continueInterviewUrl}\n\nPrivacy note: this continuation link opens your saved secure interview. Please do not forward this email if you do not want someone else to access that continuation path.\n\nAfter the deeper interview:\n- Detailed AI Opportunity Report - ${level2Price}: deeper diagnosis, readiness gaps, and prioritized first projects.\n- Preliminary AI Action Plan - ${level3Price}: implementation phases, workflow priorities, and scoping questions.\n- Implementation support: help turning the plan into a working AI system or workbench after private scoping. ${consultUrl || 'Reply to this email to request a conversation.'}\n\nA workbench is a private operating dashboard built around your business so repeated workflows can run from one place.\n\nRecord ID: ${clientDraftId}\nBuilt with Bridge To AI Intake ${APP_VERSION}`;
   const payload = {
     from: 'The Bridge Team <team@bridgetoai.ca>',
     to: [clientEmail],
@@ -1416,6 +1540,9 @@ async function privacyProofSummary(clientDraftId) {
     proofEventCount: proofEvents.length,
     encryptedRecordsConfirmed: !!successfulEvent('privacy_proof_secure_output_storage'),
     anonymizedAiAnalysisConfirmed: !!successfulEvent('privacy_proof_ai_analysis_requested'),
+    privacyGateConfirmed: proofEvents.some(e => e.event_type === 'privacy_gate_scan_completed' && e.status === 'success'),
+    privacyGateReviewRequired: proofEvents.some(e => (e.metadata?.details || {}).privacyGateDecision === 'quarantine'),
+    privacyGateAdminApproved: proofEvents.some(e => e.event_type === 'privacy_gate_admin_review_approved' && e.status === 'success'),
     privacyConsentConfirmed: !!consentEvent,
     crossBorderNoticeConfirmed: !!crossBorderEvent,
     retentionPolicyRecorded: !!successfulEvent('privacy_proof_retention_policy_recorded'),
@@ -1439,6 +1566,8 @@ async function privacyProofSummary(clientDraftId) {
   if (!summary.privacyConsentConfirmed) summary.remainingImprovements.push('Consent proof was not found for this record.');
   if (!summary.crossBorderNoticeConfirmed) summary.remainingImprovements.push('Cross-border processing notice proof was not found for this record.');
   if (!summary.retentionPolicyRecorded) summary.remainingImprovements.push('Retention/deletion policy proof was not found for this record.');
+  if (!summary.privacyGateConfirmed) summary.remainingImprovements.push('Privacy Gate scan proof was not found for this record.');
+  if (summary.privacyGateReviewRequired && !summary.privacyGateAdminApproved) summary.remainingImprovements.push('Privacy Gate found high-risk content and admin review is still required.');
   if (!summary.adminAccessLogged) summary.remainingImprovements.push('No admin access event has been logged yet for this record.');
   if (!summary.reportPrivacyScanCompleted) summary.remainingImprovements.push('Report privacy scan proof was not found for this record.');
   if (summary.reportPrivacyScanBlockingIssueFound) summary.remainingImprovements.push('A report privacy scan found a blocking client-delivery issue.');
@@ -1626,14 +1755,7 @@ async function downloadZip(clientDraftId, formatsInput = 'html') {
   const key = formatKey(formats);
   const row = await getLatestIntakeOutput(clientDraftId, 'three_report_pack_zip');
   if (!row) return buildZip(clientDraftId, formats);
-  if (row.retired_lost_key) throw retiredLostKeyError();
-  let payload;
-  try {
-    payload = decryptJson(row.encrypted_payload);
-  } catch (err) {
-    if (isLostKeyDecryptError(err)) throw retiredLostKeyError();
-    throw err;
-  }
+  const payload = decryptJson(row.encrypted_payload);
   if (payload.formatKey !== key) return buildZip(clientDraftId, formats);
   await logReportEvent(clientDraftId, 'report_pack_zip_downloaded', 'success', privacyProofDefaults({
     zipReady: true,
@@ -1662,6 +1784,7 @@ export default async function handler(req, res) {
       return res.status(200).json(await generateFreeAndEmail(clientDraftId, req.body?.clientEmail || ''));
     }
     if (!(await authorizedAdminRequest(req))) return res.status(401).json({ error: 'Unauthorized' });
+    if (action === 'approve-privacy-gate') return res.status(200).json(await approvePrivacyGate(clientDraftId, req.body?.purpose || 'all', req.body?.reviewNote || ''));
     if (action === 'generate-one') {
       const tier = String(req.body?.tier || '').trim();
       const forceRegenerate = !!req.body?.forceRegenerate;
@@ -1696,6 +1819,14 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Unknown report-pack action' });
   } catch (err) {
     console.error('report-pack error:', err);
+    if (err instanceof PrivacyGateReviewError) {
+      return res.status(409).json({
+        error: 'Privacy review required',
+        message: err.message,
+        privacyGate: err.privacyGate,
+        secureStorage: err.secureStorage
+      });
+    }
     if (action === 'generate-free-email' && clientDraftId) {
       try {
         await logReportEvent(clientDraftId, 'free_report_delivery_failed', 'failed', privacyProofDefaults({
@@ -1712,4 +1843,10 @@ export default async function handler(req, res) {
     return safeError(res, err, 'Report-pack request failed');
   }
 }
+
+
+
+
+
+
 

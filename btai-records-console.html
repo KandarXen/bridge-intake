@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -317,33 +317,6 @@
     .status-chip.ready span:last-child {
       color: var(--ok);
     }
-    .progress-cell {
-      min-width: 128px;
-    }
-    .mini-progress {
-      height: 7px;
-      margin-top: 4px;
-      border-radius: 999px;
-      background: #e8e5dd;
-      overflow: hidden;
-    }
-    .mini-progress span {
-      display: block;
-      height: 100%;
-      width: var(--progress-width, 0%);
-      background: var(--green);
-    }
-    .abandonment-note {
-      display: block;
-      margin-top: 3px;
-      color: #6f7378;
-      font-size: .72rem;
-      line-height: 1.2;
-    }
-    .abandonment-note.hot {
-      color: var(--warn);
-      font-weight: 800;
-    }
     .ready {
       color: var(--ok);
       font-weight: 700;
@@ -436,6 +409,26 @@
     .privacy-proof-actions .technical-export:hover {
       opacity: 1;
     }
+    .privacy-review {
+      border: 1px solid #f0c36a;
+      background: #fff8e6;
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-top: 10px;
+      font-size: .86rem;
+      line-height: 1.45;
+    }
+    .privacy-review strong { color: #7a4d00; }
+    .privacy-review textarea {
+      width: 100%;
+      min-height: 64px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font: inherit;
+      resize: vertical;
+      margin-top: 8px;
+    }
     .empty-state {
       margin-top: 6px;
       border: 1px dashed #cfcac0;
@@ -479,7 +472,7 @@
         <h1>BTAI Records Console</h1>
         <p>Retrieve secure intake records, generate reports, download privacy proof, and review partner aggregate intelligence from one admin-only dashboard.</p>
       </div>
-      <div class="version-pill">v1.71.14</div>
+      <div class="version-pill">v1.72.7</div>
     </div>
 
     <div id="admin-record-controls" class="record-strip auth-locked">
@@ -581,7 +574,6 @@
             <div class="action-stack-title">Utilities</div>
             <div class="button-row">
               <button id="download-md-btn" class="secondary" type="button">Venture DNA .md</button>
-              <button id="export-html-reports-btn" class="secondary" type="button">All HTML Reports</button>
               <button id="refresh-status-btn" class="secondary" type="button">Report Status</button>
               <button id="send-free-report-btn" class="secondary" type="button">Send Free Email</button>
             </div>
@@ -601,6 +593,14 @@
           <div id="timer-message">Working...</div>
           <div>Elapsed: <span id="timer-value" class="timer-value">0s</span></div>
         </div>
+        <div class="privacy-review" id="privacy-review-panel" style="display:none;">
+          <strong>Privacy Gate review required</strong>
+          <div id="privacy-review-summary" style="margin-top:6px;"></div>
+          <textarea id="privacy-review-note" placeholder="Review note: continue using sanitized AI payload only."></textarea>
+          <div class="button-row" style="margin-top:8px;">
+            <button id="approve-privacy-gate-btn" class="secondary" type="button">Approve Sanitized Continuation</button>
+          </div>
+        </div>
       </section>
 
       <div class="column-stack fill">
@@ -611,7 +611,6 @@
             <button id="privacy-brief-btn" class="secondary" type="button">Brief Certificate</button>
             <button id="privacy-detailed-btn" class="secondary" type="button">Detailed Attestation</button>
             <button id="privacy-proof-btn" class="secondary technical-export" type="button" title="Technical machine-readable audit evidence">Raw JSON Audit</button>
-            <button id="privacy-smoke-test-btn" class="secondary" type="button">Run Smoke Test</button>
           </div>
         </section>
 
@@ -635,7 +634,6 @@
           <div class="button-row">
             <button id="load-record-index-btn" class="secondary" type="button">Load Index</button>
             <button id="refresh-record-index-btn" type="button">Refresh</button>
-            <button id="open-index-popout-btn" class="secondary" type="button">Pop Out</button>
             <button id="download-record-index-csv-btn" class="secondary" type="button">CSV</button>
           </div>
           <div id="record-index-empty" class="empty-state">
@@ -654,7 +652,6 @@
                   <th data-sort="clientEmail">Email</th>
                   <th data-sort="businessCategory">Category</th>
                   <th data-sort="status">Status</th>
-                  <th data-sort="progressPercent">Progress</th>
                   <th data-sort="partner">Partner</th>
                   <th data-sort="recordId">Record ID</th>
                   <th data-sort="updatedAt">Updated</th>
@@ -702,7 +699,10 @@
     const timerPanel = document.getElementById('timer-panel');
     const timerMessage = document.getElementById('timer-message');
     const timerValue = document.getElementById('timer-value');
+    const privacyReviewPanel = document.getElementById('privacy-review-panel');
+    const privacyReviewSummary = document.getElementById('privacy-review-summary');
     const buttons = Array.from(document.querySelectorAll('button'));
+    let lastPrivacyGatePurpose = 'all';
     const recordIndexWrap = document.getElementById('record-index-wrap');
     const recordIndexEmpty = document.getElementById('record-index-empty');
     const recordIndexMeta = document.getElementById('record-index-meta');
@@ -718,7 +718,6 @@
     const mfaSecretWrap = document.getElementById('mfa-secret-wrap');
     let adminAccessToken = sessionStorage.getItem('btaiAdminAccessToken') || '';
     let adminRefreshToken = sessionStorage.getItem('btaiAdminRefreshToken') || '';
-    let passwordRecoveryMode = sessionStorage.getItem('btaiAdminPasswordRecoveryMode') === 'true';
     let adminMfaFactors = [];
     let pendingMfaFactorId = '';
     let timerStartedAt = 0;
@@ -737,75 +736,18 @@
       }
     }
 
-    function acceptPasswordRecoverySession(accessToken, refreshToken = '') {
-      adminAccessToken = accessToken;
-      adminRefreshToken = refreshToken;
-      passwordRecoveryMode = true;
-      sessionStorage.setItem('btaiAdminAccessToken', adminAccessToken);
-      if (adminRefreshToken) sessionStorage.setItem('btaiAdminRefreshToken', adminRefreshToken);
-      sessionStorage.setItem('btaiAdminPasswordRecoveryMode', 'true');
-      passwordResetPanel.classList.remove('auth-locked');
-      adminAuthStatus.textContent = 'Password reset link accepted. If MFA is enabled, enter the authenticator code too, then set the new password. The old password is not required.';
-    }
-
-    async function loadRecoveryTokenFromUrl() {
+    function loadRecoveryTokenFromUrl() {
       const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
       const query = new URLSearchParams(window.location.search);
-      const error = hash.get('error_description') || query.get('error_description') || hash.get('error') || query.get('error') || '';
-      if (error) {
-        passwordResetPanel.classList.remove('auth-locked');
-        adminAuthStatus.textContent = `Password reset link failed: ${error}. Request a fresh reset email.`;
-        history.replaceState(null, '', '/btai-records-console');
-        return true;
-      }
       const token = hash.get('access_token') || query.get('access_token') || '';
-      const refreshToken = hash.get('refresh_token') || query.get('refresh_token') || '';
       const type = hash.get('type') || query.get('type') || '';
-      if (token && type === 'recovery') {
-        acceptPasswordRecoverySession(token, refreshToken);
-        history.replaceState(null, '', '/btai-records-console');
-        return true;
-      }
-      const tokenHash = hash.get('token_hash') || query.get('token_hash') || '';
-      if (tokenHash && type === 'recovery') {
-        passwordResetPanel.classList.remove('auth-locked');
-        adminAuthStatus.textContent = 'Verifying password reset link...';
-        try {
-          const data = await adminSession('verify-recovery-token', { tokenHash, type });
-          acceptPasswordRecoverySession(data.accessToken || '', data.refreshToken || '');
-        } catch (err) {
-          adminAuthStatus.textContent = `Password reset link failed: ${friendlyAdminError(err.message)}`;
-        }
-        history.replaceState(null, '', '/btai-records-console');
-        return true;
-      }
-      if (query.get('code')) {
-        passwordResetPanel.classList.remove('auth-locked');
-        adminAuthStatus.textContent = 'Password reset link returned a PKCE code instead of a recovery session. Request the reset from this console after the current rate limit clears, then use the newest email link.';
-        history.replaceState(null, '', '/btai-records-console');
-        return true;
-      }
-      return false;
-    }
-
-    function restoreRecoveryPanelFromSession() {
-      if (!passwordRecoveryMode || !adminAccessToken) return false;
+      if (!token || type !== 'recovery') return false;
+      adminAccessToken = token;
+      sessionStorage.setItem('btaiAdminAccessToken', adminAccessToken);
       passwordResetPanel.classList.remove('auth-locked');
-      adminAuthStatus.textContent = 'Password reset session restored. Enter the new password, confirm it, enter your authenticator code if required, then click Set New Password.';
+      adminAuthStatus.textContent = 'Password reset link accepted. Enter a new password below.';
       history.replaceState(null, '', '/btai-records-console');
       return true;
-    }
-
-    function adminTokenAal() {
-      const parts = String(adminAccessToken || '').split('.');
-      if (parts.length < 2) return '';
-      try {
-        let base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-        while (base64.length % 4) base64 += '=';
-        return (JSON.parse(atob(base64)) || {}).aal || '';
-      } catch (err) {
-        return '';
-      }
     }
 
     function formatMs(ms) {
@@ -904,90 +846,13 @@
     }
 
     function downloadCsv(filename, rows) {
-      const headers = ['businessName', 'clientName', 'clientEmail', 'businessCategory', 'businessNiche', 'status', 'progressPercent', 'progressLabel', 'abandonmentBucket', 'likelyAbandoned', 'idleHours', 'partner', 'campaign', 'recordId', 'createdAt', 'updatedAt', 'decryptError'];
+      const headers = ['businessName', 'clientName', 'clientEmail', 'businessCategory', 'businessNiche', 'status', 'partner', 'campaign', 'recordId', 'createdAt', 'updatedAt'];
       const lines = [headers.join(',')].concat(rows.map(row => headers.map(header => csvEscape(row[header] || '')).join(',')));
       downloadBlob(filename, new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' }));
     }
 
-    function indexRowsForExport() {
-      return visibleRecordIndexRows.length ? visibleRecordIndexRows : recordIndexRows;
-    }
-
-    function openIndexPopout() {
-      const rows = indexRowsForExport();
-      if (!rows.length) {
-        statusEl.textContent = 'Load the interview index before opening the pop-out view.';
-        return;
-      }
-      const opened = window.open('', 'btai_records_index_popout', 'width=1500,height=900');
-      if (!opened) {
-        statusEl.textContent = 'The browser blocked the pop-out. Allow pop-ups for this site, then click Pop Out again.';
-        return;
-      }
-      const generatedAt = new Date().toLocaleString();
-      const headers = [
-        ['businessName', 'Business'],
-        ['clientName', 'Client'],
-        ['clientEmail', 'Email'],
-        ['businessCategory', 'Category'],
-        ['businessNiche', 'Niche'],
-        ['status', 'Status'],
-        ['progressLabel', 'Progress'],
-        ['abandonmentBucket', 'Patience Signal'],
-        ['idleHours', 'Idle Hours'],
-        ['partner', 'Partner'],
-        ['campaign', 'Campaign'],
-        ['recordId', 'Record ID'],
-        ['createdAt', 'Created'],
-        ['updatedAt', 'Updated'],
-        ['decryptError', 'Decrypt Status']
-      ];
-      const rowHtml = rows.map(row => `
-        <tr>
-          ${headers.map(([key]) => {
-            const value = key === 'decryptError' ? (row.decryptError || 'OK') : row[key];
-            const className = key === 'abandonmentBucket' && row.likelyAbandoned ? ' class="warn"' : '';
-            return `<td${className}>${escapeHtml(value ?? '')}</td>`;
-          }).join('')}
-        </tr>
-      `).join('');
-      opened.document.open();
-      opened.document.write(`<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>BTAI Records Index</title>
-  <style>
-    body { margin: 0; padding: 18px; font-family: Arial, sans-serif; color: #111827; background: #f7f6f1; }
-    h1 { margin: 0 0 4px; font-size: 22px; }
-    .meta { margin-bottom: 14px; color: #4b5563; font-size: 13px; }
-    .wrap { overflow: auto; border: 1px solid #d7d3ca; background: #fff; max-height: calc(100vh - 92px); }
-    table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 13px; }
-    th, td { border-bottom: 1px solid #e5e1d8; border-right: 1px solid #eee9df; padding: 8px 9px; text-align: left; vertical-align: top; max-width: 260px; }
-    th { position: sticky; top: 0; z-index: 1; background: #efece5; color: #075e4d; white-space: nowrap; }
-    td { overflow-wrap: anywhere; }
-    code { font-family: Consolas, monospace; }
-    .warn { color: #8a5d00; font-weight: 800; }
-  </style>
-</head>
-<body>
-  <h1>BTAI Records Index</h1>
-  <div class="meta">Generated ${escapeHtml(generatedAt)} from the MFA-protected records console. Rows: ${rows.length}.</div>
-  <div class="wrap">
-    <table>
-      <thead><tr>${headers.map(([, label]) => `<th>${escapeHtml(label)}</th>`).join('')}</tr></thead>
-      <tbody>${rowHtml}</tbody>
-    </table>
-  </div>
-</body>
-</html>`);
-      opened.document.close();
-      statusEl.textContent = `Opened pop-out records index with ${rows.length} rows.`;
-    }
-
     function valueForSort(row, key) {
       if (key === 'updatedAt') return String(row.updatedAt || row.createdAt || '').toLowerCase();
-      if (key === 'progressPercent') return String(Number(row.progressPercent || 0)).padStart(3, '0');
       if (key === 'partner') return `${row.partner || ''} ${row.campaign || ''}`.toLowerCase();
       if (key === 'businessCategory') return `${row.businessCategory || ''} ${row.businessNiche || ''}`.toLowerCase();
       return String(row[key] || '').toLowerCase();
@@ -1002,9 +867,6 @@
         row.businessCategory,
         row.businessNiche,
         row.status,
-        row.progressLabel,
-        row.abandonmentBucket,
-        row.likelyAbandoned ? 'likely abandoned abandoned cold draft' : '',
         row.partner,
         row.campaign,
         row.recordId,
@@ -1038,11 +900,6 @@
           <td>${escapeHtml(row.clientEmail)}</td>
           <td>${escapeHtml(row.businessCategory)}${row.businessNiche && row.businessNiche !== 'Not captured' ? `<br><span style="color:#6f7378;">${escapeHtml(row.businessNiche)}</span>` : ''}</td>
           <td>${escapeHtml(row.status)}</td>
-          <td class="progress-cell">
-            <strong>${escapeHtml(row.progressLabel || '0%')}</strong>
-            <div class="mini-progress" aria-hidden="true"><span style="--progress-width:${Math.max(0, Math.min(100, Number(row.progressPercent || 0)))}%"></span></div>
-            <span class="abandonment-note ${row.likelyAbandoned ? 'hot' : ''}">${escapeHtml(row.abandonmentBucket || '')}</span>
-          </td>
           <td>${escapeHtml(row.partner)}<br><span style="color:#6f7378;">${escapeHtml(row.campaign)}</span></td>
           <td><code>${escapeHtml(row.recordId)}</code></td>
           <td>${escapeHtml(row.updatedAt || row.createdAt)}</td>
@@ -1052,9 +909,8 @@
       const hasLoadedRows = recordIndexRows.length > 0;
       recordIndexWrap.classList.toggle('active', hasLoadedRows);
       recordIndexEmpty.style.display = hasLoadedRows ? 'none' : 'grid';
-      const abandonedCount = recordIndexRows.filter(row => row.likelyAbandoned).length;
       recordIndexMeta.textContent = hasLoadedRows
-        ? `Showing ${visibleRecordIndexRows.length} of ${recordIndexRows.length} loaded records${query ? ` for "${recordIndexSearch.value.trim()}"` : ''}. Likely abandoned: ${abandonedCount}. Click a column header to sort.`
+        ? `Showing ${visibleRecordIndexRows.length} of ${recordIndexRows.length} loaded records${query ? ` for "${recordIndexSearch.value.trim()}"` : ''}. Click a column header to sort.`
         : 'Index not loaded.';
     }
 
@@ -1104,9 +960,31 @@
         throw new Error(`Request failed with HTTP ${resp.status}. Server returned non-JSON output: ${summary}`);
       }
       if (!resp.ok || data.success === false || data.error) {
-        throw new Error(data.message || data.error || `Request failed with HTTP ${resp.status}`);
+        const err = new Error(data.message || data.error || `Request failed with HTTP ${resp.status}`);
+        err.data = data;
+        throw err;
       }
       return data;
+    }
+
+    function showPrivacyGateReview(data) {
+      const gate = data?.privacyGate;
+      if (!gate) return false;
+      lastPrivacyGatePurpose = gate.purpose || 'all';
+      const categories = gate.summary?.categories || {};
+      const categoryText = Object.keys(categories).length
+        ? Object.entries(categories).map(([key, count]) => `${key}: ${count}`).join(', ')
+        : 'none';
+      privacyReviewSummary.innerHTML = `
+        <div>Purpose: <strong>${gate.purpose || 'unknown'}</strong></div>
+        <div>Decision: <strong>${gate.decision || 'unknown'}</strong></div>
+        <div>Risk level: <strong>${gate.summary?.riskLevel || 'unknown'}</strong></div>
+        <div>Findings: ${gate.summary?.findingCount || 0}; high risk: ${gate.summary?.highRiskCount || 0}; medium risk: ${gate.summary?.mediumRiskCount || 0}</div>
+        <div>Categories: ${categoryText}</div>
+        <div style="margin-top:6px;">Generation is paused until an admin approves continuation using the sanitized payload.</div>
+      `;
+      privacyReviewPanel.style.display = 'block';
+      return true;
     }
 
     function setAdminTokens(data = {}) {
@@ -1127,7 +1005,6 @@
       pendingMfaFactorId = '';
       sessionStorage.removeItem('btaiAdminAccessToken');
       sessionStorage.removeItem('btaiAdminRefreshToken');
-      sessionStorage.removeItem('btaiAdminPasswordRecoveryMode');
     }
 
     function qrImageSrc(qrCode) {
@@ -1172,7 +1049,7 @@
     function friendlyAdminError(message = '') {
       const text = String(message || '').trim();
       if (/Report quality gate failed/i.test(text) && /missing_expected_final_section/i.test(text)) {
-        return `${text}\n\nMeaning: the report generated, but the completion validator did not find the required final section. In v1.71.2 the server attempts one repair pass, then adds a safe deterministic closing section when the only remaining issue is an incomplete or missing final section. Retry this report after deploying the current build.`;
+        return `${text}\n\nMeaning: the report generated, but the completion validator did not find the required final section. In v1.72.7 the server attempts one repair pass, then adds a safe deterministic closing section when the only remaining issue is an incomplete or missing final section. Retry this report after deploying the current build.`;
       }
       if (/No client email found/i.test(text)) {
         return `${text}\n\nMeaning: the secure intake session does not contain a client email address, so the free report cannot be emailed automatically.`;
@@ -1181,9 +1058,6 @@
         return `${text}\n\nMeaning: the browser/request email does not match the email stored inside the secure intake session.`;
       }
       if (/Supabase Auth|auth\/v1|Invalid login credentials|Email not confirmed|SUPABASE_ANON_KEY|Supabase Auth is not configured|Could not reach Supabase Auth/i.test(text)) {
-        if (/AAL2 session is required/i.test(text)) {
-          return `${text}\n\nMeaning: MFA is enabled for this admin account. Enter a fresh authenticator code and click Set New Password again. The console will verify MFA first, then update the password from the recovery session.`;
-        }
         return `${text}\n\nMeaning: the admin sign-in request reached the server, but Supabase Auth could not complete it. Check the admin password first, then confirm SUPABASE_URL and SUPABASE_ANON_KEY are set in Vercel for Production and that the site was redeployed after the env changes.`;
       }
       if (/Supabase/i.test(text)) {
@@ -1248,27 +1122,11 @@
       }
       adminAuthStatus.textContent = 'Updating password...';
       try {
-        if (!adminAccessToken) {
-          adminAuthStatus.textContent = 'No password reset session is active. Request a password reset email, open the newest recovery link, and confirm this page says the reset link was accepted before setting the new password.';
-          return;
-        }
-        const code = document.getElementById('admin-mfa-code').value.trim();
-        if (passwordRecoveryMode && adminTokenAal() !== 'aal2') {
-          if (!code) {
-            adminAuthStatus.textContent = 'This recovery session needs MFA before the password can be changed. Enter the 6-digit authenticator code, then click Set New Password again.';
-            return;
-          }
-          adminAuthStatus.textContent = 'Verifying MFA for password reset...';
-          const verified = await adminSession('verify-mfa', { code });
-          setAdminTokens(verified);
-          adminAuthStatus.textContent = 'MFA verified. Updating password...';
-        }
         await adminSession('update-password', { password });
         document.getElementById('admin-new-password').value = '';
         document.getElementById('admin-new-password-confirm').value = '';
         passwordResetPanel.classList.add('auth-locked');
         clearAdminTokens();
-        passwordRecoveryMode = false;
         adminAuthStatus.textContent = 'Password updated. Sign in with the new password.';
       } catch (err) {
         adminAuthStatus.textContent = `Password update failed: ${friendlyAdminError(err.message)}`;
@@ -1408,7 +1266,10 @@
         }, values.adminSecret);
         recordIndexRows = data.records || [];
         renderRecordIndex();
-        statusEl.textContent = `Loaded ${recordIndexRows.length} intake records.\nSearch by client, business, email, category, or Record ID. Click a row to copy its Record ID into the retrieval field.`;
+        const hiddenNote = data.hiddenRetiredLostKeyCount
+          ? `\nHidden retired_lost_key records: ${data.hiddenRetiredLostKeyCount}`
+          : '';
+        statusEl.textContent = `Loaded ${recordIndexRows.length} intake records.${hiddenNote}\nSearch by client, business, email, category, or Record ID. Click a row to copy its Record ID into the retrieval field.`;
       } catch (err) {
         statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;
       } finally {
@@ -1423,18 +1284,11 @@
       if (!row) return;
       document.getElementById('record-id').value = row.recordId || '';
       document.getElementById('filename').value = row.businessName && row.businessName !== 'Not captured' ? row.businessName : row.clientName || '';
-      statusEl.textContent = `Selected Record ID:
-${row.recordId}
-Business: ${row.businessName || 'Not captured'}
-Status: ${row.status || 'unknown'}
-Progress: ${row.progressLabel || 'unknown'}
-Patience signal: ${row.abandonmentBucket || 'unknown'}
-Idle hours: ${row.idleHours ?? 'unknown'}`;
+      statusEl.textContent = `Selected Record ID:\n${row.recordId}\nBusiness: ${row.businessName || 'Not captured'}`;
     });
 
     document.getElementById('load-record-index-btn').addEventListener('click', loadRecordIndex);
     document.getElementById('refresh-record-index-btn').addEventListener('click', loadRecordIndex);
-    document.getElementById('open-index-popout-btn').addEventListener('click', openIndexPopout);
     recordIndexSearch.addEventListener('input', renderRecordIndex);
     recordIndexHeaders.forEach(header => {
       header.addEventListener('click', () => {
@@ -1448,7 +1302,7 @@ Idle hours: ${row.idleHours ?? 'unknown'}`;
       });
     });
     document.getElementById('download-record-index-csv-btn').addEventListener('click', () => {
-      const rows = indexRowsForExport();
+      const rows = visibleRecordIndexRows.length ? visibleRecordIndexRows : recordIndexRows;
       if (!rows.length) {
         statusEl.textContent = 'Load the interview index before downloading CSV.';
         return;
@@ -1503,30 +1357,19 @@ Idle hours: ${row.idleHours ?? 'unknown'}`;
       downloadPrivacyCertificate('privacy-certificate-detailed', 'Detailed_Privacy_Attestation');
     });
 
-    document.getElementById('privacy-smoke-test-btn').addEventListener('click', async () => {
-      const values = formValues();
-      if (!hasAdminAuth(values)) {
-        statusEl.textContent = 'Sign in with your Supabase admin account and MFA before running the privacy-proof smoke test.';
-        return;
-      }
-      setBusy(true, 'Running synthetic privacy-proof smoke test inside the Vercel production runtime...');
+    document.getElementById('approve-privacy-gate-btn').addEventListener('click', async () => {
+      const values = requireBasics();
+      if (!values) return;
+      setBusy(true, 'Approving Privacy Gate sanitized continuation...');
       try {
-        const data = await postJson('/api/privacy-proof-smoke-test', {}, values.adminSecret);
-        const proof = data.privacyProof || {};
-        const missing = data.missing || [];
-        statusEl.textContent = `Privacy-proof smoke test ${data.success ? 'PASSED' : 'FAILED'}.
-Synthetic record: ${proof.recordId || 'not returned'}
-Proof events: ${proof.proofEventCount || 0}
-Encrypted storage: ${proof.encryptedRecordsConfirmed ? 'yes' : 'no'}
-Anonymized AI proof: ${proof.anonymizedAiAnalysisConfirmed ? 'yes' : 'no'}
-Consent proof: ${proof.privacyConsentConfirmed ? 'yes' : 'no'}
-Cross-border notice: ${proof.crossBorderNoticeConfirmed ? 'yes' : 'no'}
-Retention proof: ${proof.retentionPolicyRecorded ? 'yes' : 'no'}
-Admin access logged: ${proof.adminAccessLogged ? 'yes' : 'no'}
-Report privacy scan: ${proof.reportPrivacyScanCompleted ? 'yes' : 'no'}
-Blocking scan issue: ${proof.reportPrivacyScanBlockingIssueFound ? 'yes' : 'no'}
-Missing: ${missing.length ? missing.join(', ') : 'none'}
-Conclusion: ${proof.privacyConclusion || 'not returned'}`;
+        const data = await postJson('/api/report-pack', {
+          action: 'approve-privacy-gate',
+          clientDraftId: values.clientDraftId,
+          purpose: lastPrivacyGatePurpose || 'all',
+          reviewNote: document.getElementById('privacy-review-note').value
+        }, values.adminSecret);
+        privacyReviewPanel.style.display = 'none';
+        statusEl.textContent = `Privacy Gate continuation approved.\nPurpose: ${data.purpose}\nApproval output: ${data.outputId}\nRerun the report generation action to continue with the sanitized payload.`;
       } catch (err) {
         statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;
       } finally {
@@ -1559,6 +1402,7 @@ Conclusion: ${proof.privacyConclusion || 'not returned'}`;
         statusEl.textContent = `Downloaded ${data.filename}\nPartner: ${partner}\nCampaign: ${campaign}\nKPI events included: ${data.eventCount || 0}\nTest/demo records excluded: ${data.excludedTestRecordCount || 0}\nRaw interviews decrypted: no\nMember names/emails included: no`;
       } catch (err) {
         statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;
+        showPrivacyGateReview(err.data);
       } finally {
         setBusy(false);
       }
@@ -1570,27 +1414,6 @@ Conclusion: ${proof.privacyConclusion || 'not returned'}`;
 
     document.getElementById('download-aggregate-md-btn').addEventListener('click', () => {
       downloadAggregateReport('markdown');
-    });
-
-    document.getElementById('export-html-reports-btn').addEventListener('click', async () => {
-      const values = formValues();
-      if (!hasAdminAuth(values)) {
-        statusEl.textContent = 'Admin authentication is required to export all HTML reports.';
-        return;
-      }
-      setBusy(true, 'Building ZIP of all decryptable HTML reports from secure storage...');
-      try {
-        const data = await postJson('/api/admin-output', {
-          action: 'export-html-reports'
-        }, values.adminSecret);
-        downloadZip(data.filename || 'BTAI_All_HTML_Reports.zip', data.contentBase64);
-        const manifest = data.manifest || {};
-        statusEl.textContent = `Downloaded ${data.filename || 'BTAI_All_HTML_Reports.zip'}\nHTML reports included: ${manifest.includedReports || 0}\nRows scanned: ${manifest.totalRowsScanned || 0}\nRows skipped: ${manifest.skippedReports || 0}\nSkipped details are included in MANIFEST.json inside the ZIP.`;
-      } catch (err) {
-        statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;
-      } finally {
-        setBusy(false);
-      }
     });
 
     document.getElementById('send-free-report-btn').addEventListener('click', async () => {
@@ -1606,6 +1429,7 @@ Conclusion: ${proof.privacyConclusion || 'not returned'}`;
         await refreshReportStatus(true);
       } catch (err) {
         statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;
+        showPrivacyGateReview(err.data);
       } finally {
         setBusy(false);
       }
@@ -1651,6 +1475,7 @@ Conclusion: ${proof.privacyConclusion || 'not returned'}`;
           await refreshReportStatus(true);
         } catch (err) {
           statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;
+          showPrivacyGateReview(err.data);
         } finally {
           setBusy(false);
         }
@@ -1677,11 +1502,10 @@ Conclusion: ${proof.privacyConclusion || 'not returned'}`;
       }
     });
 
-    (async () => {
-      if (await loadRecoveryTokenFromUrl()) return;
-      if (restoreRecoveryPanelFromSession()) return;
-      refreshAdminAuthStatus();
-    })();
+    if (!loadRecoveryTokenFromUrl()) refreshAdminAuthStatus();
   </script>
 </body>
 </html>
+
+
+

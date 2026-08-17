@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -10,16 +10,18 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --ink: #0f0f0f;
+    --ink: #182028;
     --ink-mid: #4a4a4a;
     --ink-soft: #8a8a8a;
     --surface: #fafaf8;
     --surface-raised: #ffffff;
     --border: #e4e2dd;
-    --bridge-teal: #0d6e5e;
+    --bridge-teal: #075f55;
+    --bridge-teal-deep: #043c33;
     --bridge-teal-light: #e8f4f1;
     --bridge-teal-mid: #1a9880;
-    --accent: #c8a96e;
+    --accent: #c09840;
+    --accent-bright: #f0cd69;
     --danger: #c0392b;
     --radius: 10px;
     --shadow: 0 2px 12px rgba(0,0,0,0.07);
@@ -38,36 +40,47 @@
 
   /* -- Header -- */
   .header {
-    padding: 1.5rem 2rem;
+    padding: 1.15rem 2rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
     border-bottom: 1px solid var(--border);
-    background: var(--surface-raised);
+    background:
+      linear-gradient(135deg, rgba(255,255,255,0.9), rgba(250,250,248,0.92)),
+      linear-gradient(90deg, rgba(7,95,85,0.08), rgba(192,152,64,0.1));
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
   }
 
   .logo {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     text-decoration: none;
   }
 
   .logo-mark {
-    width: 36px;
-    height: 36px;
-    background: var(--bridge-teal);
-    border-radius: 8px;
+    width: 54px;
+    height: 54px;
+    background: #fffdf7;
+    border: 1px solid rgba(192,152,64,0.55);
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
+    box-shadow: 0 6px 16px rgba(7, 95, 85, 0.12);
+    overflow: hidden;
   }
 
-  .logo-mark svg { width: 20px; height: 20px; fill: white; }
+  .logo-mark img {
+    width: 50px;
+    height: 50px;
+    object-fit: contain;
+    display: block;
+  }
 
   .logo-text {
     font-family: 'DM Serif Display', serif;
-    font-size: 1.15rem;
+    font-size: 1.25rem;
     color: var(--ink);
     letter-spacing: -0.01em;
   }
@@ -76,10 +89,10 @@
 
   .header-tag {
     font-size: 0.72rem;
-    font-weight: 500;
+    font-weight: 800;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--ink-soft);
+    color: var(--bridge-teal);
   }
 
   .header-tag-wrap {
@@ -94,6 +107,105 @@
     color: var(--ink-soft);
     opacity: 0.5;
     letter-spacing: 0.04em;
+  }
+
+  .brand-proof {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: fit-content;
+    border: 1px solid rgba(192,152,64,0.42);
+    background: #fffaf0;
+    color: var(--bridge-teal-deep);
+    border-radius: 999px;
+    padding: 0.34rem 0.72rem 0.34rem 0.42rem;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    box-shadow: 0 10px 24px rgba(192,152,64,0.1);
+    margin-bottom: 0.9rem;
+  }
+
+  .brand-proof img {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+    border-radius: 50%;
+  }
+
+  .hero-sil-card {
+    display: grid;
+    grid-template-columns: 86px minmax(0, 1fr);
+    gap: 1rem;
+    align-items: center;
+    max-width: 610px;
+    margin: 0 0 1rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid rgba(192,152,64,0.42);
+    border-radius: 10px;
+    background:
+      linear-gradient(135deg, rgba(255,253,247,0.96), rgba(239,250,247,0.96));
+    box-shadow: 0 18px 42px rgba(7, 95, 85, 0.09);
+  }
+
+  .hero-sil-card img {
+    width: 82px;
+    height: 82px;
+    object-fit: contain;
+    filter: drop-shadow(0 8px 15px rgba(7, 95, 85, 0.16));
+  }
+
+  .hero-sil-card strong {
+    display: block;
+    color: var(--bridge-teal-deep);
+    font-size: 0.82rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    margin-bottom: 0.28rem;
+  }
+
+  .hero-sil-card span {
+    display: block;
+    color: var(--ink-mid);
+    font-size: 0.88rem;
+    line-height: 1.48;
+  }
+
+  .brand-trust-panel {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.9rem;
+    align-items: center;
+    border: 1px solid rgba(192,152,64,0.42);
+    background:
+      linear-gradient(135deg, #fffdf7 0%, #f2fbf8 100%);
+    border-radius: var(--radius);
+    padding: 0.9rem 1rem;
+    margin: 0 0 1rem;
+    box-shadow: 0 12px 28px rgba(7, 95, 85, 0.08);
+  }
+
+  .brand-trust-panel img {
+    width: 76px;
+    height: 76px;
+    object-fit: contain;
+  }
+
+  .brand-trust-panel strong {
+    display: block;
+    color: var(--bridge-teal-deep);
+    font-size: 0.84rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 0.22rem;
+  }
+
+  .brand-trust-panel span {
+    display: block;
+    color: var(--ink-mid);
+    font-size: 0.84rem;
+    line-height: 1.42;
   }
 
   /* -- Main layout -- */
@@ -112,10 +224,6 @@
   /* -- Welcome screen -- */
   #screen-welcome {
     max-width: 1120px;
-  }
-
-  #screen-start {
-    max-width: 1060px;
   }
 
   .welcome-layout {
@@ -193,47 +301,6 @@
     display: none;
   }
 
-  .welcome-layout.wrapper-only {
-    grid-template-columns: minmax(0, 820px);
-    justify-content: center;
-  }
-
-  .wrapper-action-row {
-    display: flex;
-    gap: 0.8rem;
-    flex-wrap: wrap;
-    margin-top: 1.1rem;
-  }
-
-  .start-hint {
-    color: var(--ink-mid);
-    font-size: 0.88rem;
-    line-height: 1.55;
-    margin: -0.35rem 0 1rem;
-  }
-
-  .start-form-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.95rem 1rem;
-    align-items: start;
-  }
-
-  .start-form-grid .name-field,
-  .start-form-grid .privacy-guidance,
-  .start-form-grid .consent-box {
-    margin: 0;
-  }
-
-  .field-span-2 {
-    grid-column: 1 / -1;
-  }
-
-  .start-actions {
-    display: grid;
-    gap: 0.75rem;
-  }
-
   .splash-copy {
     min-width: 0;
     display: flex;
@@ -305,8 +372,8 @@
     border-radius: 12px;
     overflow: hidden;
     background:
-      radial-gradient(circle at 18% 14%, rgba(255,255,255,0.96) 0 15%, transparent 16%),
-      linear-gradient(145deg, #0d6e5e 0%, #178d78 42%, #f2d184 100%);
+      linear-gradient(135deg, rgba(255,255,255,0.16) 0 10%, transparent 10% 20%, rgba(255,255,255,0.1) 20% 30%, transparent 30%),
+      linear-gradient(145deg, #0d6e5e 0%, #188875 48%, #f2d184 100%);
     box-shadow: 0 24px 60px rgba(13, 110, 94, 0.22);
     border: 1px solid rgba(13, 110, 94, 0.22);
     padding: 1.2rem;
@@ -318,22 +385,16 @@
   .splash-visual::before {
     content: "";
     position: absolute;
-    inset: -38% -28% auto auto;
-    width: 360px;
-    height: 360px;
-    background: rgba(255,255,255,0.28);
-    border-radius: 50%;
-    transform: rotate(18deg);
+    inset: 0;
+    background:
+      linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px),
+      linear-gradient(0deg, rgba(255,255,255,0.07) 1px, transparent 1px);
+    background-size: 34px 34px;
+    opacity: 0.35;
   }
 
   .splash-visual::after {
-    content: "";
-    position: absolute;
-    inset: auto auto -110px -80px;
-    width: 260px;
-    height: 260px;
-    background: rgba(16, 63, 56, 0.18);
-    border-radius: 50%;
+    display: none;
   }
 
   .visual-card {
@@ -351,6 +412,67 @@
     color: #fff;
     border-color: rgba(255,255,255,0.2);
   }
+
+  .visual-card.branded-report {
+    min-height: 214px;
+    justify-content: space-between;
+    overflow: hidden;
+  }
+
+  .branded-report::after {
+    content: "";
+    position: absolute;
+    inset: -28px -50px auto auto;
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    background: rgba(240,205,105,0.18);
+  }
+
+  .report-seal {
+    position: absolute;
+    right: 0.95rem;
+    top: 0.9rem;
+    width: 78px;
+    height: 78px;
+    object-fit: contain;
+    filter: drop-shadow(0 10px 18px rgba(0,0,0,0.18));
+    z-index: 1;
+  }
+
+  .report-preview-title {
+    position: relative;
+    z-index: 2;
+    max-width: 62%;
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  .report-preview-line {
+    position: relative;
+    z-index: 2;
+    margin-top: auto;
+    display: grid;
+    gap: 0.45rem;
+  }
+
+  .report-preview-line span {
+    display: block;
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.18);
+  }
+
+  .report-preview-line span:nth-child(1) {
+    width: 82%;
+    background: rgba(240,205,105,0.72);
+  }
+
+  .report-preview-line span:nth-child(2) { width: 68%; }
+  .report-preview-line span:nth-child(3) { width: 76%; }
 
   .visual-row {
     display: grid;
@@ -385,70 +507,64 @@
     line-height: 1.35;
   }
 
-  .opportunity-map {
+  .scorecard-preview {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
-    gap: 0.55rem;
-    align-items: stretch;
+    gap: 0.52rem;
+  }
+
+  .score-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.7rem;
+    align-items: center;
+    padding: 0.56rem 0.66rem;
+    background: #f7fbf9;
+    border: 1px solid #dfece8;
+    border-radius: 8px;
+    color: var(--ink-mid);
+    font-size: 0.78rem;
+    font-weight: 800;
+  }
+
+  .score-pill {
+    color: #0b6f5f;
+    background: #dff4ee;
+    border: 1px solid #c3e8df;
+    border-radius: 999px;
+    padding: 0.22rem 0.52rem;
+    font-size: 0.68rem;
+    font-weight: 900;
+    white-space: nowrap;
+  }
+
+  .report-strip {
+    display: grid;
+    gap: 0.58rem;
     margin-top: 0.75rem;
   }
 
-  .map-column {
+  .report-strip span {
+    display: block;
+    color: var(--ink-mid);
+    font-size: 0.78rem;
+    line-height: 1.35;
+    padding-left: 0.7rem;
+    border-left: 3px solid #0d6e5e;
+  }
+
+  .sparkline {
+    height: 86px;
     display: flex;
-    flex-direction: column;
-    gap: 0.42rem;
-    min-height: 116px;
-    padding: 0.75rem;
-    border: 1px solid rgba(13, 110, 94, 0.12);
-    border-radius: 8px;
-    background: linear-gradient(180deg, #ffffff, #f7fbf8);
+    align-items: flex-end;
+    gap: 8px;
+    margin-top: 0.7rem;
   }
 
-  .map-kicker {
-    color: var(--bridge-teal);
-    font-size: 0.64rem;
-    font-weight: 900;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  .map-title {
-    color: var(--ink);
-    font-size: 0.82rem;
-    font-weight: 850;
-    line-height: 1.2;
-  }
-
-  .map-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.34rem;
-    margin-top: auto;
-  }
-
-  .map-tags span {
-    border-radius: 999px;
-    background: #e8f4f1;
-    color: var(--bridge-teal);
-    padding: 0.22rem 0.45rem;
-    font-size: 0.64rem;
-    font-weight: 800;
-    line-height: 1.1;
-  }
-
-  .map-arrow {
-    align-self: center;
-    color: #ffffff;
-    background: rgba(16, 63, 56, 0.88);
-    border: 1px solid rgba(255,255,255,0.28);
-    border-radius: 999px;
-    width: 28px;
-    height: 28px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 900;
-    box-shadow: 0 10px 22px rgba(13, 47, 41, 0.18);
+  .spark-bar {
+    flex: 1;
+    min-width: 12px;
+    border-radius: 999px 999px 4px 4px;
+    background: linear-gradient(180deg, #f2d184, #ffffff);
   }
 
   .friction-list {
@@ -547,7 +663,6 @@
     justify-content: center;
     position: relative;
     overflow: hidden;
-    gap: 0.3rem;
   }
 
   .time-gauge::after {
@@ -567,29 +682,18 @@
     z-index: 1;
   }
 
-  .gauge-label,
-  .gauge-sub {
-    max-width: 82%;
-    color: var(--ink);
-    background: rgba(255, 255, 255, 0.96);
-    border: 1px solid rgba(13, 110, 94, 0.18);
-    border-radius: 999px;
-    padding: 0.22rem 0.58rem;
-    font-weight: 700;
-    line-height: 1.25;
-    text-align: center;
-    z-index: 1;
-    box-shadow: 0 2px 8px rgba(15, 15, 15, 0.08);
-  }
-
   .gauge-label {
-    font-size: 0.78rem;
+    color: var(--ink-mid);
+    font-size: 0.8rem;
+    font-weight: 700;
+    z-index: 1;
   }
 
   .gauge-sub {
-    color: var(--ink-mid);
-    font-size: 0.7rem;
-    margin-top: 0;
+    color: var(--ink-soft);
+    font-size: 0.68rem;
+    margin-top: 0.25rem;
+    z-index: 1;
   }
 
   .payoff-chart {
@@ -783,6 +887,40 @@
     display: none;
   }
 
+  .powered-by-badge-row {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    border: 1px solid rgba(7,95,85,0.14);
+    background: #ffffff;
+    border-radius: var(--radius);
+    padding: 0.75rem 0.9rem;
+    margin: -0.9rem 0 1.75rem;
+    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
+  }
+
+  .powered-by-badge-row img {
+    width: 86px;
+    height: 86px;
+    object-fit: contain;
+    flex: 0 0 auto;
+  }
+
+  .powered-by-badge-row span {
+    color: var(--ink-mid);
+    font-size: 0.86rem;
+    line-height: 1.45;
+  }
+
+  .powered-by-badge-row strong {
+    display: block;
+    color: var(--bridge-teal-deep);
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 0.18rem;
+  }
+
   .partner-banner {
     display: none;
     border: 1px solid #b8ddd7;
@@ -913,34 +1051,13 @@
   .name-field input:focus,
   .name-field select:focus { border-color: var(--bridge-teal); }
 
-  .privacy-guidance {
-    margin: 1.25rem 0 0.95rem;
-    padding: 0.95rem 1rem;
-    border: 1px solid rgba(13, 110, 94, 0.24);
-    border-left: 4px solid var(--bridge-teal);
-    border-radius: var(--radius);
-    background: #f4fbf8;
-    color: var(--ink-mid);
-    font-size: 0.86rem;
-    line-height: 1.5;
-  }
-
-  .privacy-guidance strong {
-    display: block;
-    color: var(--ink);
-    margin-bottom: 0.25rem;
-  }
-
-  .privacy-guidance span {
-    display: block;
-  }
-
   .consent-box {
     margin: 1.25rem 0 1.5rem;
     padding: 1rem;
-    border: 1px solid var(--border);
+    border: 1px solid rgba(192,152,64,0.38);
     border-radius: var(--radius);
-    background: #fff;
+    background: #fffdf7;
+    box-shadow: inset 4px 0 0 rgba(192,152,64,0.72);
   }
 
   .consent-label {
@@ -1550,7 +1667,11 @@
   .footer-privacy a { color: var(--bridge-teal); text-decoration: none; }
   .footer-privacy a:hover { text-decoration: underline; }
 
-  .lock-icon { width: 12px; height: 12px; }
+  .lock-icon {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+  }
 
   @media (max-width: 600px) {
     .welcome-headline { font-size: 1.8rem; }
@@ -1579,8 +1700,7 @@
       grid-template-columns: 1fr;
     }
 
-    #screen-welcome,
-    #screen-start {
+    #screen-welcome {
       max-width: 640px;
     }
 
@@ -1601,28 +1721,11 @@
       grid-template-columns: 1fr;
     }
 
-    .opportunity-map {
-      grid-template-columns: 1fr;
-    }
-
-    .map-arrow {
-      justify-self: center;
-      transform: rotate(90deg);
-    }
-
     .welcome-form-panel {
       padding: 0;
       border: 0;
       box-shadow: none;
       background: transparent;
-    }
-
-    .start-form-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .field-span-2 {
-      grid-column: auto;
     }
   }
 </style>
@@ -1632,15 +1735,13 @@
 <header class="header">
   <div class="logo">
     <div class="logo-mark">
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-      </svg>
+      <img src="/assets/brand/sil-trust-seal.png" alt="" aria-hidden="true">
     </div>
     <span class="logo-text">Bridge <span>To AI</span></span>
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag" id="header-tag">Business Discovery Session</span>
-      <span class="header-version">v1.71.14</span>
+      <span class="header-version">v1.72.7</span>
   </div>
 </header>
 
@@ -1655,6 +1756,10 @@
 
     <div class="snapshot-splash" id="snapshot-splash">
       <section class="splash-copy" aria-labelledby="splash-title">
+        <div class="brand-proof">
+          <img src="/assets/brand/sil-trust-seal.png" alt="" aria-hidden="true">
+          Secure Intelligence Layer
+        </div>
         <div class="splash-kicker">Free AI Opportunity Snapshot</div>
         <h1 class="splash-title" id="splash-title">Where is AI hiding <em>time back</em> in your business?</h1>
         <p class="splash-lead">
@@ -1664,6 +1769,10 @@
           <button class="btn-primary" type="button" onclick="openSnapshotStart()">Start the snapshot interview</button>
           <button class="btn-secondary" type="button" onclick="openSnapshotResume()">Resume previous session</button>
         </div>
+        <div class="hero-sil-card" aria-label="Bridge To AI Secure Intelligence Layer">
+          <img src="/assets/brand/sil-trust-seal.png" alt="">
+          <span><strong>Protected by Bridge To AI's Secure Intelligence Layer</strong> Encrypted intake, privacy-first AI processing, controlled use, and private report delivery.</span>
+        </div>
         <p class="splash-trust-line">
           You get a private first-pass report with a likely first use case, readiness signals, what not to automate yet, and one useful next move. No private financials, recipes, customer lists, supplier contracts, payroll details, invoices, or confidential formulas.
         </p>
@@ -1671,68 +1780,69 @@
 
       <section class="splash-visual" aria-label="Illustrative AI opportunity visual">
         <div class="visual-row">
-          <div class="visual-card dark big-metric">
-            <div class="metric-number">6-12</div>
-            <div class="metric-label">hours/week worth investigating</div>
-            <div class="metric-note">Illustrative only. Your snapshot uses your answers.</div>
+          <div class="visual-card dark big-metric branded-report">
+            <img class="report-seal" src="/assets/brand/sil-trust-seal.png" alt="">
+            <div class="report-preview-title">Private Snapshot Report</div>
+            <div>
+              <div class="metric-number">5</div>
+              <div class="metric-label">signals in your Snapshot Scorecard</div>
+              <div class="metric-note">Directional, evidence-based, and grounded in what you actually say.</div>
+            </div>
+            <div class="report-preview-line" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
           </div>
           <div class="visual-card">
-            <strong style="display:block;color:var(--ink);font-size:0.86rem;margin-bottom:0.4rem;">Workflow drag signals</strong>
-            <div class="friction-list">
-              <div class="friction-item"><span>Follow-up</span><span class="friction-pill">high</span></div>
-              <div class="friction-item"><span>Searching</span><span class="friction-pill">high</span></div>
-              <div class="friction-item"><span>Retyping</span><span class="friction-pill">medium</span></div>
-              <div class="friction-item"><span>Approvals</span><span class="friction-pill">check</span></div>
+            <strong style="display:block;color:var(--ink);font-size:0.86rem;margin-bottom:0.55rem;">Snapshot Scorecard preview</strong>
+            <div class="scorecard-preview">
+              <div class="score-row"><span>Workflow Drag</span><span class="score-pill">High friction</span></div>
+              <div class="score-row"><span>AI Fit</span><span class="score-pill">Good first test</span></div>
+              <div class="score-row"><span>Information Readiness</span><span class="score-pill">Cleanup first</span></div>
+              <div class="score-row"><span>Human Review Boundary</span><span class="score-pill">Keep in loop</span></div>
             </div>
           </div>
         </div>
 
         <div class="visual-card">
-          <strong style="display:block;color:var(--ink);font-size:0.86rem;">From busywork to first win</strong>
-          <div class="opportunity-map" aria-label="Illustrative path from workflow drag to first AI win">
-            <div class="map-column">
-              <span class="map-kicker">Drag</span>
-              <span class="map-title">Work repeats or waits</span>
-              <div class="map-tags"><span>retyping</span><span>searching</span><span>follow-up</span></div>
-            </div>
-            <span class="map-arrow" aria-hidden="true">-></span>
-            <div class="map-column">
-              <span class="map-kicker">Signal</span>
-              <span class="map-title">A safe AI task appears</span>
-              <div class="map-tags"><span>draft</span><span>sort</span><span>summarize</span></div>
-            </div>
-            <span class="map-arrow" aria-hidden="true">-></span>
-            <div class="map-column">
-              <span class="map-kicker">Win</span>
-              <span class="map-title">One practical next move</span>
-              <div class="map-tags"><span>save time</span><span>reduce misses</span><span>start small</span></div>
-            </div>
+          <strong style="display:block;color:var(--ink);font-size:0.86rem;">What the free report tries to answer</strong>
+          <div class="report-strip">
+            <span>Where is the repeated work creating drag?</span>
+            <span>What is the safest useful AI task to test first?</span>
+            <span>What should wait until the deeper interview confirms more detail?</span>
           </div>
         </div>
 
         <div class="visual-path">
           <div class="visual-card mini-step">
-            <strong>Messy workflow</strong>
-            <span>Something repeats, waits, gets retyped, or lives in one person's head.</span>
+            <strong>Evidence</strong>
+            <span>Your answers describe the workflow, delays, handoffs, and boundaries.</span>
           </div>
           <div class="visual-card mini-step">
-            <strong>AI-fit signal</strong>
-            <span>We look for drafting, organizing, checking, reminding, or summarizing work.</span>
+            <strong>Scorecard</strong>
+            <span>Bridge To AI turns those answers into five practical directional signals.</span>
           </div>
           <div class="visual-card mini-step">
-            <strong>First useful win</strong>
-            <span>You leave with a practical direction before anyone talks about a build.</span>
+            <strong>First move</strong>
+            <span>You get one safe prompt or next step before anyone talks about a build.</span>
           </div>
         </div>
       </section>
     </div>
 
-    <div class="welcome-layout wrapper-only" id="welcome-detail">
+    <div class="welcome-layout" id="welcome-detail">
       <div class="welcome-copy-panel">
-        <div class="welcome-eyebrow" id="welcome-eyebrow">Bridge To AI Intake</div>
-        <h1 class="welcome-headline" id="welcome-headline">A private AI discovery interview for your business.</h1>
+        <div class="welcome-eyebrow" id="welcome-eyebrow">Confidential - for your eyes only</div>
+        <h1 class="welcome-headline" id="welcome-headline">Let's understand your business <em>before</em> we talk about AI.</h1>
         <p class="welcome-body" id="welcome-body">
-          This secure Bridge To AI intake helps prepare your private AI opportunity report. Your answers are used to understand where AI may help your business safely and practically.
+          This session usually takes about 20-30 minutes. There are no right or wrong answers.
+          General ranges and directional examples are enough for this first report; please do not
+          enter private financials, recipes, customer lists, supplier contracts, payroll details,
+          invoices, or confidential operating data. The interview includes core questions and may
+          add short follow-up questions when an answer needs more context. More detailed answers
+          usually help us move faster and reduce the need for follow-ups. Your answers are
+          encrypted, stored securely, and used only to prepare your private AI opportunity report.
         </p>
 
         <div class="ai-payoff-dashboard" aria-label="Illustrative AI payoff dashboard">
@@ -1741,48 +1851,101 @@
             <div class="payoff-note" id="payoff-note">Illustrative signals. Your snapshot uses your answers.</div>
           </div>
           <div class="payoff-grid">
-            <div class="time-gauge" aria-label="Illustrative hours saved gauge">
-              <div class="gauge-number" id="gauge-number">6-12</div>
-              <div class="gauge-label" id="gauge-label">hours/week to investigate</div>
-              <div class="gauge-sub" id="gauge-sub">often hiding in repeated admin</div>
+            <div class="time-gauge" aria-label="Snapshot Scorecard signal count">
+              <div class="gauge-number" id="gauge-number">5</div>
+              <div class="gauge-label" id="gauge-label">scorecard signals</div>
+              <div class="gauge-sub" id="gauge-sub">workflow drag, AI fit, readiness, review boundary, first win</div>
             </div>
-            <div class="payoff-chart" aria-label="Illustrative workflow friction chart">
-              <div class="chart-row"><span class="chart-label">Follow-up</span><span class="chart-track"><span class="chart-fill" style="width:82%"></span></span><span class="chart-value">High</span></div>
-              <div class="chart-row"><span class="chart-label">Retyping</span><span class="chart-track"><span class="chart-fill" style="width:68%"></span></span><span class="chart-value">Med</span></div>
-              <div class="chart-row"><span class="chart-label">Searching</span><span class="chart-track"><span class="chart-fill" style="width:74%"></span></span><span class="chart-value">High</span></div>
-              <div class="chart-row"><span class="chart-label">Approvals</span><span class="chart-track"><span class="chart-fill" style="width:46%"></span></span><span class="chart-value">Check</span></div>
+            <div class="payoff-chart" aria-label="Snapshot Scorecard preview">
+              <div class="scorecard-preview">
+                <div class="score-row"><span>Workflow Drag</span><span class="score-pill">High friction</span></div>
+                <div class="score-row"><span>AI Fit</span><span class="score-pill">Good AI fit</span></div>
+                <div class="score-row"><span>Information Readiness</span><span class="score-pill">Cleanup first</span></div>
+                <div class="score-row"><span>Human Review Boundary</span><span class="score-pill">Human review</span></div>
+                <div class="score-row"><span>First Useful Win</span><span class="score-pill">Ready to test</span></div>
+              </div>
             </div>
           </div>
           <div class="payoff-path">
-            <div class="path-step"><strong id="path-title-1">Secure private intake</strong><span id="path-copy-1">Your answers are encrypted and used for your report.</span></div>
-            <div class="path-step"><strong id="path-title-2">Better answers, better snapshot</strong><span id="path-copy-2">Use practical examples. A rough answer is fine.</span></div>
-            <div class="path-step"><strong id="path-title-3">Voice saves time</strong><span id="path-copy-3">Use your microphone if you can, or type instead.</span></div>
+            <div class="path-step">
+              <strong id="path-title-1">Messy workflow</strong>
+              <span id="path-copy-1">Where work repeats, waits, or depends on memory.</span>
+            </div>
+            <div class="path-step">
+              <strong id="path-title-2">AI-fit signal</strong>
+              <span id="path-copy-2">What can be drafted, organized, checked, or summarized.</span>
+            </div>
+            <div class="path-step">
+              <strong id="path-title-3">First useful win</strong>
+              <span id="path-copy-3">One safe place to test AI without overbuilding.</span>
+            </div>
           </div>
         </div>
 
-        <div class="snapshot-outcomes" aria-label="What to know before starting">
-          <div class="outcome-chip"><strong id="outcome-title-1">Free snapshot</strong><span id="outcome-copy-1">You receive a private first-pass AI Opportunity Snapshot.</span></div>
-          <div class="outcome-chip"><strong id="outcome-title-2">Adaptive interview</strong><span id="outcome-copy-2">A few answers may trigger short follow-ups for clarity.</span></div>
-          <div class="outcome-chip"><strong id="outcome-title-3">Deeper diagnosis optional</strong><span id="outcome-copy-3">You can choose a paid, more detailed AI diagnosis later.</span></div>
+        <div class="snapshot-outcomes" aria-label="Snapshot outcomes">
+          <div class="outcome-chip">
+            <strong id="outcome-title-1">Best first use case</strong>
+            <span id="outcome-copy-1">Find the workflow where AI is most likely to help first.</span>
+          </div>
+          <div class="outcome-chip">
+            <strong id="outcome-title-2">Readiness signals</strong>
+            <span id="outcome-copy-2">See whether you are ready now or need cleanup first.</span>
+          </div>
+          <div class="outcome-chip">
+            <strong id="outcome-title-3">A practical next move</strong>
+            <span id="outcome-copy-3">Get one useful step you can try without buying anything.</span>
+          </div>
         </div>
 
-        <div class="wrapper-action-row">
-          <button class="btn-primary" type="button" onclick="goToStartHere()">Begin my discovery session -></button>
-          <button class="btn-secondary" type="button" onclick="openSnapshotResume()">Resume previous session</button>
+        <div class="snapshot-result-panel">
+          <div class="snapshot-result-title" id="snapshot-result-title">What your free snapshot can show you</div>
+          <ul class="snapshot-result-list">
+            <li><span class="result-check">✓</span><span id="result-item-1">Where repeated work is costing time, consistency, or follow-up.</span></li>
+            <li><span class="result-check">✓</span><span id="result-item-2">Which AI help looks safe to try first, and what should stay human-reviewed.</span></li>
+            <li><span class="result-check">✓</span><span id="result-item-3">Whether your templates, forms, emails, SOPs, or spreadsheets are enough to start from.</span></li>
+            <li><span class="result-check">✓</span><span id="result-item-4">What a deeper interview would need before anyone promises a build plan.</span></li>
+          </ul>
+        </div>
+
+        <div class="evidence-first-box">
+          <strong id="evidence-title">Evidence-first, privacy-aware, built for useful answers</strong>
+          <p id="evidence-copy">
+            We have programmed the analysis to work from what you actually tell us. If the answers are vague, the snapshot will say so. If you are honest about what is messy, slow, repeated, or unclear, the report can point to a more useful first AI win, the cleanup needed first, and the work that should stay human-reviewed.
+          </p>
+        </div>
+
+        <div class="white-label-note" id="white-label-note">
+          <strong>For associations, training groups, and business communities:</strong>
+          this intake can be adapted to help you teach practical AI based on what your members actually need.
+        </div>
+
+        <div class="powered-by-badge-row">
+          <img src="/assets/brand/sil-trust-seal.png" alt="Bridge To AI Secure Intelligence Layer">
+          <span><strong>Protected by the BTAI Secure Intelligence Layer</strong> Bridge To AI can power intake campaigns while keeping individual answers private and partner reporting aggregate-only.</span>
+        </div>
+
+        <div class="welcome-steps">
+          <p>How this works</p>
+          <ul class="step-list">
+            <li><span class="step-num">1</span> <span id="step-one-text">You'll start with a quick scenario, then move through 8 areas of your business and a short reflection on you as the owner.</span></li>
+            <li><span class="step-num">2</span> Speak your answer using the microphone, or type it directly.</li>
+            <li><span class="step-num">3</span> Review what was captured, edit if needed, then hit Continue.</li>
+            <li><span class="step-num">4</span> <span id="step-four-text">A few answers may trigger a quick follow-up so we can understand the real issue instead of guessing. Your progress is saved securely as you go, and your first report is based on directional business signals rather than confidential operating details.</span></li>
+          </ul>
         </div>
       </div>
 
-    </div>
-  </div>
-
-  <!-- -- Screen 2: Start Here -- -->
-  <div class="screen" id="screen-start">
       <div class="welcome-form-panel">
+        <div class="brand-trust-panel">
+          <img src="/assets/brand/sil-trust-seal.png" alt="Bridge To AI Secure Intelligence Layer">
+          <div>
+            <strong>Privacy-first AI processing</strong>
+            <span>Encrypted intake, controlled use, and private report delivery before any partner aggregate insight is considered.</span>
+          </div>
+        </div>
         <div class="welcome-form-title">Start here</div>
-        <p class="start-hint">Tell us where to send your free snapshot, then use your microphone or keyboard for the interview.</p>
 
-        <div class="start-form-grid">
-        <div class="resume-card field-span-2" id="resume-card">
+        <div class="resume-card" id="resume-card">
           <div class="resume-title">Resume your previous session?</div>
           <div class="resume-body" id="resume-summary">We found saved progress from this browser.</div>
           <div class="resume-actions">
@@ -1828,7 +1991,16 @@
           <label for="business-niche">Is there a more specific niche we should understand? <span style="font-weight:400;color:var(--ink-soft);">(optional)</span></label>
           <input type="text" id="business-niche" placeholder="e.g. wholesale bakery, kombucha producer, grant consultant..." autocomplete="off" />
         </div>
-        <input type="hidden" id="answer-specificity-profile" value="not_started" />
+
+        <div class="name-field">
+          <label for="share-comfort">For this first intake, how much detail are you comfortable sharing?</label>
+          <select id="share-comfort">
+            <option value="Directional only">Directional only</option>
+            <option value="General ranges are okay">General ranges are okay</option>
+            <option value="I may share more in a private scoping session">I may share more in a private scoping session</option>
+            <option value="Not sure yet">Not sure yet</option>
+          </select>
+        </div>
 
         <div class="name-field">
           <label for="website-url">Business website <span style="font-weight:400;color:var(--ink-soft);">(optional)</span></label>
@@ -1845,7 +2017,7 @@
           <input type="text" id="owner-work-status" placeholder="e.g. full-time owner, semi-retired, side business, managing a team..." autocomplete="off" />
         </div>
 
-        <div class="name-field field-span-2">
+        <div class="name-field">
           <label>Which departments or functions does your business have? <span style="font-weight:400;color:var(--ink-soft);">(tap all that apply)</span></label>
           <div class="dept-grid">
             <label class="dept-pill"><input type="checkbox" value="Sales"><span>Sales</span></label>
@@ -1860,38 +2032,30 @@
             <label class="dept-pill"><input type="checkbox" value="It's mostly just me"><span>It's mostly just me</span></label>
           </div>
         </div>
-        <div class="privacy-guidance" id="privacy-guidance">
-          <strong>Privacy guidance</strong>
-          <span>Keep it high-level. If a detail feels too private to post publicly, keep it broad here.</span>
-        </div>
 
         <div class="consent-box">
           <label class="consent-label" for="privacy-consent">
             <input type="checkbox" id="privacy-consent" />
             <span>
               I agree to the <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>
-              and consent to Bridge To AI securely processing my answers for my private AI Opportunity Snapshot.
+              and consent to Bridge To AI securely processing my interview responses to prepare my private AI opportunity report and related service materials.
               <span class="partner-consent-note" id="partner-consent-note">
-                My raw answers and individual interview record are not shared with outside partners unless I explicitly agree.
+                I understand that anonymized, aggregated insights from participating members may be shared with the partner organization for education, course planning, and member-support strategy. Raw interview records and individual answers are not shared with the partner.
               </span>
             </span>
           </label>
         </div>
 
-        <div class="start-actions field-span-2">
-          <div id="turnstile-wrap" style="display:none;"></div>
+        <div id="welcome-error" class="error-banner">Please fill in your name, valid email, business name, business type, and privacy consent before continuing.</div>
 
-          <div id="welcome-error" class="error-banner">Please fill in your name, valid email, business name, business type, and privacy consent before continuing.</div>
-
-          <button class="btn-primary" onclick="startInterview(event)" style="width:100%;">
-            Start the interview ->
-          </button>
-        </div>
-        </div>
+        <button class="btn-primary" onclick="startInterview(event)" style="width:100%;">
+          Begin my discovery session ->
+        </button>
       </div>
+    </div>
   </div>
 
-  <!-- -- Screen 3: Interview -- -->
+  <!-- -- Screen 2: Interview -- -->
   <div class="screen" id="screen-interview">
     <div class="progress-wrap">
       <div class="progress-meta">
@@ -2078,11 +2242,8 @@
 <footer class="footer">
   <span class="footer-copy">(c) 2026 Bridge To AI</span>
   <span class="footer-privacy">
-    <svg class="lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-    </svg>
-    Your answers are private and encrypted � <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>
+    <img class="lock-icon" src="/assets/brand/sil-lock-mark.png" alt="" aria-hidden="true">
+    Your answers are private and encrypted · <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>
   </span>
 </footer>
 
@@ -2094,8 +2255,7 @@ const CONFIG = {
   REPORT_PACK_ENDPOINT: '/api/report-pack',
   DARREN_EMAIL: 'team@bridgetoai.ca',               // Intake delivery address; forwards to Darren via Resend/email routing
   DEFAULT_PARTNER: 'BTAI',
-  DEFAULT_CAMPAIGN: 'general_intake',
-  TURNSTILE_SITE_KEY: '0x4AAAAAAEOcP-Yj2DLBSQch'
+  DEFAULT_CAMPAIGN: 'general_intake'
 };
 const PRIVACY_POLICY_VERSION = '2026-07-25-v1.56.1';
 
@@ -2105,16 +2265,16 @@ const PARTNER_PROFILES = {
     shortName: 'AFPA',
     headerTag: 'AFPA Member AI Readiness Intake',
     pill: 'AFPA Member Program',
-    eyebrow: 'AFPA Member Intake',
-    headline: 'A secure adaptive interview for your business.',
-    body: 'This co-branded AFPA intake helps Bridge To AI prepare your private AI Opportunity Snapshot. AFPA receives anonymous group-level insights only, never your raw answers or individual interview record.',
-    banner: 'AFPA Member Intake, powered by Bridge To AI. Your raw answers are not shared with AFPA.',
-    stepOne: 'This secure adaptive interview looks for practical AI opportunities in your business.',
-    stepFour: 'Better answers create a better snapshot. Use your microphone if you can.',
+    eyebrow: 'Confidential AFPA member intake',
+    headline: 'Help shape practical AI training for Alberta food processors.',
+    body: 'This session usually takes about 20-30 minutes. Your answers help prepare your private AI opportunity report and help AFPA understand, in anonymized aggregate form, what members need most from upcoming AI education. General ranges and directional examples are enough; please avoid private financials, recipes, customer lists, supplier contracts, payroll details, invoices, or confidential operating data. The interview includes core questions and may add short follow-up questions when an answer needs more context. More detailed answers usually help us move faster and reduce the need for follow-ups. Your answers are encrypted and stored securely.',
+    banner: 'This co-branded intake is provided for AFPA members and powered by Bridge To AI. AFPA receives anonymized aggregate insights for education and program planning, not raw member interview files.',
+    stepOne: 'You will move through practical business areas that help identify where AI education, workflow support, and safer implementation guidance may help AFPA members.',
+    stepFour: 'A few answers may trigger a quick follow-up when more context is needed. Your progress is saved securely as you go, and you can resume if you need to come back later.',
     completion: 'Your AFPA member AI readiness intake has been encrypted and securely saved. Bridge To AI will use it to prepare your private AI opportunity report. AFPA may receive anonymized aggregate insights to help shape member education, but your raw interview record is not shared with AFPA.',
     nextSteps: [
       ['Bridge To AI prepares your free snapshot', 'Your answers will be used to prepare a private AI Opportunity Snapshot focused on practical next steps for your business.'],
-      ['AFPA receives anonymous group-level insights', 'AFPA may use group themes to improve member education. Your raw answers are not shared.'],
+      ['AFPA receives anonymized member insights', 'AFPA may receive aggregate themes to help shape the December AI course and future member support. Individual answers and raw records are not shared.'],
       ['You choose whether to go deeper', 'If you ask for follow-up, Bridge To AI can discuss deeper reports, implementation planning, or custom AI workbench support.']
     ]
   }
@@ -2178,7 +2338,7 @@ const INDUSTRY_GUIDANCE = {
   }
 };
 
-const SENSITIVE_DETAIL_WARNING = 'General ranges are enough. Please do not include customer names or exact confidential figures.';
+const SENSITIVE_DETAIL_WARNING = 'For this first intake, general ranges and directional examples are enough. Please avoid private financials, recipes, customer names, supplier contracts, payroll details, invoices, or confidential formulas.';
 const FULL_MAX_ADAPTIVE_PROBES = 5;
 const SNAPSHOT_MAX_ADAPTIVE_PROBES = 2;
 const APPROVED_PROBE_TYPES = ['clarify', 'prioritize', 'range', 'severity', 'frequency', 'blocker', 'owner/readiness', 'risk', 'low-risk pilot', 'voice/tone'];
@@ -2415,48 +2575,12 @@ let completionTestMode = false;
 let businessName = '';
 let businessCategory = '';
 let businessNiche = '';
-let shareComfort = 'Inferred from answers';
-let answerSpecificityProfile = { level: 'not_started', label: 'Not started', confidenceLabel: 'Needs answers', averageWordsPerAnswer: 0, sensitiveRiskSignalCount: 0 };
+let shareComfort = 'Directional only';
 let websiteUrl = '';
 let companySize = '';
 let ownerWorkStatus = '';
 let departments = [];
 let businessContext = null;
-let turnstileToken = '';
-let turnstileWidgetId = null;
-
-function initTurnstile() {
-  if (!CONFIG.TURNSTILE_SITE_KEY) return;
-  const wrap = document.getElementById('turnstile-wrap');
-  if (!wrap) return;
-  wrap.style.display = 'block';
-  const script = document.createElement('script');
-  script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-  script.async = true;
-  script.defer = true;
-  script.onload = () => {
-    if (!window.turnstile || turnstileWidgetId !== null) return;
-    turnstileWidgetId = window.turnstile.render(wrap, {
-      sitekey: CONFIG.TURNSTILE_SITE_KEY,
-      callback: token => { turnstileToken = token || ''; },
-      'expired-callback': () => { turnstileToken = ''; },
-      'error-callback': () => { turnstileToken = ''; }
-    });
-  };
-  document.head.appendChild(script);
-}
-
-function currentTurnstileToken() {
-  return CONFIG.TURNSTILE_SITE_KEY ? turnstileToken : '';
-}
-
-function resetTurnstileToken() {
-  turnstileToken = '';
-  if (window.turnstile && turnstileWidgetId !== null) {
-    try { window.turnstile.reset(turnstileWidgetId); } catch (e) { /* ignore */ }
-  }
-}
-
 let campaignPartner = CONFIG.DEFAULT_PARTNER;
 let campaignId = CONFIG.DEFAULT_CAMPAIGN;
 let partnerDisplayName = '';
@@ -2655,8 +2779,7 @@ function applyPartnerBranding() {
 }
 
 function answerQuality(text) {
-  const source = String(text || '');
-  const wordCount = countWords(source);
+  const wordCount = countWords(text);
   let bucket = 'empty';
   if (wordCount >= 60) bucket = 'rich';
   else if (wordCount >= 25) bucket = 'useful';
@@ -2664,18 +2787,12 @@ function answerQuality(text) {
   else if (wordCount >= 6) bucket = 'short';
   else if (wordCount > 0) bucket = 'minimal';
 
-  const hasNumber = /\d/.test(source);
-  const hasMoneyOrExactFigure = /(?:\$\s?\d|\b\d+(?:,\d{3})+(?:\.\d+)?\b|\b\d+(?:\.\d+)?\s?(?:%|percent|dollars?|k|m|million|thousand)\b)/i.test(source);
-  const hasSensitiveRiskSignal = hasMoneyOrExactFigure || /\b(customer names?|supplier names?|payroll|invoice|contract|password|api key|recipe|formula|margin|profit|revenue|bank|tax)\b/i.test(source);
-
   return {
     wordCount,
     bucket,
     isShortAnswer: wordCount > 0 && wordCount < 12,
-    hasNumber,
-    hasMoneyOrExactFigure,
-    hasSensitiveRiskSignal,
-    hasExampleLanguage: /\b(example|for instance|usually|often|when|because|customer|client|order|job|week|month|hours?)\b/i.test(source)
+    hasNumber: /\d/.test(String(text || '')),
+    hasExampleLanguage: /\b(example|for instance|usually|often|when|because|customer|client|order|job|week|month|hours?)\b/i.test(String(text || ''))
   };
 }
 
@@ -2688,65 +2805,6 @@ function allAnswerTexts() {
     ...masteryFollowups,
     ...probeAnswers
   ].filter(text => String(text || '').trim());
-}
-
-function inferAnswerSpecificityProfile() {
-  const texts = allAnswerTexts();
-  const qualities = texts.map(answerQuality);
-  const answeredCount = qualities.length;
-  const totalWordCount = qualities.reduce((sum, q) => sum + q.wordCount, 0);
-  const averageWordsPerAnswer = answeredCount ? Math.round(totalWordCount / answeredCount) : 0;
-  const usefulAnswerCount = qualities.filter(q => ['useful', 'rich'].includes(q.bucket)).length;
-  const shortAnswerCount = qualities.filter(q => q.wordCount > 0 && q.wordCount < 12).length;
-  const exampleSignalCount = qualities.filter(q => q.hasExampleLanguage).length;
-  const numericSignalCount = qualities.filter(q => q.hasNumber).length;
-  const sensitiveRiskSignalCount = qualities.filter(q => q.hasSensitiveRiskSignal).length;
-  const richAnswerCount = qualities.filter(q => q.bucket === 'rich').length;
-
-  let level = 'not_started';
-  let label = 'Not started';
-  let confidenceLabel = 'Needs answers';
-  if (answeredCount) {
-    level = 'directional';
-    label = 'Directional';
-    confidenceLabel = 'Directional signal';
-  }
-  if (averageWordsPerAnswer >= 18 || usefulAnswerCount >= 2 || exampleSignalCount >= 2) {
-    level = 'developing';
-    label = 'Developing context';
-    confidenceLabel = 'Stated by the business where specific; otherwise directional';
-  }
-  if (averageWordsPerAnswer >= 32 || usefulAnswerCount >= 4 || richAnswerCount >= 2) {
-    level = 'specific';
-    label = 'Specific enough for first-pass analysis';
-    confidenceLabel = 'Stated by the business, with assumptions labelled';
-  }
-  if (sensitiveRiskSignalCount > 0) {
-    confidenceLabel = 'Contains sensitive-detail risk signals; exact details require private scoping';
-  }
-
-  return {
-    level,
-    label,
-    confidenceLabel,
-    answeredCount,
-    totalWordCount,
-    averageWordsPerAnswer,
-    shortAnswerCount,
-    usefulAnswerCount,
-    richAnswerCount,
-    exampleSignalCount,
-    numericSignalCount,
-    sensitiveRiskSignalCount
-  };
-}
-
-function syncAnswerSpecificityProfile() {
-  answerSpecificityProfile = inferAnswerSpecificityProfile();
-  shareComfort = answerSpecificityProfile.label || 'Inferred from answers';
-  const field = document.getElementById('answer-specificity-profile');
-  if (field) field.value = JSON.stringify(answerSpecificityProfile);
-  return answerSpecificityProfile;
 }
 
 function interviewKpiSummary() {
@@ -2772,7 +2830,6 @@ function interviewKpiSummary() {
     answeredProbeCount,
     elapsedSeconds,
     businessNiche,
-    answerSpecificityProfile: syncAnswerSpecificityProfile(),
     shareComfort,
     intakeVariant,
     questionSet: isSnapshotFirstCampaign() ? 'snapshot_first_short_set' : 'full_diagnostic_set'
@@ -2801,8 +2858,7 @@ function logHermesEvent(eventType, status = 'info', details = {}) {
       businessName,
       businessCategory,
       businessNiche,
-    answerSpecificityProfile: syncAnswerSpecificityProfile(),
-    shareComfort,
+      shareComfort,
       companySize,
       ownerWorkStatus,
       partner: campaignPartner,
@@ -2822,8 +2878,7 @@ function logHermesEvent(eventType, status = 'info', details = {}) {
         questionSet: isSnapshotFirstCampaign() ? 'snapshot_first_short_set' : 'full_diagnostic_set',
         hasWebsite: !!websiteUrl,
         businessNiche,
-    answerSpecificityProfile: syncAnswerSpecificityProfile(),
-    shareComfort,
+        shareComfort,
         departments,
         privacyConsent,
         privacyPolicyVersion: PRIVACY_POLICY_VERSION,
@@ -2914,7 +2969,7 @@ function readWelcomeFields() {
   businessName = document.getElementById('business-name').value.trim();
   businessCategory = document.getElementById('business-category').value.trim();
   businessNiche = document.getElementById('business-niche').value.trim();
-  syncAnswerSpecificityProfile();
+  shareComfort = document.getElementById('share-comfort').value.trim() || 'Directional only';
   websiteUrl = document.getElementById('website-url').value.trim();
   companySize = document.getElementById('company-size').value.trim();
   ownerWorkStatus = document.getElementById('owner-work-status').value.trim();
@@ -2930,7 +2985,7 @@ function applyWelcomeFields() {
   document.getElementById('business-name').value = businessName || '';
   document.getElementById('business-category').value = businessCategory || '';
   document.getElementById('business-niche').value = businessNiche || '';
-  syncAnswerSpecificityProfile();
+  document.getElementById('share-comfort').value = shareComfort || 'Directional only';
   document.getElementById('website-url').value = websiteUrl || '';
   document.getElementById('company-size').value = companySize || '';
   document.getElementById('owner-work-status').value = ownerWorkStatus || '';
@@ -2961,7 +3016,6 @@ function buildDraftPayload(captureTranscript = true) {
     businessName,
     businessCategory,
     businessNiche,
-    answerSpecificityProfile: syncAnswerSpecificityProfile(),
     shareComfort,
     websiteUrl,
     companySize,
@@ -3090,8 +3144,7 @@ async function showResumeCardIfNeeded() {
   businessName = draft.businessName || '';
   businessCategory = draft.businessCategory || '';
   businessNiche = draft.businessNiche || '';
-  answerSpecificityProfile = draft.answerSpecificityProfile || answerSpecificityProfile;
-  shareComfort = draft.shareComfort || answerSpecificityProfile.label || 'Inferred from answers';
+  shareComfort = draft.shareComfort || 'Directional only';
   websiteUrl = draft.websiteUrl || '';
   companySize = draft.companySize || '';
   ownerWorkStatus = draft.ownerWorkStatus || '';
@@ -3113,12 +3166,13 @@ function applyCampaignCopy() {
   configureSnapshotFrontDoor();
   setText('header-tag', 'AI Opportunity Snapshot');
   setText('welcome-eyebrow', 'Free AI Opportunity Snapshot');
-  setHtml('welcome-headline', 'Find where AI could give you <em>time back first</em>.');
-  setText('welcome-body', 'In about 8-12 minutes, this interview looks at one frustrating workflow and turns your answers into a private AI Opportunity Snapshot. You will see the likely first use case, why it may matter, what information AI could work from, what needs cleanup, and what should stay human-reviewed. General examples are enough; please do not enter private financials, recipes, customer lists, supplier contracts, payroll details, invoices, or confidential operating data.');
-  setText('payoff-title', 'Why start here: repeated work is usually where AI pays attention first');
-  setText('payoff-note', 'Illustrative only. Your snapshot is based on your answers.');
-  setText('gauge-label', 'hours/week worth investigating');
-  setText('gauge-sub', 'often hiding in follow-up, searching, and retyping');
+  setHtml('welcome-headline', 'Get a private <em>Snapshot Scorecard</em> before you buy anything.');
+  setText('welcome-body', 'In about 8-12 minutes, this interview looks at one frustrating workflow and turns your answers into a private AI Opportunity Snapshot. You will see five directional signals: workflow drag, AI fit, information readiness, human-review boundaries, and the first useful win. General examples are enough; please do not enter private financials, recipes, customer lists, supplier contracts, payroll details, invoices, or confidential operating data.');
+  setText('payoff-title', 'Your free report starts with a Snapshot Scorecard');
+  setText('payoff-note', 'Directional signals based on your answers, not fake ROI math.');
+  setText('gauge-number', '5');
+  setText('gauge-label', 'scorecard signals');
+  setText('gauge-sub', 'workflow drag, AI fit, readiness, review boundary, first win');
   setText('outcome-title-1', 'Best first AI win');
   setText('outcome-copy-1', 'A practical use case tied to real friction, not AI hype.');
   setText('outcome-title-2', 'Ready vs. cleanup');
@@ -3129,7 +3183,7 @@ function applyCampaignCopy() {
   setText('result-item-1', 'The workflow most likely to benefit from AI because it repeats, slows down, or depends on manual follow-up.');
   setText('result-item-2', 'The type of AI help that looks safest to try first: drafting, organizing, summarizing, checking, reminding, or reporting.');
   setText('result-item-3', 'Whether existing templates, forms, emails, SOPs, or spreadsheets give AI enough structure to work from.');
-  setText('result-item-4', 'What should remain human-reviewed and what extra detail a deeper interview would need before a paid plan makes sense.');
+  setText('result-item-4', 'What should remain human-reviewed, what needs confirmation, and what extra detail a deeper interview would need before a paid plan makes sense.');
   setText('step-one-text', 'You will answer focused questions about one high-friction workflow: how often it happens, how it is handled today, where it slows down, what information exists, and where AI should or should not help.');
   setText('step-four-text', 'A few answers may trigger up to two short follow-ups when more context is needed. Your progress is saved securely as you go, and the free snapshot remains directional rather than a full implementation plan.');
   setText('free-report-title', 'Your free AI Opportunity Snapshot is prepared');
@@ -3148,10 +3202,6 @@ function configureSnapshotFrontDoor() {
 }
 
 function openSnapshotStart() {
-  goToStartHere();
-}
-
-function goToStartHere() {
   const splash = document.getElementById('snapshot-splash');
   const detail = document.getElementById('welcome-detail');
   if (splash) {
@@ -3159,10 +3209,9 @@ function goToStartHere() {
     splash.classList.remove('active');
   }
   if (detail) detail.classList.remove('is-hidden');
-  showScreen('screen-start');
-  logHermesEvent('start_here_opened', 'success', { entryPoint: 'welcome_wrapper' });
   const firstInput = document.getElementById('client-name');
   if (firstInput) setTimeout(() => firstInput.focus(), 80);
+  window.scrollTo(0, 0);
 }
 
 function openSnapshotResume() {
@@ -3196,8 +3245,7 @@ async function resumeSavedInterview() {
   businessName = draft.businessName || '';
   businessCategory = draft.businessCategory || '';
   businessNiche = draft.businessNiche || '';
-  answerSpecificityProfile = draft.answerSpecificityProfile || answerSpecificityProfile;
-  shareComfort = draft.shareComfort || answerSpecificityProfile.label || 'Inferred from answers';
+  shareComfort = draft.shareComfort || 'Directional only';
   websiteUrl = draft.websiteUrl || '';
   companySize = draft.companySize || '';
   ownerWorkStatus = draft.ownerWorkStatus || '';
@@ -3257,8 +3305,7 @@ function clearSavedInterview(resetFields = false) {
     businessName = '';
     businessCategory = '';
     businessNiche = '';
-    answerSpecificityProfile = { level: 'not_started', label: 'Not started', confidenceLabel: 'Needs answers', averageWordsPerAnswer: 0, sensitiveRiskSignalCount: 0 };
-    shareComfort = 'Inferred from answers';
+    shareComfort = 'Directional only';
     websiteUrl = '';
     companySize = '';
     ownerWorkStatus = '';
@@ -3338,7 +3385,7 @@ async function startInterview(evt) {
   businessName = document.getElementById('business-name').value.trim();
   businessCategory = document.getElementById('business-category').value.trim();
   businessNiche = document.getElementById('business-niche').value.trim();
-  syncAnswerSpecificityProfile();
+  shareComfort = document.getElementById('share-comfort').value.trim() || 'Directional only';
   websiteUrl = document.getElementById('website-url').value.trim();
   companySize = document.getElementById('company-size').value.trim();
   ownerWorkStatus = document.getElementById('owner-work-status').value.trim();
@@ -3391,7 +3438,7 @@ async function startInterview(evt) {
   if (startBtn) { startBtn.disabled = true; startBtn.textContent = 'Setting up your session...'; }
   await researchBusinessContext();
   if (!isSnapshotFirstCampaign()) await generateScenario();
-  if (startBtn) { startBtn.disabled = false; startBtn.textContent = 'Start the interview ->'; }
+  if (startBtn) { startBtn.disabled = false; startBtn.textContent = 'Begin my discovery session ->'; }
   saveDraft(false, true);
 
   showScreen('screen-interview');
@@ -3416,7 +3463,7 @@ async function researchBusinessContext() {
     const resp = await fetch('/api/interview-ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ task: 'research-business', businessName, businessCategory, businessNiche, answerSpecificityProfile: syncAnswerSpecificityProfile(), shareComfort, websiteUrl, companySize, ownerWorkStatus, departments }),
+      body: JSON.stringify({ task: 'research-business', businessName, businessCategory, businessNiche, shareComfort, websiteUrl, companySize, ownerWorkStatus, departments }),
       signal: controller.signal
     });
     if (resp.ok) {
@@ -3435,7 +3482,7 @@ async function generateScenario() {
     const resp = await fetch('/api/interview-ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ task: 'scenario', businessCategory, businessNiche, answerSpecificityProfile: syncAnswerSpecificityProfile(), shareComfort, businessContext })
+      body: JSON.stringify({ task: 'scenario', businessCategory, businessNiche, shareComfort, businessContext })
     });
     if (resp.ok) {
       const data = await resp.json();
@@ -3906,7 +3953,7 @@ async function runDomainProbe(domainName) {
     const resp = await fetch('/api/interview-ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ task: 'probe', domain: domainName, qa: domainQA, businessCategory, businessNiche, answerSpecificityProfile: syncAnswerSpecificityProfile(), shareComfort, companySize, ownerWorkStatus, departments, businessContext })
+      body: JSON.stringify({ task: 'probe', domain: domainName, qa: domainQA, businessCategory, businessNiche, shareComfort, companySize, ownerWorkStatus, departments, businessContext })
     });
     if (resp.ok) {
       const data = await resp.json();
@@ -3978,7 +4025,7 @@ async function runMasteryFollowup(qIndex) {
     const resp = await fetch('/api/interview-ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ task: 'mastery-followup', area: q.domain, answer, businessCategory, businessNiche, answerSpecificityProfile: syncAnswerSpecificityProfile(), shareComfort, companySize, ownerWorkStatus, departments, businessContext })
+      body: JSON.stringify({ task: 'mastery-followup', area: q.domain, answer, businessCategory, businessNiche, shareComfort, companySize, ownerWorkStatus, departments, businessContext })
     });
     if (resp.ok) {
       const data = await resp.json();
@@ -4021,7 +4068,7 @@ function prevQuestion() {
 // -- Word count -------------------------------------------------------------
 document.getElementById('transcript').addEventListener('input', () => { updateWordCount(); saveDraft(); });
 
-document.querySelectorAll('#screen-start input, #screen-start select').forEach(input => {
+document.querySelectorAll('#screen-welcome input, #screen-welcome select').forEach(input => {
   input.addEventListener('input', () => saveDraft(false));
   input.addEventListener('change', () => saveDraft(false));
 });
@@ -4394,7 +4441,7 @@ Owner Email: ${clientEmail || '(not provided)'}
 Business Name: ${businessName}
 Business Category: ${businessCategory}
 Specific Niche: ${businessNiche || '(not specified)'}
-Answer Specificity Profile: ${answerSpecificityProfile.label || shareComfort || '(not assessed)'} - ${answerSpecificityProfile.confidenceLabel || 'Needs answers'}
+Detail-Sharing Comfort: ${shareComfort || '(not specified)'}
 Website URL: ${websiteUrl || '(not provided)'}
 Company Size: ${companySize ? companySize + ' people' : '(not specified)'}
 Owner Work Status / Capacity: ${ownerWorkStatus || '(not specified)'}
@@ -4530,7 +4577,6 @@ async function generateDNAWithClaude() {
         companySize,
         ownerWorkStatus,
         questionCount: QUESTIONS.length,
-        answerSpecificityProfile: syncAnswerSpecificityProfile(),
         soloOrNoStaff: isSoloOrNoStaff(),
         privacyConsent,
         privacyConsentAt,
@@ -4541,8 +4587,7 @@ async function generateDNAWithClaude() {
         serviceProviderPolicyAvailable: true,
         privacyContactPresented: true,
         deletionRequestPathAvailable: true
-      },
-      turnstileToken: currentTurnstileToken()
+      }
     })
   });
 
@@ -4642,8 +4687,7 @@ function triggerFreeReportDelivery(options = {}) {
   const payload = {
     action: 'generate-free-email',
     clientDraftId: ensureClientDraftId(),
-    clientEmail,
-    turnstileToken: currentTurnstileToken()
+    clientEmail
   };
 
   fetch(CONFIG.REPORT_PACK_ENDPOINT, {
@@ -4725,13 +4769,19 @@ function maybeLaunchCompletionTestMode() {
   });
 }
 initCampaignContext();
-initTurnstile();
 maybeContinueDeepInterviewFromLink().then(handled => {
   if (!handled) maybeLaunchCompletionTestMode();
 });
 </script>
 </body>
 </html>
+
+
+
+
+
+
+
 
 
 
