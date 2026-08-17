@@ -6,7 +6,7 @@ import { gateProofDetails, publicGateSummary, runPrivacyGate } from '../lib/priv
 import { validateDnaOutput } from '../lib/validate-output.js';
 import { assertRateLimit, assertTrustedOrigin, authorizedAdminRequest, safeError } from '../lib/security.js';
 
-const APP_VERSION = 'v1.72.11';
+const APP_VERSION = 'v1.72.12';
 
 const REPORTS = {
   free: {
@@ -321,8 +321,54 @@ The best next step is not to buy a deeper report cold. First, continue the deepe
 A workbench is a private operating dashboard built around your business so repeated workflows can run from one place instead of being scattered across notes, spreadsheets, prompts, files, and tools.`;
 }
 
+function splitSentences(text = '') {
+  return String(text || '')
+    .replace(/\s+/g, ' ')
+    .match(/[^.!?]+[.!?]+(?:\s|$)|[^.!?]+$/g)
+    ?.map(sentence => sentence.trim())
+    .filter(Boolean) || [];
+}
+
+function tightenBulletText(text = '') {
+  const sentences = splitSentences(text);
+  return (sentences.length ? sentences.slice(0, 2).join(' ') : String(text || '').trim())
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function enforceFreeQuickReadBullets(markdown) {
+  const source = String(markdown || '').trim();
+  const match = source.match(/(^|\n)##\s*1\.\s*Quick Read\s*\n/i);
+  if (!match) return source;
+  const sectionStart = (match.index || 0) + match[0].length;
+  const nextMatch = source.slice(sectionStart).match(/\n##\s*2\.\s*/i);
+  if (!nextMatch) return source;
+  const sectionEnd = sectionStart + (nextMatch.index || 0);
+  const before = source.slice(0, sectionStart);
+  const section = source.slice(sectionStart, sectionEnd).trim();
+  const after = source.slice(sectionEnd);
+  const lines = section.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+  const hasBullets = lines.some(line => /^[-*]\s+/.test(line));
+  if (hasBullets) return source;
+
+  let lead = lines.find(line => /^Here is what I am seeing\.?$/i.test(line)) || 'Here is what I am seeing.';
+  const candidates = lines.filter(line => line !== lead);
+  const bullets = candidates
+    .map(tightenBulletText)
+    .filter(Boolean)
+    .slice(0, 7);
+
+  if (bullets.length < 3) return source;
+  return `${before}${lead}\n\n${bullets.map(item => `- ${item}`).join('\n')}\n${after}`;
+}
+
+function shapeReportMarkdown(markdown, tier) {
+  const polished = polishReportMarkdown(String(markdown || '').trim());
+  return tier === 'free' ? enforceFreeQuickReadBullets(polished) : polished;
+}
+
 function decorateReportMarkdown(markdown, tier) {
-  const sections = [polishReportMarkdown(String(markdown || '').trim())];
+  const sections = [shapeReportMarkdown(markdown, tier)];
   if (tier !== 'btai') sections.push(clientUpgradeSection(tier));
   sections.push(reportPrivacyStatement());
   return sections.filter(Boolean).join('\n\n');
@@ -1009,7 +1055,8 @@ async function generateOne(clientDraftId, tier, options = {}) {
     businessName,
     tierLabel: spec.title,
     generatedAt: new Date().toISOString(),
-    intakeVersion: APP_VERSION
+    intakeVersion: APP_VERSION,
+    reportTier: tier
   });
   await logReportEvent(clientDraftId, 'report_privacy_scan_completed', privacyScan.reportApprovedForClientDelivery ? 'success' : 'warning', privacyProofDefaults({
     partner: meta?.sourceMeta?.partner || 'BTAI',
@@ -1171,7 +1218,8 @@ async function ensureHtmlReport(clientDraftId, tier) {
     businessName,
     tierLabel: spec.title,
     generatedAt: markdownRecord.createdAt || new Date().toISOString(),
-    intakeVersion: APP_VERSION
+    intakeVersion: APP_VERSION,
+    reportTier: tier
   });
   const payload = {
     createdAt: new Date().toISOString(),
