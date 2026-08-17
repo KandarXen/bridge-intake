@@ -87,6 +87,32 @@
 
   .logo-text span { color: var(--bridge-teal); }
 
+  .partner-header-logo {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    margin-left: 1rem;
+    border-left: 1px solid rgba(15, 23, 42, 0.12);
+    padding-left: 1rem;
+  }
+
+  .partner-header-logo.active { display: flex; }
+
+  .partner-header-logo span {
+    color: var(--ink-soft);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .partner-header-logo img {
+    max-width: 150px;
+    max-height: 42px;
+    object-fit: contain;
+    display: block;
+  }
+
   .header-tag {
     font-size: 0.72rem;
     font-weight: 800;
@@ -935,6 +961,40 @@
 
   .partner-banner.active { display: block; }
 
+  .partner-banner-inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .partner-logo-card {
+    display: none;
+    border-radius: 12px;
+    background: #151515;
+    padding: 0.7rem 0.85rem;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+  }
+
+  .partner-logo-card.active { display: block; }
+
+  .partner-logo-card img {
+    width: 190px;
+    max-width: 28vw;
+    height: auto;
+    display: block;
+  }
+
+  @media (max-width: 760px) {
+    .partner-header-logo { display: none !important; }
+    .partner-banner-inner { grid-template-columns: 1fr; }
+    .partner-logo-card { width: fit-content; }
+    .partner-logo-card img {
+      width: 170px;
+      max-width: 72vw;
+    }
+  }
+
   .partner-pill {
     display: inline-flex;
     align-items: center;
@@ -1738,6 +1798,10 @@
       <img src="/assets/brand/sil-trust-seal.png" alt="" aria-hidden="true">
     </div>
     <span class="logo-text">Bridge <span>To AI</span></span>
+    <div class="partner-header-logo" id="partner-header-logo">
+      <span>For</span>
+      <img id="partner-header-logo-img" alt="">
+    </div>
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag" id="header-tag">Business Discovery Session</span>
@@ -1750,8 +1814,15 @@
   <!-- -- Screen 1: Welcome -- -->
   <div class="screen active" id="screen-welcome">
     <div class="partner-banner" id="partner-banner">
-      <div class="partner-pill" id="partner-pill">AFPA Member Program</div>
-      <div id="partner-banner-text">This intake helps shape practical AI education and support for participating members.</div>
+      <div class="partner-banner-inner">
+        <div>
+          <div class="partner-pill" id="partner-pill">AFPA Member Program</div>
+          <div id="partner-banner-text">This intake helps shape practical AI education and support for participating members.</div>
+        </div>
+        <div class="partner-logo-card" id="partner-logo-card">
+          <img id="partner-logo-img" alt="">
+        </div>
+      </div>
     </div>
 
     <div class="snapshot-splash" id="snapshot-splash">
@@ -2263,6 +2334,8 @@ const PARTNER_PROFILES = {
   AFPA: {
     displayName: 'Alberta Food Processors Association',
     shortName: 'AFPA',
+    logoSrc: '/assets/partners/afpa-logo.png',
+    logoAlt: 'Alberta Food Processors Association',
     headerTag: 'AFPA Member AI Readiness Intake',
     pill: 'AFPA Member Program',
     eyebrow: 'Confidential AFPA member intake',
@@ -2817,10 +2890,16 @@ function setHtml(id, value) {
 function applyPartnerBranding() {
   const profile = activePartnerProfile();
   const banner = document.getElementById('partner-banner');
+  const partnerLogoCard = document.getElementById('partner-logo-card');
+  const partnerLogoImg = document.getElementById('partner-logo-img');
+  const partnerHeaderLogo = document.getElementById('partner-header-logo');
+  const partnerHeaderLogoImg = document.getElementById('partner-header-logo-img');
   const partnerConsent = document.getElementById('partner-consent-note');
   const whiteLabelNote = document.getElementById('white-label-note');
   if (!profile) {
     if (banner) banner.classList.remove('active');
+    if (partnerLogoCard) partnerLogoCard.classList.remove('active');
+    if (partnerHeaderLogo) partnerHeaderLogo.classList.remove('active');
     if (partnerConsent) partnerConsent.classList.remove('active');
     if (whiteLabelNote) whiteLabelNote.classList.remove('hidden');
     setText('header-tag', 'Business Discovery Session');
@@ -2836,6 +2915,21 @@ function applyPartnerBranding() {
   setText('welcome-body', profile.body);
   setText('step-one-text', profile.stepOne);
   setText('step-four-text', profile.stepFour);
+  if (profile.logoSrc) {
+    if (partnerLogoImg) {
+      partnerLogoImg.src = profile.logoSrc;
+      partnerLogoImg.alt = profile.logoAlt || profile.displayName || '';
+    }
+    if (partnerHeaderLogoImg) {
+      partnerHeaderLogoImg.src = profile.logoSrc;
+      partnerHeaderLogoImg.alt = profile.logoAlt || profile.displayName || '';
+    }
+    if (partnerLogoCard) partnerLogoCard.classList.add('active');
+    if (partnerHeaderLogo) partnerHeaderLogo.classList.add('active');
+  } else {
+    if (partnerLogoCard) partnerLogoCard.classList.remove('active');
+    if (partnerHeaderLogo) partnerHeaderLogo.classList.remove('active');
+  }
   if (Array.isArray(profile.nextSteps)) {
     profile.nextSteps.forEach((step, index) => {
       setText(`next-title-${index + 1}`, step[0]);
