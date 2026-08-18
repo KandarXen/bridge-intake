@@ -459,3 +459,7 @@ This release prevents draft autosave or unload cleanup from downgrading complete
 
 This release adds an admin-only recovery lane for completed intakes that were paused by the Privacy Gate before Venture DNA was created. The records console can now recover Venture DNA from the encrypted saved intake using the sanitized admin recovery path, after which the normal free snapshot and full report pack actions can run.
 
+## v1.72.22 Context-Aware Privacy Gate
+
+This release changes the Privacy Gate from keyword-only blocking to context-aware sanitization. Business-level payroll mentions and rounded estimates can pass; exact compensation amounts are generalized into bands; names near compensation context are anonymized; and only hard-stop records such as payroll spreadsheets, employee wage records, banking details, government IDs, payment cards, clinical records, customer lists, contracts, or confidential formulas require admin review.
+
