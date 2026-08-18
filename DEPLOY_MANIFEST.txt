@@ -1,0 +1,25 @@
+Bridge To AI Intake - GitHub Deploy Files
+Created: 2026-08-18 12:27:46 -06:00
+Source repo: I:\01_BUSINESS\Bridge To AI\INTAKE_Interview_Program_ FILES\Codex_Working_Files\tmp\bridge-intake-github-sync
+Source branch: main
+Base/source commit before local deploy bundle: c56fb36
+
+Include these files in GitHub:
+- README.md
+- vercel.json
+- index.html
+- SUPABASE_SETUP.sql
+- api/hermes-log.js
+- api/interview-ai.js
+- api/partner-aggregate.js
+
+Purpose:
+- Adds simple intake routes /full, /AFPA, /afpa, and /btai-console.
+- Keeps AFPA at 20 fixed core questions.
+- Adds up to 5 adaptive clarification redirects for weak/vague answers.
+- Adds privacy-safe abandonment/progress KPI logging.
+- Updates partner aggregate report fields.
+- Updates Supabase setup view definition to expose progress/adaptive KPI columns.
+
+Note:
+The live Supabase KPI view has already been updated separately. This zip is for GitHub/Vercel source deployment.
