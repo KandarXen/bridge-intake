@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -574,6 +574,7 @@
             <div class="action-stack-title">Utilities</div>
             <div class="button-row">
               <button id="download-md-btn" class="secondary" type="button">Venture DNA .md</button>
+              <button id="recover-dna-btn" class="secondary" type="button">Recover Venture DNA</button>
               <button id="refresh-status-btn" class="secondary" type="button">Report Status</button>
               <button id="send-free-report-btn" class="secondary" type="button">Send Free Email</button>
             </div>
@@ -1248,6 +1249,23 @@
 
     document.getElementById('refresh-status-btn').addEventListener('click', () => refreshReportStatus(false));
 
+    document.getElementById('recover-dna-btn').addEventListener('click', async () => {
+      const values = requireBasics();
+      if (!values) return;
+      setBusy(true, 'Recovering Venture DNA from the encrypted saved intake...\nThis uses the sanitized admin recovery lane, then stores a new encrypted Venture DNA output.');
+      try {
+        const data = await postJson('/api/recover-dna', {
+          clientDraftId: values.clientDraftId,
+          forceRegenerate: !!document.getElementById('force-regenerate').checked
+        }, values.adminSecret);
+        statusEl.textContent = `${data.reusedExisting ? 'Existing Venture DNA found.' : 'Recovered Venture DNA created.'}\nRecord ID: ${values.clientDraftId}\nOutput ID: ${data.outputId || 'existing'}\nRecovered answer count: ${data.recoveredAnswerCount || 'not needed'}\nNext: generate the Free Snapshot or Full Report Pack.`;
+        await refreshReportStatus(true);
+      } catch (err) {
+        statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;
+      } finally {
+        setBusy(false);
+      }
+    });
     async function loadRecordIndex() {
       const values = formValues();
       if (!hasAdminAuth(values)) {
@@ -1506,6 +1524,7 @@
   </script>
 </body>
 </html>
+
 
 
 

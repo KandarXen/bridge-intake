@@ -455,3 +455,7 @@ This release adjusts the snapshot scorecard rows and status pills so longer labe
 
 This release prevents draft autosave or unload cleanup from downgrading completed or privacy-review records back to draft/abandoned. It also makes report-pack retrieval surface a clear privacy-review-required state when Venture DNA generation was paused by the privacy gate, instead of reporting a misleading missing-output error.
 
+## v1.72.21 Admin Venture DNA Recovery
+
+This release adds an admin-only recovery lane for completed intakes that were paused by the Privacy Gate before Venture DNA was created. The records console can now recover Venture DNA from the encrypted saved intake using the sanitized admin recovery path, after which the normal free snapshot and full report pack actions can run.
+
