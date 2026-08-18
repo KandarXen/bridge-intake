@@ -6,7 +6,7 @@ import { gateProofDetails, publicGateSummary, runPrivacyGate } from '../lib/priv
 import { validateDnaOutput } from '../lib/validate-output.js';
 import { assertRateLimit, assertTrustedOrigin, authorizedAdminRequest, safeError } from '../lib/security.js';
 
-const APP_VERSION = 'v1.72.17';
+const APP_VERSION = 'v1.72.20';
 
 const REPORTS = {
   free: {
@@ -96,7 +96,20 @@ async function callClaude(prompt, maxTokens) {
 
 async function getDna(clientDraftId) {
   const output = await getLatestIntakeOutput(clientDraftId, 'venture_dna_markdown');
-  if (!output) throw new Error('No Venture DNA output found for that Record ID');
+  if (!output) {
+    const privacyGate = await getLatestIntakeOutput(clientDraftId, 'privacy_gate_venture_dna_generation');
+    if (privacyGate) {
+      const payload = decryptJson(privacyGate.encrypted_payload);
+      if (payload?.requiresReview) {
+        throw new PrivacyGateReviewError(
+          'Privacy Gate review required before Venture DNA generation can continue. Approve the privacy gate, then regenerate the Venture DNA before creating reports.',
+          payload,
+          { saved: true, outputId: privacyGate.id || '', reason: 'privacy_gate_venture_dna_generation' }
+        );
+      }
+    }
+    throw new Error('No Venture DNA output found for that Record ID');
+  }
   const decrypted = decryptJson(output.encrypted_payload);
   if (!decrypted.dnaContent) throw new Error('Venture DNA output is empty');
   return {
@@ -1929,6 +1942,7 @@ export default async function handler(req, res) {
     return safeError(res, err, 'Report-pack request failed');
   }
 }
+
 
 
 

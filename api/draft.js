@@ -16,9 +16,14 @@ async function saveDraft(payload) {
   const now = new Date().toISOString();
   const encrypted = encryptJson(payload);
   const labels = publicLabels(payload);
+  const existing = await getIntakeSession(clientDraftId);
+  const protectedStatuses = new Set(['complete', 'privacy_review_required']);
+  const nextStatus = protectedStatuses.has(existing?.status)
+    ? existing.status
+    : payload.interviewStarted ? 'draft' : 'created';
   await upsertIntakeSession({
     client_draft_id: clientDraftId,
-    status: payload.interviewStarted ? 'draft' : 'created',
+    status: nextStatus,
     business_category: String(payload.businessCategory || '').slice(0, 160),
     ...labels,
     current_step: String(payload.scenarioStage || payload.subStep || 'welcome').slice(0, 120),
@@ -52,10 +57,14 @@ async function deleteDraft(clientDraftId) {
   const id = String(clientDraftId || '').trim();
   if (!id) return { status: 200, body: { deleted: false, reason: 'No clientDraftId' } };
 
-  await updateIntakeSession(id, {
-    status: 'abandoned',
-    updated_at: new Date().toISOString()
-  });
+  const existing = await getIntakeSession(id);
+  const protectedStatuses = new Set(['complete', 'privacy_review_required']);
+  if (!protectedStatuses.has(existing?.status)) {
+    await updateIntakeSession(id, {
+      status: 'abandoned',
+      updated_at: new Date().toISOString()
+    });
+  }
   return { status: 200, body: { deleted: true } };
 }
 

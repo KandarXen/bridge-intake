@@ -2090,7 +2090,7 @@
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag" id="header-tag">Business Discovery Session</span>
-      <span class="header-version">v1.72.17</span>
+      <span class="header-version">v1.72.20</span>
   </div>
 </header>
 
@@ -5199,7 +5199,8 @@ function buildPrivacyScanText() {
   const answerForPrivacyScan = (question, value) => {
     const answer = String(value || '').trim();
     if (!answer) return '';
-    if (question?.domain === 'Risk & Boundaries' || question?.type === 'Do Not Automate') {
+    const boundaryQuestion = /risk|boundary|human review|do not automate|should ai absolutely not touch/i.test(`${question?.domain || ''} ${question?.type || ''} ${question?.text || ''}`);
+    if (boundaryQuestion) {
       return answer.replace(boundaryCategoryPattern, '[BOUNDARY_CATEGORY]');
     }
     return answer;
@@ -5676,6 +5677,7 @@ maybeContinueDeepInterviewFromLink().then(handled => {
 </script>
 </body>
 </html>
+
 
 
 

@@ -1,10 +1,12 @@
 {
   "cleanUrls": true,
+  "redirects": [
+    { "source": "/afpa", "destination": "/AFPA", "permanent": false }
+  ],
   "rewrites": [
     { "source": "/", "destination": "/index.html" },
     { "source": "/full", "destination": "/index.html" },
     { "source": "/AFPA", "destination": "/index.html" },
-    { "source": "/afpa", "destination": "/index.html" },
     { "source": "/snapshot", "destination": "/index.html" },
     { "source": "/snapshot-first", "destination": "/index.html" },
     { "source": "/btai-console", "destination": "/btai-records-console.html" },

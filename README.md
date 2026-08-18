@@ -440,3 +440,18 @@ validate-output.js
 
 This release adds real static fallback files for /full, /AFPA, and /btai-console so the simple public URLs work even if Vercel rewrites are not applied on the custom domain. It keeps AFPA at 20 core questions with up to 5 adaptive clarification follow-ups and preserves privacy-safe abandonment/progress KPI logging.
 
+
+## v1.72.18 Lowercase AFPA Redirect
+
+This release makes /afpa redirect to /AFPA for people who type the AFPA member intake URL in lowercase. It includes both a Vercel redirect rule and a physical /afpa/index.html fallback redirect page.
+
+
+## v1.72.19 Scorecard Readability
+
+This release adjusts the snapshot scorecard rows and status pills so longer labels wrap cleanly and remain readable on /full and /AFPA.
+
+
+## v1.72.20 Privacy Gate Status Protection
+
+This release prevents draft autosave or unload cleanup from downgrading completed or privacy-review records back to draft/abandoned. It also makes report-pack retrieval surface a clear privacy-review-required state when Venture DNA generation was paused by the privacy gate, instead of reporting a misleading missing-output error.
+
