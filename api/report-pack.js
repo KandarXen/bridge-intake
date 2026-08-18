@@ -1,4 +1,4 @@
-﻿import { decryptJson, encryptJson } from '../lib/crypto.js';
+import { decryptJson, encryptJson } from '../lib/crypto.js';
 import { createDocxBuffer, createZipBuffer } from '../lib/docx.js';
 import { createReportHtml } from '../lib/report-html.js';
 import { getIntakeEvents, getIntakeSession, getLatestIntakeOutput, insertIntakeEvent, insertIntakeOutput, updateIntakeSession } from '../lib/supabase-rest.js';
@@ -6,7 +6,7 @@ import { gateProofDetails, publicGateSummary, runPrivacyGate } from '../lib/priv
 import { validateDnaOutput } from '../lib/validate-output.js';
 import { assertRateLimit, assertTrustedOrigin, authorizedAdminRequest, safeError } from '../lib/security.js';
 
-const APP_VERSION = 'v1.72.16';
+const APP_VERSION = 'v1.72.17';
 
 const REPORTS = {
   free: {
@@ -1929,6 +1929,7 @@ export default async function handler(req, res) {
     return safeError(res, err, 'Report-pack request failed');
   }
 }
+
 
 
 

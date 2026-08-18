@@ -435,3 +435,8 @@ validate-output.js
 ```
 
 
+
+## v1.72.17 Static Route Fallbacks
+
+This release adds real static fallback files for /full, /AFPA, and /btai-console so the simple public URLs work even if Vercel rewrites are not applied on the custom domain. It keeps AFPA at 20 core questions with up to 5 adaptive clarification follow-ups and preserves privacy-safe abandonment/progress KPI logging.
+

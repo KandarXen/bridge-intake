@@ -1,25 +1,22 @@
-Bridge To AI Intake - GitHub Deploy Files
-Created: 2026-08-18 12:27:46 -06:00
+Bridge To AI Intake v1.72.17 - Route Fix GitHub Deploy Files
+Created: 2026-08-18 12:37:01 -06:00
 Source repo: I:\01_BUSINESS\Bridge To AI\INTAKE_Interview_Program_ FILES\Codex_Working_Files\tmp\bridge-intake-github-sync
 Source branch: main
-Base/source commit before local deploy bundle: c56fb36
+Source commit: c56fb36
 
-Include these files in GitHub:
-- README.md
-- vercel.json
-- index.html
-- SUPABASE_SETUP.sql
-- api/hermes-log.js
-- api/interview-ai.js
-- api/partner-aggregate.js
+Troubleshooting result:
+- Live /snapshot and /btai-records-console worked because they have real static HTML files.
+- Live /full, /AFPA, and /btai-console returned 404 because they depended on Vercel rewrite routing.
+- This bundle adds physical static fallback files:
+  - full.html for /full
+  - AFPA.html for /AFPA
+  - btai-console.html for /btai-console
 
-Purpose:
-- Adds simple intake routes /full, /AFPA, /afpa, and /btai-console.
-- Keeps AFPA at 20 fixed core questions.
-- Adds up to 5 adaptive clarification redirects for weak/vague answers.
-- Adds privacy-safe abandonment/progress KPI logging.
-- Updates partner aggregate report fields.
-- Updates Supabase setup view definition to expose progress/adaptive KPI columns.
+Also included:
+- AFPA 20 fixed core questions.
+- Up to 5 adaptive clarification redirects for weak/vague AFPA answers.
+- Privacy-safe abandonment/progress KPI logging.
+- Supabase KPI view definition update.
+- Report pack app version bumped to v1.72.17.
 
-Note:
-The live Supabase KPI view has already been updated separately. This zip is for GitHub/Vercel source deployment.
+Upload these files into GitHub at their matching paths.

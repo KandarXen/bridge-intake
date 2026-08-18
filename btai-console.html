@@ -1,0 +1,1511 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BTAI Admin Retrieval And Reports</title>
+  <style>
+    :root {
+      --green: #0d6e5e;
+      --green-dark: #095a4d;
+      --ink: #171717;
+      --muted: #6f7378;
+      --line: #d9d6cf;
+      --paper: #f6f5f1;
+      --warn: #8a5b00;
+      --soft: #f1efe9;
+      --ok: #127c45;
+      --white: #fff;
+    }
+    * { box-sizing: border-box; }
+    html { height: 100%; }
+    body {
+      margin: 0;
+      height: 100%;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+      padding: 4px;
+      overflow: hidden;
+    }
+    main {
+      width: min(1580px, 100%);
+      height: calc(100vh - 8px);
+      margin: 0 auto;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.05);
+      display: grid;
+      grid-template-rows: auto auto auto minmax(0, 1fr);
+      gap: 6px;
+      overflow: hidden;
+    }
+    .admin-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: flex-start;
+      margin-bottom: 0;
+    }
+    .admin-header p {
+      max-width: 760px;
+      margin-bottom: 0;
+      font-size: .82rem;
+    }
+    .version-pill {
+      flex: 0 0 auto;
+      border: 1px solid #cfe2dc;
+      background: #f1faf7;
+      color: var(--green-dark);
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: .78rem;
+      font-weight: 800;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+    h1 {
+      margin: 0 0 2px;
+      font-size: 1.18rem;
+      letter-spacing: 0;
+    }
+    h2 {
+      margin: 0 0 6px;
+      font-size: .96rem;
+      letter-spacing: .01em;
+    }
+    p {
+      margin: 0 0 6px;
+      color: var(--muted);
+      line-height: 1.3;
+      font-size: .8rem;
+    }
+    label {
+      display: block;
+      font-weight: 650;
+      margin: 7px 0 4px;
+      font-size: .8rem;
+    }
+    input,
+    select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 6px 8px;
+      font-size: .86rem;
+      background: #fff;
+      min-height: 32px;
+    }
+    .inline-option {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin-top: 8px;
+      color: #374151;
+      font-size: .82rem;
+      line-height: 1.35;
+    }
+    .inline-option input {
+      width: auto;
+      min-height: auto;
+      flex: 0 0 auto;
+      margin: 1px 0 0;
+      accent-color: var(--green);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .record-strip {
+      display: grid;
+      grid-template-columns: minmax(360px, 520px) 220px 230px;
+      gap: 6px;
+      margin: 0;
+    }
+    .auth-locked {
+      display: none !important;
+    }
+    .console-grid {
+      display: grid;
+      grid-template-columns: minmax(330px, .86fr) minmax(420px, 1.1fr) minmax(410px, 1.05fr);
+      grid-template-rows: minmax(0, 1fr);
+      gap: 6px;
+      min-height: 0;
+      align-items: start;
+    }
+    .column-stack {
+      display: grid;
+      gap: 6px;
+      min-height: 0;
+      align-content: start;
+    }
+    .column-stack.fill {
+      grid-template-rows: auto minmax(0, 1fr);
+    }
+    button {
+      background: var(--green);
+      color: #fff;
+      border: 0;
+      border-radius: 6px;
+      padding: 6px 8px;
+      font-weight: 700;
+      cursor: pointer;
+      min-height: 27px;
+      font-size: .76rem;
+      line-height: 1.15;
+    }
+    button:hover { background: var(--green-dark); }
+    button:disabled {
+      opacity: .65;
+      cursor: wait;
+    }
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .secondary {
+      background: #fff;
+      color: var(--green);
+      border: 1px solid var(--green);
+    }
+    .secondary:hover {
+      background: #f0faf7;
+    }
+    .panel {
+      border: 1px solid var(--line);
+      background: var(--soft);
+      border-radius: 8px;
+      padding: 8px;
+      margin-top: 0;
+      min-width: 0;
+      box-shadow: 0 1px 0 rgba(255,255,255,.65) inset;
+    }
+    .panel h2:first-child {
+      margin-top: 0;
+    }
+    .record-strip label {
+      margin-top: 0;
+    }
+    .report-actions {
+      background: #fff;
+      border-color: #cfe2dc;
+      display: block;
+    }
+    .report-actions h2 {
+      text-align: left;
+      font-size: 1rem;
+      letter-spacing: .01em;
+    }
+    .report-actions > p {
+      text-align: left;
+      max-width: none;
+      margin-bottom: 6px;
+    }
+    .report-actions .inline-option {
+      align-items: flex-start;
+      gap: 7px;
+      margin-top: 7px;
+      margin-bottom: 8px;
+      font-size: .78rem;
+    }
+    .report-actions .inline-option input {
+      width: 14px;
+      height: 14px;
+      margin-top: 1px;
+    }
+    .report-action-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
+      align-items: start;
+      margin-top: 4px;
+      min-height: 0;
+      overflow: visible;
+      padding-right: 2px;
+    }
+    .action-stack {
+      display: grid;
+      gap: 4px;
+      border-top: 1px solid #e6e3dc;
+      padding-top: 6px;
+    }
+    .action-stack-title {
+      font-size: .74rem;
+      font-weight: 850;
+      color: var(--green-dark);
+      letter-spacing: .07em;
+      text-transform: uppercase;
+    }
+    .action-stack .button-row {
+      display: flex;
+      gap: 5px;
+      margin-top: 0;
+    }
+    .action-stack .button-row button {
+      flex: 1 1 112px;
+    }
+    .status-card {
+      background: #fff;
+      min-height: 190px;
+    }
+    .status-card .status {
+      margin-top: 0;
+      min-height: 0;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfbfa;
+      overflow: auto;
+      min-height: 150px;
+    }
+    .notice {
+      margin-top: 0;
+      border: 1px solid #ecd596;
+      background: #fff8e6;
+      color: var(--warn);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: .78rem;
+    }
+    .notice.admin-warning {
+      font-weight: 800;
+      letter-spacing: .03em;
+      text-align: center;
+      text-transform: none;
+    }
+    .status {
+      margin-top: 0;
+      white-space: pre-wrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .78rem;
+      color: #27313b;
+      line-height: 1.4;
+    }
+    .checklist {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 4px;
+      margin-top: 0;
+      color: var(--muted);
+      font-size: .76rem;
+    }
+    .status-chip {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      border: 1px solid #e4e0d8;
+      background: #fbfbfa;
+      border-radius: 6px;
+      padding: 4px 6px;
+    }
+    .status-chip span:first-child {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .status-chip span:last-child {
+      flex: 0 0 auto;
+      font-weight: 800;
+      color: #7b7f85;
+    }
+    .status-chip.ready span:last-child {
+      color: var(--ok);
+    }
+    .ready {
+      color: var(--ok);
+      font-weight: 700;
+    }
+    .timer-panel {
+      margin-top: 6px;
+      border: 1px solid #cfe2dc;
+      background: #f1faf7;
+      color: var(--green-dark);
+      border-radius: 8px;
+      padding: 6px 8px;
+      font-size: .78rem;
+      line-height: 1.45;
+      display: none;
+    }
+    .timer-panel.active {
+      display: block;
+    }
+    .timer-value {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-weight: 800;
+    }
+    .table-scroll {
+      margin-top: 6px;
+      overflow-x: auto;
+      overflow-y: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      display: none;
+      max-height: 330px;
+    }
+    .table-scroll.active {
+      display: block;
+    }
+    table {
+      width: 100%;
+      min-width: 980px;
+      border-collapse: collapse;
+      font-size: .76rem;
+    }
+    th, td {
+      padding: 6px 7px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #f8faf9;
+      color: var(--green-dark);
+      font-weight: 800;
+      position: sticky;
+      top: 0;
+      user-select: none;
+      white-space: nowrap;
+    }
+    th[data-sort] {
+      cursor: pointer;
+    }
+    th[data-sort]::after {
+      content: " -";
+      color: #9a9a9a;
+      font-weight: 700;
+    }
+    th.sorted-asc::after {
+      content: " up";
+      color: var(--green);
+    }
+    th.sorted-desc::after {
+      content: " down";
+      color: var(--green);
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .76rem;
+    }
+    .compact-index {
+      display: grid;
+      grid-template-columns: 84px 110px minmax(0, 1fr);
+      gap: 6px;
+    }
+    .index-meta {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: .76rem;
+    }
+    .privacy-proof-actions .technical-export {
+      opacity: .78;
+    }
+    .privacy-proof-actions .technical-export:hover {
+      opacity: 1;
+    }
+    .privacy-review {
+      border: 1px solid #f0c36a;
+      background: #fff8e6;
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-top: 10px;
+      font-size: .86rem;
+      line-height: 1.45;
+    }
+    .privacy-review strong { color: #7a4d00; }
+    .privacy-review textarea {
+      width: 100%;
+      min-height: 64px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font: inherit;
+      resize: vertical;
+      margin-top: 8px;
+    }
+    .empty-state {
+      margin-top: 6px;
+      border: 1px dashed #cfcac0;
+      background: #fbfaf7;
+      border-radius: 8px;
+      padding: 10px;
+      min-height: 110px;
+      color: var(--muted);
+      display: grid;
+      place-items: center;
+      text-align: center;
+      font-size: .8rem;
+      line-height: 1.35;
+    }
+    .empty-state strong {
+      display: block;
+      color: var(--ink);
+      margin-bottom: 4px;
+    }
+    .record-strip .panel {
+      padding: 7px 9px;
+    }
+    @media (max-width: 1050px) {
+      body { overflow: auto; }
+      main { height: auto; overflow: visible; }
+      .grid,
+      .record-strip,
+      .console-grid,
+      .report-action-layout { grid-template-columns: 1fr; }
+      .admin-header { flex-direction: column; }
+      button { width: 100%; }
+      .status-card .status,
+      .table-scroll { max-height: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="admin-header">
+      <div>
+        <h1>BTAI Records Console</h1>
+        <p>Retrieve secure intake records, generate reports, download privacy proof, and review partner aggregate intelligence from one admin-only dashboard.</p>
+      </div>
+      <div class="version-pill">v1.72.7</div>
+    </div>
+
+    <div id="admin-record-controls" class="record-strip auth-locked">
+      <section class="panel">
+        <label for="record-id">Record ID / clientDraftId</label>
+        <input id="record-id" autocomplete="off" placeholder="Paste the Record ID from the notification email">
+      </section>
+
+      <section class="panel">
+        <label for="admin-secret">Emergency admin secret fallback</label>
+        <input id="admin-secret" type="password" autocomplete="current-password" placeholder="Only if emergency fallback is enabled">
+      </section>
+
+      <section class="panel">
+        <label for="filename">Filename label for MD download (optional)</label>
+        <input id="filename" autocomplete="off" placeholder="Example_Client_Name">
+      </section>
+    </div>
+
+    <section class="panel">
+      <h2>Admin Sign-In</h2>
+      <p>Use a Supabase admin account with MFA. The emergency secret should be disabled for normal production use.</p>
+      <div class="record-strip">
+        <label for="admin-email">Email
+          <input id="admin-email" type="email" autocomplete="username" placeholder="admin@example.com">
+        </label>
+        <label for="admin-password">Password
+          <input id="admin-password" type="password" autocomplete="current-password">
+        </label>
+        <label for="admin-mfa-code">Authenticator code
+          <input id="admin-mfa-code" inputmode="numeric" autocomplete="one-time-code" placeholder="123456">
+        </label>
+      </div>
+      <div class="button-row">
+        <button id="admin-signin-btn" type="button">Sign In</button>
+        <button id="admin-reset-request-btn" class="secondary" type="button">Send Password Reset</button>
+        <button id="admin-enroll-mfa-btn" class="secondary" type="button">Set Up MFA</button>
+        <button id="admin-mfa-btn" class="secondary" type="button">Verify MFA</button>
+        <button id="admin-signout-btn" class="secondary" type="button">Sign Out</button>
+      </div>
+      <div id="mfa-enroll-panel" class="auth-locked" style="margin-top: 10px;">
+        <p>Scan this QR code with Microsoft Authenticator, Google Authenticator, 1Password, or Bitwarden. Then enter the 6-digit code above and click **Verify MFA**.</p>
+        <div id="mfa-qr-wrap" style="margin: 10px 0;"></div>
+        <div id="mfa-secret-wrap" class="status"></div>
+      </div>
+      <div id="password-reset-panel" class="auth-locked" style="margin-top: 10px;">
+        <div class="record-strip">
+          <label for="admin-new-password">New password
+            <input id="admin-new-password" type="password" autocomplete="new-password" placeholder="At least 12 characters">
+          </label>
+          <label for="admin-new-password-confirm">Confirm password
+            <input id="admin-new-password-confirm" type="password" autocomplete="new-password">
+          </label>
+          <div style="align-self:end;">
+            <button id="admin-update-password-btn" type="button">Set New Password</button>
+          </div>
+        </div>
+      </div>
+      <div id="admin-auth-status" class="status">Not signed in.</div>
+    </section>
+
+    <div class="notice admin-warning">Do not share this page, admin tokens, or emergency secrets. Files are decrypted only after the server verifies an MFA-backed admin account or an explicitly enabled emergency fallback.</div>
+
+    <div id="admin-console-grid" class="console-grid auth-locked">
+      <section class="panel report-actions">
+        <h2>Report Actions</h2>
+        <p>Generate reports from the encrypted Venture DNA record. The raw Venture DNA markdown is not included in the ZIP.</p>
+        <label for="report-format">Report output format</label>
+        <select id="report-format">
+          <option value="html" selected>HTML only - fastest, cleanest ZIP</option>
+          <option value="md">Markdown only - editable text</option>
+          <option value="docx">DOCX only - Word files</option>
+          <option value="html,md">HTML + Markdown</option>
+          <option value="html,docx">HTML + DOCX</option>
+          <option value="html,docx,md">HTML + DOCX + Markdown</option>
+        </select>
+        <label class="inline-option" for="force-regenerate">
+          <input id="force-regenerate" type="checkbox">
+          Regenerate instead of reusing stored reports.
+        </label>
+        <div class="report-action-layout">
+          <div class="action-stack">
+            <div class="action-stack-title">Pack</div>
+            <div class="button-row">
+              <button id="generate-all-btn" type="button">Generate Pack</button>
+              <button id="download-zip-btn" class="secondary" type="button">Download ZIP</button>
+            </div>
+          </div>
+          <div class="action-stack">
+            <div class="action-stack-title">Single Reports</div>
+            <div class="button-row">
+              <button data-tier="free" class="secondary" type="button">Free Snapshot</button>
+              <button data-tier="detailed" class="secondary" type="button">Detailed Report</button>
+              <button data-tier="roadmap" class="secondary" type="button">Action Plan</button>
+              <button data-tier="btai" class="secondary" type="button">Advisor Brief</button>
+            </div>
+          </div>
+          <div class="action-stack">
+            <div class="action-stack-title">Utilities</div>
+            <div class="button-row">
+              <button id="download-md-btn" class="secondary" type="button">Venture DNA .md</button>
+              <button id="refresh-status-btn" class="secondary" type="button">Report Status</button>
+              <button id="send-free-report-btn" class="secondary" type="button">Send Free Email</button>
+            </div>
+          </div>
+          <div class="action-stack">
+            <div class="action-stack-title">Status</div>
+            <div id="report-status" class="checklist">
+              <div class="status-chip"><span>Free Snapshot</span><span>unknown</span></div>
+              <div class="status-chip"><span>Detailed Report</span><span>unknown</span></div>
+              <div class="status-chip"><span>Action Plan</span><span>unknown</span></div>
+              <div class="status-chip"><span>Advisor Brief</span><span>unknown</span></div>
+              <div class="status-chip"><span>ZIP</span><span>unknown</span></div>
+            </div>
+          </div>
+        </div>
+        <div id="timer-panel" class="timer-panel">
+          <div id="timer-message">Working...</div>
+          <div>Elapsed: <span id="timer-value" class="timer-value">0s</span></div>
+        </div>
+        <div class="privacy-review" id="privacy-review-panel" style="display:none;">
+          <strong>Privacy Gate review required</strong>
+          <div id="privacy-review-summary" style="margin-top:6px;"></div>
+          <textarea id="privacy-review-note" placeholder="Review note: continue using sanitized AI payload only."></textarea>
+          <div class="button-row" style="margin-top:8px;">
+            <button id="approve-privacy-gate-btn" class="secondary" type="button">Approve Sanitized Continuation</button>
+          </div>
+        </div>
+      </section>
+
+      <div class="column-stack fill">
+        <section class="panel">
+          <h2>Privacy Proof</h2>
+          <p>Use the certificates for people. Keep JSON for technical audit or troubleshooting.</p>
+          <div class="button-row privacy-proof-actions">
+            <button id="privacy-brief-btn" class="secondary" type="button">Brief Certificate</button>
+            <button id="privacy-detailed-btn" class="secondary" type="button">Detailed Attestation</button>
+            <button id="privacy-proof-btn" class="secondary technical-export" type="button" title="Technical machine-readable audit evidence">Raw JSON Audit</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Interview Index</h2>
+          <p>Load recent records. Click a row to copy the Record ID into the retrieval field.</p>
+          <div class="compact-index">
+            <div>
+              <label for="index-days">Days</label>
+              <input id="index-days" type="number" min="1" max="1095" value="120">
+            </div>
+            <div>
+              <label for="index-status">Status</label>
+              <input id="index-status" autocomplete="off" value="all" placeholder="all, complete, draft">
+            </div>
+            <div>
+              <label for="index-search">Search</label>
+              <input id="index-search" autocomplete="off" placeholder="Client, business, email, category, Record ID">
+            </div>
+          </div>
+          <div class="button-row">
+            <button id="load-record-index-btn" class="secondary" type="button">Load Index</button>
+            <button id="refresh-record-index-btn" type="button">Refresh</button>
+            <button id="download-record-index-csv-btn" class="secondary" type="button">CSV</button>
+          </div>
+          <div id="record-index-empty" class="empty-state">
+            <div>
+              <strong>No index loaded yet.</strong>
+              Load recent records, then click any row to fill the Record ID automatically.
+            </div>
+          </div>
+          <div id="record-index-meta" class="index-meta">Index not loaded.</div>
+          <div id="record-index-wrap" class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th data-sort="businessName">Business</th>
+                  <th data-sort="clientName">Client</th>
+                  <th data-sort="clientEmail">Email</th>
+                  <th data-sort="businessCategory">Category</th>
+                  <th data-sort="status">Status</th>
+                  <th data-sort="partner">Partner</th>
+                  <th data-sort="recordId">Record ID</th>
+                  <th data-sort="updatedAt">Updated</th>
+                </tr>
+              </thead>
+              <tbody id="record-index-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <div class="column-stack fill">
+        <section class="panel">
+          <h2>Partner Aggregate Intelligence</h2>
+          <p>Privacy-safe partner reports from KPI/event metadata only. No raw interviews, names, emails, or individual answers.</p>
+          <div class="grid">
+            <div>
+              <label for="partner-code">Partner</label>
+              <input id="partner-code" autocomplete="off" value="AFPA">
+            </div>
+            <div>
+              <label for="campaign-code">Campaign</label>
+              <input id="campaign-code" autocomplete="off" value="all" placeholder="all, demo, december-course">
+            </div>
+          </div>
+          <label for="aggregate-days">Lookback days</label>
+          <input id="aggregate-days" type="number" min="1" max="1095" value="120">
+          <div class="button-row">
+            <button id="download-aggregate-html-btn" type="button">Partner HTML</button>
+            <button id="download-aggregate-md-btn" class="secondary" type="button">Partner Markdown</button>
+          </div>
+        </section>
+
+        <section class="panel status-card">
+          <h2>Console Output</h2>
+          <div id="status" class="status">Ready. Choose a Record ID, confirm the admin secret, then run an action.</div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const reportStatusEl = document.getElementById('report-status');
+    const timerPanel = document.getElementById('timer-panel');
+    const timerMessage = document.getElementById('timer-message');
+    const timerValue = document.getElementById('timer-value');
+    const privacyReviewPanel = document.getElementById('privacy-review-panel');
+    const privacyReviewSummary = document.getElementById('privacy-review-summary');
+    const buttons = Array.from(document.querySelectorAll('button'));
+    let lastPrivacyGatePurpose = 'all';
+    const recordIndexWrap = document.getElementById('record-index-wrap');
+    const recordIndexEmpty = document.getElementById('record-index-empty');
+    const recordIndexMeta = document.getElementById('record-index-meta');
+    const recordIndexSearch = document.getElementById('index-search');
+    const recordIndexBody = document.getElementById('record-index-body');
+    const recordIndexHeaders = Array.from(document.querySelectorAll('th[data-sort]'));
+    const adminAuthStatus = document.getElementById('admin-auth-status');
+    const adminRecordControls = document.getElementById('admin-record-controls');
+    const adminConsoleGrid = document.getElementById('admin-console-grid');
+    const passwordResetPanel = document.getElementById('password-reset-panel');
+    const mfaEnrollPanel = document.getElementById('mfa-enroll-panel');
+    const mfaQrWrap = document.getElementById('mfa-qr-wrap');
+    const mfaSecretWrap = document.getElementById('mfa-secret-wrap');
+    let adminAccessToken = sessionStorage.getItem('btaiAdminAccessToken') || '';
+    let adminRefreshToken = sessionStorage.getItem('btaiAdminRefreshToken') || '';
+    let adminMfaFactors = [];
+    let pendingMfaFactorId = '';
+    let timerStartedAt = 0;
+    let timerHandle = null;
+    let recordIndexRows = [];
+    let visibleRecordIndexRows = [];
+    let recordSort = { key: 'updatedAt', direction: 'desc' };
+
+    function setAdminUnlocked(isUnlocked) {
+      adminRecordControls.classList.toggle('auth-locked', !isUnlocked);
+      adminConsoleGrid.classList.toggle('auth-locked', !isUnlocked);
+      if (!isUnlocked) {
+        statusEl.textContent = 'Admin controls locked. Sign in with Supabase admin MFA.';
+      } else {
+        statusEl.textContent = 'Ready. Choose a Record ID, then run an admin action.';
+      }
+    }
+
+    function loadRecoveryTokenFromUrl() {
+      const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      const query = new URLSearchParams(window.location.search);
+      const token = hash.get('access_token') || query.get('access_token') || '';
+      const type = hash.get('type') || query.get('type') || '';
+      if (!token || type !== 'recovery') return false;
+      adminAccessToken = token;
+      sessionStorage.setItem('btaiAdminAccessToken', adminAccessToken);
+      passwordResetPanel.classList.remove('auth-locked');
+      adminAuthStatus.textContent = 'Password reset link accepted. Enter a new password below.';
+      history.replaceState(null, '', '/btai-records-console');
+      return true;
+    }
+
+    function formatMs(ms) {
+      const n = Number(ms);
+      if (!Number.isFinite(n) || n < 0) return 'not recorded';
+      const seconds = Math.round(n / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const remainder = seconds % 60;
+      return minutes ? `${minutes}m ${remainder}s` : `${remainder}s`;
+    }
+
+    function startTimer(message) {
+      timerStartedAt = Date.now();
+      timerMessage.textContent = message || 'Working...';
+      timerValue.textContent = '0s';
+      timerPanel.classList.add('active');
+      if (timerHandle) clearInterval(timerHandle);
+      timerHandle = setInterval(() => {
+        timerValue.textContent = formatMs(Date.now() - timerStartedAt);
+      }, 1000);
+    }
+
+    function stopTimer() {
+      const elapsed = timerStartedAt ? Date.now() - timerStartedAt : 0;
+      if (timerHandle) clearInterval(timerHandle);
+      timerHandle = null;
+      if (timerStartedAt) {
+        timerValue.textContent = formatMs(elapsed);
+        timerMessage.textContent = `Ready. Last action took ${formatMs(elapsed)}.`;
+      }
+      timerStartedAt = 0;
+      return elapsed;
+    }
+
+    function formValues() {
+      const recordInput = document.getElementById('record-id');
+      const cleanRecordId = recordInput.value.trim();
+      if (recordInput.value !== cleanRecordId) recordInput.value = cleanRecordId;
+      return {
+        clientDraftId: cleanRecordId,
+        adminSecret: document.getElementById('admin-secret').value,
+        adminAccessToken,
+        filename: document.getElementById('filename').value.trim(),
+        formats: document.getElementById('report-format')?.value || 'html'
+      };
+    }
+
+    function hasAdminAuth(values = formValues()) {
+      return !!(values.adminAccessToken || values.adminSecret);
+    }
+
+    function requireBasics() {
+      const values = formValues();
+      if (!values.clientDraftId || !hasAdminAuth(values)) {
+        statusEl.textContent = 'Record ID and admin authentication are required.';
+        return null;
+      }
+      return values;
+    }
+
+    function forceRegenerate() {
+      return !!document.getElementById('force-regenerate')?.checked;
+    }
+
+    function setBusy(isBusy, message) {
+      buttons.forEach(button => { button.disabled = isBusy; });
+      if (isBusy && message) {
+        statusEl.textContent = message;
+        startTimer(message.split('\n')[0]);
+      }
+      if (!isBusy) stopTimer();
+    }
+
+    function downloadText(filename, text) {
+      const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
+      downloadBlob(filename, blob);
+    }
+
+    function downloadHtml(filename, html) {
+      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+      downloadBlob(filename, blob);
+    }
+
+    function csvEscape(value) {
+      const text = String(value ?? '');
+      return `"${text.replace(/"/g, '""')}"`;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function downloadCsv(filename, rows) {
+      const headers = ['businessName', 'clientName', 'clientEmail', 'businessCategory', 'businessNiche', 'status', 'partner', 'campaign', 'recordId', 'createdAt', 'updatedAt'];
+      const lines = [headers.join(',')].concat(rows.map(row => headers.map(header => csvEscape(row[header] || '')).join(',')));
+      downloadBlob(filename, new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' }));
+    }
+
+    function valueForSort(row, key) {
+      if (key === 'updatedAt') return String(row.updatedAt || row.createdAt || '').toLowerCase();
+      if (key === 'partner') return `${row.partner || ''} ${row.campaign || ''}`.toLowerCase();
+      if (key === 'businessCategory') return `${row.businessCategory || ''} ${row.businessNiche || ''}`.toLowerCase();
+      return String(row[key] || '').toLowerCase();
+    }
+
+    function rowMatchesSearch(row, query) {
+      if (!query) return true;
+      const haystack = [
+        row.businessName,
+        row.clientName,
+        row.clientEmail,
+        row.businessCategory,
+        row.businessNiche,
+        row.status,
+        row.partner,
+        row.campaign,
+        row.recordId,
+        row.updatedAt,
+        row.createdAt
+      ].map(value => String(value || '').toLowerCase()).join(' ');
+      return haystack.includes(query);
+    }
+
+    function renderRecordIndex() {
+      const query = String(recordIndexSearch?.value || '').trim().toLowerCase();
+      visibleRecordIndexRows = recordIndexRows
+        .filter(row => rowMatchesSearch(row, query))
+        .sort((a, b) => {
+          const av = valueForSort(a, recordSort.key);
+          const bv = valueForSort(b, recordSort.key);
+          const compared = av.localeCompare(bv, undefined, { numeric: true, sensitivity: 'base' });
+          return recordSort.direction === 'asc' ? compared : -compared;
+        });
+
+      recordIndexHeaders.forEach(header => {
+        const active = header.dataset.sort === recordSort.key;
+        header.classList.toggle('sorted-asc', active && recordSort.direction === 'asc');
+        header.classList.toggle('sorted-desc', active && recordSort.direction === 'desc');
+      });
+
+      recordIndexBody.innerHTML = visibleRecordIndexRows.map((row, index) => `
+        <tr data-index="${index}" title="Click to use this Record ID">
+          <td>${escapeHtml(row.businessName)}</td>
+          <td>${escapeHtml(row.clientName)}</td>
+          <td>${escapeHtml(row.clientEmail)}</td>
+          <td>${escapeHtml(row.businessCategory)}${row.businessNiche && row.businessNiche !== 'Not captured' ? `<br><span style="color:#6f7378;">${escapeHtml(row.businessNiche)}</span>` : ''}</td>
+          <td>${escapeHtml(row.status)}</td>
+          <td>${escapeHtml(row.partner)}<br><span style="color:#6f7378;">${escapeHtml(row.campaign)}</span></td>
+          <td><code>${escapeHtml(row.recordId)}</code></td>
+          <td>${escapeHtml(row.updatedAt || row.createdAt)}</td>
+        </tr>
+      `).join('');
+
+      const hasLoadedRows = recordIndexRows.length > 0;
+      recordIndexWrap.classList.toggle('active', hasLoadedRows);
+      recordIndexEmpty.style.display = hasLoadedRows ? 'none' : 'grid';
+      recordIndexMeta.textContent = hasLoadedRows
+        ? `Showing ${visibleRecordIndexRows.length} of ${recordIndexRows.length} loaded records${query ? ` for "${recordIndexSearch.value.trim()}"` : ''}. Click a column header to sort.`
+        : 'Index not loaded.';
+    }
+
+    function downloadZip(filename, contentBase64) {
+      if (!contentBase64) throw new Error('ZIP content was not returned by the server.');
+      try {
+        const binary = atob(contentBase64);
+        const chunks = [];
+        for (let offset = 0; offset < binary.length; offset += 32768) {
+          const slice = binary.slice(offset, offset + 32768);
+          const bytes = new Uint8Array(slice.length);
+          for (let i = 0; i < slice.length; i += 1) bytes[i] = slice.charCodeAt(i);
+          chunks.push(bytes);
+        }
+        downloadBlob(filename || 'BTAI_Report_Pack.zip', new Blob(chunks, { type: 'application/zip' }));
+      } catch (err) {
+        throw new Error(`Could not decode ZIP download: ${err.message}`);
+      }
+    }
+
+    function downloadBlob(filename, blob) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    async function postJson(url, body, adminSecret) {
+      const headers = { 'Content-Type': 'application/json' };
+      if (adminAccessToken) headers.Authorization = `Bearer ${adminAccessToken}`;
+      if (adminSecret) headers['x-btai-admin-secret'] = adminSecret;
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body)
+      });
+      const raw = await resp.text();
+      let data = {};
+      try {
+        data = raw ? JSON.parse(raw) : {};
+      } catch (err) {
+        const summary = raw ? raw.slice(0, 500) : 'No response body returned.';
+        throw new Error(`Request failed with HTTP ${resp.status}. Server returned non-JSON output: ${summary}`);
+      }
+      if (!resp.ok || data.success === false || data.error) {
+        const err = new Error(data.message || data.error || `Request failed with HTTP ${resp.status}`);
+        err.data = data;
+        throw err;
+      }
+      return data;
+    }
+
+    function showPrivacyGateReview(data) {
+      const gate = data?.privacyGate;
+      if (!gate) return false;
+      lastPrivacyGatePurpose = gate.purpose || 'all';
+      const categories = gate.summary?.categories || {};
+      const categoryText = Object.keys(categories).length
+        ? Object.entries(categories).map(([key, count]) => `${key}: ${count}`).join(', ')
+        : 'none';
+      privacyReviewSummary.innerHTML = `
+        <div>Purpose: <strong>${gate.purpose || 'unknown'}</strong></div>
+        <div>Decision: <strong>${gate.decision || 'unknown'}</strong></div>
+        <div>Risk level: <strong>${gate.summary?.riskLevel || 'unknown'}</strong></div>
+        <div>Findings: ${gate.summary?.findingCount || 0}; high risk: ${gate.summary?.highRiskCount || 0}; medium risk: ${gate.summary?.mediumRiskCount || 0}</div>
+        <div>Categories: ${categoryText}</div>
+        <div style="margin-top:6px;">Generation is paused until an admin approves continuation using the sanitized payload.</div>
+      `;
+      privacyReviewPanel.style.display = 'block';
+      return true;
+    }
+
+    function setAdminTokens(data = {}) {
+      if (data.accessToken) {
+        adminAccessToken = data.accessToken;
+        sessionStorage.setItem('btaiAdminAccessToken', adminAccessToken);
+      }
+      if (data.refreshToken) {
+        adminRefreshToken = data.refreshToken;
+        sessionStorage.setItem('btaiAdminRefreshToken', adminRefreshToken);
+      }
+    }
+
+    function clearAdminTokens() {
+      adminAccessToken = '';
+      adminRefreshToken = '';
+      adminMfaFactors = [];
+      pendingMfaFactorId = '';
+      sessionStorage.removeItem('btaiAdminAccessToken');
+      sessionStorage.removeItem('btaiAdminRefreshToken');
+    }
+
+    function qrImageSrc(qrCode) {
+      const raw = String(qrCode || '').trim();
+      if (!raw) return '';
+      if (/^data:/i.test(raw)) return raw;
+      if (/^<svg/i.test(raw)) return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(raw)}`;
+      return raw;
+    }
+
+    async function adminSession(action, body = {}) {
+      const headers = { 'Content-Type': 'application/json' };
+      if (adminAccessToken) headers.Authorization = `Bearer ${adminAccessToken}`;
+      const resp = await fetch('/api/admin-session', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ action, ...body })
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok || data.error) throw new Error(data.error || data.message || `Admin auth failed with HTTP ${resp.status}`);
+      return data;
+    }
+
+    async function refreshAdminAuthStatus() {
+      if (!adminAccessToken) {
+        adminAuthStatus.textContent = 'Not signed in.';
+        setAdminUnlocked(false);
+        return;
+      }
+      try {
+        const data = await adminSession('check');
+        setAdminUnlocked(!!data.authorized);
+        adminAuthStatus.textContent = data.authorized
+          ? 'Signed in with Supabase admin MFA.'
+          : 'Signed in, but MFA/admin authorization is not complete.';
+      } catch (err) {
+        setAdminUnlocked(false);
+        adminAuthStatus.textContent = `Admin session check failed: ${err.message}`;
+      }
+    }
+
+    function friendlyAdminError(message = '') {
+      const text = String(message || '').trim();
+      if (/Report quality gate failed/i.test(text) && /missing_expected_final_section/i.test(text)) {
+        return `${text}\n\nMeaning: the report generated, but the completion validator did not find the required final section. In v1.72.7 the server attempts one repair pass, then adds a safe deterministic closing section when the only remaining issue is an incomplete or missing final section. Retry this report after deploying the current build.`;
+      }
+      if (/No client email found/i.test(text)) {
+        return `${text}\n\nMeaning: the secure intake session does not contain a client email address, so the free report cannot be emailed automatically.`;
+      }
+      if (/Client email does not match/i.test(text)) {
+        return `${text}\n\nMeaning: the browser/request email does not match the email stored inside the secure intake session.`;
+      }
+      if (/Supabase Auth|auth\/v1|Invalid login credentials|Email not confirmed|SUPABASE_ANON_KEY|Supabase Auth is not configured|Could not reach Supabase Auth/i.test(text)) {
+        return `${text}\n\nMeaning: the admin sign-in request reached the server, but Supabase Auth could not complete it. Check the admin password first, then confirm SUPABASE_URL and SUPABASE_ANON_KEY are set in Vercel for Production and that the site was redeployed after the env changes.`;
+      }
+      if (/Supabase/i.test(text)) {
+        return `${text}\n\nMeaning: the secure storage layer did not respond as expected. Check Vercel environment variables and Supabase availability.`;
+      }
+      return text || 'Unknown admin console error.';
+    }
+
+    document.getElementById('admin-signin-btn').addEventListener('click', async () => {
+      const email = document.getElementById('admin-email').value.trim();
+      const password = document.getElementById('admin-password').value;
+      const code = document.getElementById('admin-mfa-code').value.trim();
+      adminAuthStatus.textContent = 'Signing in...';
+      try {
+        const data = await adminSession('sign-in', { email, password });
+        setAdminTokens(data);
+        if (data.mfaRequired) {
+          if (code) {
+            adminAuthStatus.textContent = 'Password accepted. Verifying MFA code...';
+            const verified = await adminSession('verify-mfa', { code });
+            setAdminTokens(verified);
+            await refreshAdminAuthStatus();
+            return;
+          }
+          const factorData = await adminSession('factors');
+          adminMfaFactors = factorData.factors || [];
+          adminAuthStatus.textContent = adminMfaFactors.length
+            ? 'Password accepted. Enter your authenticator code and click Verify MFA.'
+            : factorData.warning
+              ? 'Password accepted. Supabase did not return a verified MFA factor list, so click Set Up MFA to create an authenticator QR code.'
+              : 'Password accepted, but no verified MFA factor was found. Click Set Up MFA to create an authenticator QR code.';
+        } else {
+          adminAuthStatus.textContent = 'Signed in with Supabase admin MFA.';
+        }
+      } catch (err) {
+        clearAdminTokens();
+        adminAuthStatus.textContent = `Sign-in failed: ${friendlyAdminError(err.message)}`;
+      }
+    });
+
+    document.getElementById('admin-reset-request-btn').addEventListener('click', async () => {
+      const email = document.getElementById('admin-email').value.trim();
+      if (!email) {
+        adminAuthStatus.textContent = 'Enter your admin email first, then request a reset.';
+        return;
+      }
+      adminAuthStatus.textContent = 'Requesting password reset email...';
+      try {
+        const data = await adminSession('request-password-reset', { email });
+        adminAuthStatus.textContent = data.message || 'If this email is authorized, a password reset link has been sent.';
+      } catch (err) {
+        adminAuthStatus.textContent = `Password reset request failed: ${friendlyAdminError(err.message)}`;
+      }
+    });
+
+    document.getElementById('admin-update-password-btn').addEventListener('click', async () => {
+      const password = document.getElementById('admin-new-password').value;
+      const confirm = document.getElementById('admin-new-password-confirm').value;
+      if (password !== confirm) {
+        adminAuthStatus.textContent = 'New password and confirmation do not match.';
+        return;
+      }
+      adminAuthStatus.textContent = 'Updating password...';
+      try {
+        await adminSession('update-password', { password });
+        document.getElementById('admin-new-password').value = '';
+        document.getElementById('admin-new-password-confirm').value = '';
+        passwordResetPanel.classList.add('auth-locked');
+        clearAdminTokens();
+        adminAuthStatus.textContent = 'Password updated. Sign in with the new password.';
+      } catch (err) {
+        adminAuthStatus.textContent = `Password update failed: ${friendlyAdminError(err.message)}`;
+      }
+    });
+
+    document.getElementById('admin-enroll-mfa-btn').addEventListener('click', async () => {
+      if (!adminAccessToken) {
+        adminAuthStatus.textContent = 'Sign in with email and password before setting up MFA.';
+        return;
+      }
+      adminAuthStatus.textContent = 'Creating MFA setup QR code...';
+      try {
+        const data = await adminSession('enroll-mfa');
+        if (data.alreadyEnrolled) {
+          adminMfaFactors = data.factors || [];
+          adminAuthStatus.textContent = data.message || 'MFA is already enrolled. Enter the current authenticator code and click Verify MFA.';
+          return;
+        }
+        pendingMfaFactorId = data.factorId || '';
+        const src = qrImageSrc(data.qrCode);
+        mfaQrWrap.innerHTML = src
+          ? `<img alt="Authenticator QR code" src="${src}" style="width: 190px; height: 190px; background: white; border: 1px solid #d7d1c4; border-radius: 8px; padding: 8px;">`
+          : '';
+        mfaSecretWrap.textContent = data.secret ? `Manual setup secret: ${data.secret}` : 'QR code created. Scan it with your authenticator app.';
+        mfaEnrollPanel.classList.remove('auth-locked');
+        adminAuthStatus.textContent = 'Scan the QR code, then enter the 6-digit authenticator code and click Verify MFA.';
+      } catch (err) {
+        adminAuthStatus.textContent = `MFA setup failed: ${friendlyAdminError(err.message)}`;
+      }
+    });
+
+    document.getElementById('admin-mfa-btn').addEventListener('click', async () => {
+      const code = document.getElementById('admin-mfa-code').value.trim();
+      const factorId = pendingMfaFactorId || adminMfaFactors[0]?.id || '';
+      if (!code) {
+        adminAuthStatus.textContent = 'Enter the 6-digit authenticator code first.';
+        return;
+      }
+      adminAuthStatus.textContent = 'Verifying MFA...';
+      try {
+        const data = await adminSession('verify-mfa', { factorId, code });
+        setAdminTokens(data);
+        pendingMfaFactorId = '';
+        mfaEnrollPanel.classList.add('auth-locked');
+        await refreshAdminAuthStatus();
+      } catch (err) {
+        adminAuthStatus.textContent = `MFA failed: ${friendlyAdminError(err.message)}`;
+      }
+    });
+
+    document.getElementById('admin-signout-btn').addEventListener('click', () => {
+      clearAdminTokens();
+      document.getElementById('admin-password').value = '';
+      document.getElementById('admin-mfa-code').value = '';
+      setAdminUnlocked(false);
+      adminAuthStatus.textContent = 'Signed out.';
+    });
+
+    async function refreshReportStatus(silent) {
+      const values = requireBasics();
+      if (!values) return;
+      if (!silent) setBusy(true, 'Checking report status...');
+      try {
+        const data = await postJson('/api/report-pack', {
+          action: 'status',
+          clientDraftId: values.clientDraftId
+        }, values.adminSecret);
+        const s = data.status || {};
+        const t = s.timings || {};
+        const f = s.formats || {};
+        const formatNote = (tier) => {
+          const formats = f[tier] || {};
+          const ready = [];
+          if (formats.html) ready.push('HTML');
+          if (formats.docx) ready.push('DOCX');
+          if (formats.md) ready.push('MD');
+          if (ready.length) return ` - ${ready.join(' + ')}`;
+          return '';
+        };
+        const statusChip = (label, ready, note, timing) => `
+          <div class="status-chip ${ready ? 'ready' : ''}">
+            <span>${label}</span>
+            <span>${ready ? `ready${note}${timing ? ` / ${formatMs(timing)}` : ''}` : 'missing'}</span>
+          </div>
+        `;
+        reportStatusEl.innerHTML = `
+          ${statusChip('Free Snapshot', s.free, formatNote('free'), t.free?.generationMs)}
+          ${statusChip('Detailed Report', s.detailed, formatNote('detailed'), t.detailed?.generationMs)}
+          ${statusChip('Action Plan', s.roadmap, formatNote('roadmap'), t.roadmap?.generationMs)}
+          ${statusChip('Advisor Brief', s.btai, formatNote('btai'), t.btai?.generationMs)}
+          ${statusChip('ZIP', s.zip, '', null)}
+        `;
+        if (!silent) statusEl.textContent = 'Report status updated.';
+      } catch (err) {
+        statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;
+      } finally {
+        if (!silent) setBusy(false);
+      }
+    }
+
+    document.getElementById('download-md-btn').addEventListener('click', async () => {
+      const values = requireBasics();
+      if (!values) return;
+      setBusy(true, 'Retrieving encrypted Venture DNA output...');
+      try {
+        const data = await postJson('/api/admin-output', {
+          clientDraftId: values.clientDraftId,
+          filename: values.filename
+        }, values.adminSecret);
+        downloadText(data.filename, data.dnaContent);
+        statusEl.textContent = `Downloaded ${data.filename}\nOutput ID: ${data.outputId}\nCreated: ${data.createdAt}`;
+      } catch (err) {
+        statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    document.getElementById('refresh-status-btn').addEventListener('click', () => refreshReportStatus(false));
+
+    async function loadRecordIndex() {
+      const values = formValues();
+      if (!hasAdminAuth(values)) {
+        statusEl.textContent = 'Admin authentication is required to load the interview index.';
+        return;
+      }
+      const days = document.getElementById('index-days').value || '120';
+      const status = document.getElementById('index-status').value.trim() || 'all';
+      setBusy(true, 'Loading recent interview records...');
+      try {
+        const data = await postJson('/api/admin-output', {
+          action: 'list-records',
+          days,
+          status,
+          limit: 200
+        }, values.adminSecret);
+        recordIndexRows = data.records || [];
+        renderRecordIndex();
+        const hiddenNote = data.hiddenRetiredLostKeyCount
+          ? `\nHidden retired_lost_key records: ${data.hiddenRetiredLostKeyCount}`
+          : '';
+        statusEl.textContent = `Loaded ${recordIndexRows.length} intake records.${hiddenNote}\nSearch by client, business, email, category, or Record ID. Click a row to copy its Record ID into the retrieval field.`;
+      } catch (err) {
+        statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    recordIndexBody.addEventListener('click', event => {
+      const rowEl = event.target.closest('tr[data-index]');
+      if (!rowEl) return;
+      const row = visibleRecordIndexRows[Number(rowEl.getAttribute('data-index'))];
+      if (!row) return;
+      document.getElementById('record-id').value = row.recordId || '';
+      document.getElementById('filename').value = row.businessName && row.businessName !== 'Not captured' ? row.businessName : row.clientName || '';
+      statusEl.textContent = `Selected Record ID:\n${row.recordId}\nBusiness: ${row.businessName || 'Not captured'}`;
+    });
+
+    document.getElementById('load-record-index-btn').addEventListener('click', loadRecordIndex);
+    document.getElementById('refresh-record-index-btn').addEventListener('click', loadRecordIndex);
+    recordIndexSearch.addEventListener('input', renderRecordIndex);
+    recordIndexHeaders.forEach(header => {
+      header.addEventListener('click', () => {
+        const key = header.dataset.sort;
+        if (recordSort.key === key) {
+          recordSort.direction = recordSort.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+          recordSort = { key, direction: key === 'updatedAt' ? 'desc' : 'asc' };
+        }
+        renderRecordIndex();
+      });
+    });
+    document.getElementById('download-record-index-csv-btn').addEventListener('click', () => {
+      const rows = visibleRecordIndexRows.length ? visibleRecordIndexRows : recordIndexRows;
+      if (!rows.length) {
+        statusEl.textContent = 'Load the interview index before downloading CSV.';
+        return;
+      }
+      downloadCsv(`BTAI_Interview_Index_${new Date().toISOString().slice(0, 10)}.csv`, rows);
+      statusEl.textContent = `Downloaded interview index CSV with ${rows.length} records.`;
+    });
+
+    document.getElementById('privacy-proof-btn').addEventListener('click', async () => {
+      const values = requireBasics();
+      if (!values) return;
+      setBusy(true, 'Building privacy proof summary from sanitized event logs...');
+      try {
+        const data = await postJson('/api/report-pack', {
+          action: 'privacy-proof-summary',
+          clientDraftId: values.clientDraftId
+        }, values.adminSecret);
+        const filename = `${values.filename || values.clientDraftId}_Privacy_Proof.json`.replace(/[^a-zA-Z0-9_.-]+/g, '_');
+        downloadText(filename, JSON.stringify(data.privacyProof, null, 2));
+        statusEl.textContent = `Downloaded ${filename}\nProof events: ${data.privacyProof?.proofEventCount || 0}\nEncrypted records confirmed: ${data.privacyProof?.encryptedRecordsConfirmed ? 'yes' : 'not yet'}\nAnonymized AI analysis confirmed: ${data.privacyProof?.anonymizedAiAnalysisConfirmed ? 'yes' : 'not yet'}\nRaw data shared with partner: ${data.privacyProof?.rawDataSharedWithPartner ? 'yes' : 'no'}`;
+      } catch (err) {
+        statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    async function downloadPrivacyCertificate(action, suffix) {
+      const values = requireBasics();
+      if (!values) return;
+      setBusy(true, `Building ${suffix} from sanitized privacy proof logs...`);
+      try {
+        const data = await postJson('/api/report-pack', {
+          action,
+          clientDraftId: values.clientDraftId
+        }, values.adminSecret);
+        const filename = `${values.filename || values.clientDraftId}_${suffix}.md`.replace(/[^a-zA-Z0-9_.-]+/g, '_');
+        downloadText(data.filename || filename, data.markdown || '');
+        statusEl.textContent = `Downloaded ${data.filename || filename}\nCertificate type: ${data.certificateType || suffix}`;
+      } catch (err) {
+        statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    document.getElementById('privacy-brief-btn').addEventListener('click', () => {
+      downloadPrivacyCertificate('privacy-certificate-brief', 'Brief_Privacy_Certificate');
+    });
+
+    document.getElementById('privacy-detailed-btn').addEventListener('click', () => {
+      downloadPrivacyCertificate('privacy-certificate-detailed', 'Detailed_Privacy_Attestation');
+    });
+
+    document.getElementById('approve-privacy-gate-btn').addEventListener('click', async () => {
+      const values = requireBasics();
+      if (!values) return;
+      setBusy(true, 'Approving Privacy Gate sanitized continuation...');
+      try {
+        const data = await postJson('/api/report-pack', {
+          action: 'approve-privacy-gate',
+          clientDraftId: values.clientDraftId,
+          purpose: lastPrivacyGatePurpose || 'all',
+          reviewNote: document.getElementById('privacy-review-note').value
+        }, values.adminSecret);
+        privacyReviewPanel.style.display = 'none';
+        statusEl.textContent = `Privacy Gate continuation approved.\nPurpose: ${data.purpose}\nApproval output: ${data.outputId}\nRerun the report generation action to continue with the sanitized payload.`;
+      } catch (err) {
+        statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    async function downloadAggregateReport(format) {
+      const values = formValues();
+      if (!hasAdminAuth(values)) {
+        statusEl.textContent = 'Admin authentication is required for partner aggregate reports.';
+        return;
+      }
+      const partner = document.getElementById('partner-code').value.trim() || 'AFPA';
+      const campaign = document.getElementById('campaign-code').value.trim() || 'all';
+      const days = document.getElementById('aggregate-days').value || '120';
+      setBusy(true, `Building ${partner} aggregate ${format.toUpperCase()} report from KPI metadata only...`);
+      try {
+        const data = await postJson('/api/partner-aggregate', {
+          partner,
+          campaign,
+          days,
+          format
+        }, values.adminSecret);
+        if (format === 'html') {
+          downloadHtml(data.filename, data.content || '');
+        } else {
+          downloadText(data.filename, data.markdown || '');
+        }
+        statusEl.textContent = `Downloaded ${data.filename}\nPartner: ${partner}\nCampaign: ${campaign}\nKPI events included: ${data.eventCount || 0}\nTest/demo records excluded: ${data.excludedTestRecordCount || 0}\nRaw interviews decrypted: no\nMember names/emails included: no`;
+      } catch (err) {
+        statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;
+        showPrivacyGateReview(err.data);
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    document.getElementById('download-aggregate-html-btn').addEventListener('click', () => {
+      downloadAggregateReport('html');
+    });
+
+    document.getElementById('download-aggregate-md-btn').addEventListener('click', () => {
+      downloadAggregateReport('markdown');
+    });
+
+    document.getElementById('send-free-report-btn').addEventListener('click', async () => {
+      const values = requireBasics();
+      if (!values) return;
+      setBusy(true, 'Generating and sending the free report email from the secure record...');
+      try {
+        const data = await postJson('/api/report-pack', {
+          action: 'generate-free-email',
+          clientDraftId: values.clientDraftId
+        }, values.adminSecret);
+        statusEl.textContent = `Free report email sent.\nRecipient: ${data.recipient || 'session email'}\nResend ID: ${data.id || 'not returned'}`;
+        await refreshReportStatus(true);
+      } catch (err) {
+        statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;
+        showPrivacyGateReview(err.data);
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    document.getElementById('generate-all-btn').addEventListener('click', async () => {
+      const values = requireBasics();
+      if (!values) return;
+      const force = forceRegenerate();
+      setBusy(true, `${force ? 'Regenerating' : 'Generating'} the full report pack as ${values.formats.toUpperCase()}...\nThis runs the four report jobs together where needed, then builds the selected ZIP. Keep this page open until the status updates.`);
+      try {
+        const data = await postJson('/api/report-pack', {
+          action: 'generate-all',
+          clientDraftId: values.clientDraftId,
+          forceRegenerate: force,
+          formats: values.formats
+        }, values.adminSecret);
+        statusEl.textContent = `Full report pack ready.\nFormat: ${values.formats}\nMode: ${force ? 'regenerated from current prompt' : 'reused existing where available'}\nZIP output: ${data.zip?.outputId || 'created'}\nReports: ${(data.results || []).map(r => `${r.tier}${r.generated ? ' generated' : r.convertedHtml ? ' converted to HTML' : r.convertedDocx ? ' converted to DOCX' : ' already ready'}`).join(', ')}`;
+        await refreshReportStatus(true);
+      } catch (err) {
+        statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    document.querySelectorAll('[data-tier]').forEach(button => {
+      button.addEventListener('click', async () => {
+        const values = requireBasics();
+        if (!values) return;
+        const tier = button.getAttribute('data-tier');
+        const force = forceRegenerate();
+        setBusy(true, `${force ? 'Regenerating' : 'Generating'} ${button.textContent} as ${values.formats.toUpperCase()}...\nThis can take a minute. Keep this page open until the status updates.`);
+        try {
+          const data = await postJson('/api/report-pack', {
+            action: 'generate-one',
+            clientDraftId: values.clientDraftId,
+            tier,
+            forceRegenerate: force,
+            formats: values.formats
+          }, values.adminSecret);
+          statusEl.textContent = `${data.generated ? 'Generated' : data.convertedHtml ? 'Converted to HTML' : data.convertedDocx ? 'Converted to DOCX' : 'Already ready'} ${data.tier} report.\nFormat: ${values.formats}\nMode: ${force ? 'regenerated from current prompt' : 'reused existing if available'}\nMarkdown output: ${data.markdownOutputId || 'existing'}\nHTML output: ${data.htmlOutputId || 'existing'}\nDOCX output: ${data.docxOutputId || 'existing'}\nWarnings: ${(data.warnings || []).join('; ') || 'none'}`;
+          await refreshReportStatus(true);
+        } catch (err) {
+          statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;
+          showPrivacyGateReview(err.data);
+        } finally {
+          setBusy(false);
+        }
+      });
+    });
+
+    document.getElementById('download-zip-btn').addEventListener('click', async () => {
+      const values = requireBasics();
+      if (!values) return;
+      setBusy(true, `Building or retrieving the ${values.formats.toUpperCase()} report pack ZIP...`);
+      try {
+        const data = await postJson('/api/report-pack', {
+          action: 'download-zip',
+          clientDraftId: values.clientDraftId,
+          formats: values.formats
+        }, values.adminSecret);
+        downloadZip(data.filename, data.contentBase64);
+        statusEl.textContent = `Downloaded ${data.filename}\nFormat: ${values.formats}\nZIP output: ${data.outputId || 'created now'}`;
+        await refreshReportStatus(true);
+      } catch (err) {
+        statusEl.textContent = `Error: ${friendlyAdminError(err.message)}`;
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    if (!loadRecoveryTokenFromUrl()) refreshAdminAuthStatus();
+  </script>
+</body>
+</html>
+
+
+
