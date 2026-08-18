@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -472,7 +472,7 @@
         <h1>BTAI Records Console</h1>
         <p>Retrieve secure intake records, generate reports, download privacy proof, and review partner aggregate intelligence from one admin-only dashboard.</p>
       </div>
-      <div class="version-pill">v1.72.7</div>
+      <div class="version-pill">v1.72.22</div>
     </div>
 
     <div id="admin-record-controls" class="record-strip auth-locked">
@@ -1049,7 +1049,7 @@
     function friendlyAdminError(message = '') {
       const text = String(message || '').trim();
       if (/Report quality gate failed/i.test(text) && /missing_expected_final_section/i.test(text)) {
-        return `${text}\n\nMeaning: the report generated, but the completion validator did not find the required final section. In v1.72.7 the server attempts one repair pass, then adds a safe deterministic closing section when the only remaining issue is an incomplete or missing final section. Retry this report after deploying the current build.`;
+        return `${text}\n\nMeaning: the report generated, but the completion validator did not find the required final section. In v1.72.22 the server attempts one repair pass, then adds a safe deterministic closing section when the only remaining issue is an incomplete or missing final section. Retry this report after deploying the current build.`;
       }
       if (/No client email found/i.test(text)) {
         return `${text}\n\nMeaning: the secure intake session does not contain a client email address, so the free report cannot be emailed automatically.`;
@@ -1506,6 +1506,7 @@
   </script>
 </body>
 </html>
+
 
 
 

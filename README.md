@@ -1,6 +1,6 @@
-# Bridge To AI Intake App - v1.72.1 Report Branding & Readability
+# Bridge To AI Intake App - v1.72.22 Context-Aware Privacy Gate
 
-This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, the required high-value "Try This This Week" prompt in the free report, selectable report export formats, searchable/sortable admin interview index, deterministic final-section safety net, the clearer core-question/follow-up progress language, the Snapshot First campaign URL, and the real Snapshot Scorecard in the free report. v1.72.1 adds the Bridge To AI brand system to the intake and snapshot forms, including optimized SIL/partner badge assets, branded header styling, trust panels, and a more vibrant report header.
+This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, the required high-value "Try This This Week" prompt in the free report, selectable report export formats, searchable/sortable admin interview index, deterministic final-section safety net, the clearer core-question/follow-up progress language, the Snapshot First campaign URL, and the real Snapshot Scorecard in the free report. v1.72.22 keeps the Bridge To AI brand system and adds context-aware Privacy Gate handling to the intake and snapshot forms, including optimized SIL/partner badge assets, branded header styling, trust panels, and a more vibrant report header.
 
 ## Snapshot First Campaign
 
@@ -29,7 +29,7 @@ This build keeps the trust-first, controlled industry-adaptive intake, live-inte
 
 ## What Changed
 
-- Header version is now `v1.72.1`.
+- Header version is now `v1.72.22`.
 - Added optimized Bridge To AI logo assets under `assets/brand`.
 - Replaced the generic header mark with the Bridge To AI SIL small lock mark.
 - Added a Secure Intelligence Layer proof chip to the Snapshot splash page.
@@ -37,7 +37,7 @@ This build keeps the trust-first, controlled industry-adaptive intake, live-inte
 - Added the Powered by Bridge To AI partner badge to the association/white-label explanation area.
 - Updated the footer privacy mark to use the Bridge To AI SIL small lock mark.
 - Refreshed HTML report header styling with brighter teal/gold branding and stronger title contrast.
-- Added report provenance to generated HTML report footers: `Built with Bridge To AI Intake v1.72.1` plus generation timestamp.
+- Added report provenance to generated HTML report footers: `Built with Bridge To AI Intake v1.72.22` plus generation timestamp.
 - Added `/snapshot` and `/snapshot-first` rewrites to `vercel.json`.
 - Added `snapshot.html` and `snapshot-first.html` static entry files for reliable clean URLs.
 - Added campaign variant detection from path or `campaign=snapshot_first`.
@@ -462,4 +462,5 @@ This release adds an admin-only recovery lane for completed intakes that were pa
 ## v1.72.22 Context-Aware Privacy Gate
 
 This release changes the Privacy Gate from keyword-only blocking to context-aware sanitization. Business-level payroll mentions and rounded estimates can pass; exact compensation amounts are generalized into bands; names near compensation context are anonymized; and only hard-stop records such as payroll spreadsheets, employee wage records, banking details, government IDs, payment cards, clinical records, customer lists, contracts, or confidential formulas require admin review.
+
 
