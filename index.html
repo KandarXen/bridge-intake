@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2640,7 +2640,7 @@ const PARTNER_PROFILES = {
     pill: 'AFPA Member Program',
     eyebrow: 'Confidential AFPA member intake',
     headline: 'Help shape practical AI training for Alberta food processors.',
-    body: 'This session usually takes about 15-25 minutes. Your answers help prepare your private AI opportunity report and help AFPA understand, in anonymized aggregate form, what members need most from upcoming AI education. General ranges and directional examples are enough; please avoid private financials, recipes, customer lists, supplier contracts, payroll details, invoices, or confidential operating data. The questions focus on practical training needs, repeated work, information readiness, comfort boundaries, and safe first AI uses. Your answers are encrypted and stored securely.',
+    body: 'This session usually takes about 15-25 minutes. Your answers help prepare your private AI opportunity report and help AFPA understand, in anonymized aggregate form, what members need most from upcoming AI education. General ranges and directional examples are enough; please avoid private financials, recipes, customer lists, supplier contracts, payroll details, invoices, or confidential operating data. The 20-question interview focuses on practical training needs, repeated work, niche-specific examples, information readiness, comfort boundaries, and safe first AI uses. Your answers are encrypted and stored securely.',
     banner: 'This co-branded intake is provided for AFPA members and powered by Bridge To AI. AFPA receives anonymized aggregate insights for education and program planning, not raw member interview files.',
     stepOne: 'You will move through practical questions that help identify what AI training, examples, templates, workflow support, and safer implementation guidance may help AFPA members most.',
     stepFour: 'A few answers may trigger a quick follow-up when more context is needed. Your progress is saved securely as you go, and you can resume if you need to come back later.',
@@ -2714,6 +2714,21 @@ const INDUSTRY_GUIDANCE = {
 const SENSITIVE_DETAIL_WARNING = 'For this first intake, general ranges and directional examples are enough. Please avoid private financials, recipes, customer names, supplier contracts, payroll details, invoices, or confidential formulas.';
 const FULL_MAX_ADAPTIVE_PROBES = 5;
 const SNAPSHOT_MAX_ADAPTIVE_PROBES = 2;
+const AFPA_MAX_ADAPTIVE_PROBES = 5;
+const QUESTION_PRIORITY_WEIGHTS = {
+  'Member Profile|Business Context': 5,
+  'Repeated Work|Top Repeated Task': 5,
+  'Workflow Friction|Current Process': 5,
+  'Workflow Friction|Bottleneck': 5,
+  'Information Readiness|Information Sources': 5,
+  'Risk & Adoption|Human Review Boundary': 5,
+  'Revenue Engine|First Useful Win': 5,
+  'AI Opportunity|Practical Leverage': 5,
+  'Repeated Work|Time & Frequency': 4,
+  'Information Readiness|Readiness Assets': 4,
+  'AI Opportunity|Comfort Boundary': 4,
+  'Member Profile|Team & Role': 3
+};
 const APPROVED_PROBE_TYPES = ['clarify', 'prioritize', 'range', 'severity', 'frequency', 'blocker', 'owner/readiness', 'risk', 'low-risk pilot', 'voice/tone'];
 const FORBIDDEN_PROBE_PATTERNS = [
   /\bexact\b/i,
@@ -2931,7 +2946,13 @@ const AFPA_DECEMBER_AI_COURSE_QUESTIONS = [
     hint: 'Time saved, fewer errors, faster follow-up, better documentation, clearer planning, improved customer response, more consistent training, or reduced stress.' },
   { section: 'business', domain: 'AFPA Course Design', type: 'Success Signal',
     text: 'What would make an AFPA AI training session feel like a real win for your business?',
-    hint: 'Tell us what you would want to leave with: a working template, a mapped workflow, a better prompt, a privacy checklist, a draft automation idea, a safer AI policy, or a clear first step.' }
+    hint: 'Tell us what you would want to leave with: a working template, a mapped workflow, a better prompt, a privacy checklist, a draft automation idea, a safer AI policy, or a clear first step.' },
+  { section: 'business', domain: 'Niche Fit', type: 'Industry Example',
+    text: 'What is one common problem, customer question, or internal task that is specific to your niche?',
+    hint: 'Examples might involve shelf life, labeling, cold chain, buyer follow-up, quality records, production planning, distributor updates, or another issue common in your part of food processing. Keep it general.' },
+  { section: 'business', domain: 'Niche Fit', type: 'Useful Template',
+    text: 'If AFPA provided one AI-ready template or example for businesses like yours, what would you want it to help with first?',
+    hint: 'Think about a checklist, email draft, SOP helper, reporting template, training guide, buyer follow-up, production-planning prompt, quality-note summary, or another practical tool.' }
 ];
 
 const SNAPSHOT_QUESTIONS = [
@@ -2985,7 +3006,7 @@ let currentQ = 0;
 let answers = [];              // base answer per question index
 let masteryFollowups = [];     // mastery follow-up answer per question index (only mastery uses it)
 let masteryFollowupQ = [];     // the follow-up QUESTION shown for each mastery item (smart or generic)
-let domainProbes = {};         // { domainName: { question: '...', answer: '' } }
+let domainProbes = {};         // { probeKey: { domain, sourceQuestionIndex, question, answer } }
 let snapshotAnswersArchive = []; // preserved Snapshot First answers if the user continues deeper
 // Voice & Standards scenario (near the start, tailored to business category)
 let scenarioText = '';         // the AI-generated scenario the client reacts to
@@ -3021,7 +3042,7 @@ let recognitionSessionId = 0;
 
 // Sub-step within a question: 'main' = base question, 'followup' = mastery AI-future Q, 'probe' = AI probe
 let subStep = 'main';
-let activeProbe = null;        // { domain, question } when a probe is showing
+let activeProbe = null;        // { key, domain, sourceQuestionIndex, question } when a probe is showing
 let draftAutosaveEnabled = true;
 let clientDraftId = '';
 let lastLoggedQuestionKey = '';
@@ -3029,6 +3050,8 @@ let loggedSectionStarts = {};
 let loggedSectionCompletes = {};
 let sectionStartTimes = {};
 let interviewStartedAtMs = null;
+let interviewSubmitted = false;
+let lastAbandonmentLogAt = 0;
 let pendingDraftPayload = null;
 let draftSaveTimer = null;
 let lastLoadedDraft = null;
@@ -3062,9 +3085,14 @@ function safeMetricLabel(value, fallback = '') {
 function initCampaignContext() {
   const params = new URLSearchParams(window.location.search);
   const path = String(window.location.pathname || '').toLowerCase().replace(/\/+$/, '');
-  const pathCampaign = path === '/snapshot' || path === '/snapshot-first' ? 'snapshot_first' : '';
-  campaignPartner = safeMetricLabel(params.get('partner'), CONFIG.DEFAULT_PARTNER) || CONFIG.DEFAULT_PARTNER;
-  campaignId = safeMetricLabel(params.get('campaign'), pathCampaign || CONFIG.DEFAULT_CAMPAIGN) || CONFIG.DEFAULT_CAMPAIGN;
+  const pathCampaign =
+    path === '/snapshot' || path === '/snapshot-first' ? 'snapshot_first' :
+    path === '/afpa' ? 'afpa_member_intake' :
+    path === '/full' ? 'full_diagnostic' :
+    '';
+  campaignPartner = safeMetricLabel(params.get('partner'), path === '/afpa' ? 'AFPA' : CONFIG.DEFAULT_PARTNER) || CONFIG.DEFAULT_PARTNER;
+  const partnerDefaultCampaign = String(campaignPartner || '').toUpperCase() === 'AFPA' ? 'afpa_member_intake' : CONFIG.DEFAULT_CAMPAIGN;
+  campaignId = safeMetricLabel(params.get('campaign'), pathCampaign || partnerDefaultCampaign) || CONFIG.DEFAULT_CAMPAIGN;
   partnerDisplayName = activePartnerProfile()?.displayName || '';
   intakeVariant = activeIntakeVariant();
   applyCampaignQuestionSet();
@@ -3089,6 +3117,14 @@ function activeIntakeVariant() {
   ) {
     return 'snapshot_first';
   }
+  if (
+    path === '/afpa' ||
+    normalizedCampaign === 'afpa' ||
+    normalizedCampaign === 'afpa_member_intake' ||
+    normalizedCampaign === 'afpa_december_ai_course_2026'
+  ) {
+    return 'afpa_member_intake';
+  }
   return 'full_diagnostic';
 }
 
@@ -3096,11 +3132,15 @@ function isSnapshotFirstCampaign() {
   return intakeVariant === 'snapshot_first';
 }
 
+function isAfpaMemberIntake() {
+  return intakeVariant === 'afpa_member_intake';
+}
+
 function isAfpaDecemberAiCourseCampaign() {
   return (
     String(campaignPartner || '').toUpperCase() === 'AFPA' &&
     String(campaignId || '').toLowerCase() === 'afpa_december_ai_course_2026' &&
-    !isSnapshotFirstCampaign()
+    isAfpaMemberIntake()
   );
 }
 
@@ -3112,6 +3152,12 @@ function activeScenarioStepCount() {
   return intakeVariant === 'full_diagnostic' ? 2 : 0;
 }
 
+function activeQuestionSetName() {
+  if (isSnapshotFirstCampaign()) return 'snapshot_first_short_set';
+  if (isAfpaMemberIntake()) return 'afpa_member_20_question_set';
+  return 'full_diagnostic_set';
+}
+
 function questionKey(q) {
   return `${q.section || ''}|${q.domain || ''}|${q.type || ''}`;
 }
@@ -3119,7 +3165,7 @@ function questionKey(q) {
 function applyCampaignQuestionSet() {
   QUESTIONS = isSnapshotFirstCampaign()
     ? SNAPSHOT_QUESTIONS
-    : isAfpaDecemberAiCourseCampaign()
+    : isAfpaMemberIntake()
       ? AFPA_DECEMBER_AI_COURSE_QUESTIONS
       : FULL_QUESTIONS;
   if (Number.isInteger(currentQ)) currentQ = clampQuestionIndex(currentQ);
@@ -3174,6 +3220,7 @@ function mapCurrentAnswersToFullQuestionSet() {
 }
 
 function activeMaxAdaptiveProbes() {
+  if (isAfpaMemberIntake()) return AFPA_MAX_ADAPTIVE_PROBES;
   return isSnapshotFirstCampaign() ? SNAPSHOT_MAX_ADAPTIVE_PROBES : FULL_MAX_ADAPTIVE_PROBES;
 }
 
@@ -3272,6 +3319,84 @@ function allAnswerTexts() {
   ].filter(text => String(text || '').trim());
 }
 
+function questionProbeKey(qIndex = currentQ) {
+  const q = QUESTIONS[qIndex] || {};
+  return `${q.domain || 'Question'}|${q.type || 'Question'}|${qIndex}`;
+}
+
+function probeEntriesForDomain(domainName) {
+  return Object.values(domainProbes || {}).filter(probe => probe && probe.domain === domainName);
+}
+
+function probeEntriesForQuestion(qIndex) {
+  return Object.values(domainProbes || {}).filter(probe => probe && probe.sourceQuestionIndex === qIndex);
+}
+
+function questionPriorityWeight(q = {}) {
+  const explicit = QUESTION_PRIORITY_WEIGHTS[`${q.domain || ''}|${q.type || ''}`];
+  if (Number.isFinite(explicit)) return explicit;
+  if (/risk|boundary|do not|privacy|compliance/i.test(`${q.domain || ''} ${q.type || ''} ${q.text || ''}`)) return 5;
+  if (/process|bottleneck|repeated|frequency|source|readiness|first useful|leverage/i.test(`${q.domain || ''} ${q.type || ''} ${q.text || ''}`)) return 4;
+  if (q.section === 'business') return 3;
+  return 2;
+}
+
+function adaptiveRedirectDecision(q = {}, answer = '') {
+  const priorityWeight = questionPriorityWeight(q);
+  const quality = answerQuality(answer);
+  const hasEnoughShape = quality.hasExampleLanguage || quality.hasNumber;
+  let needsRedirect = false;
+  let reason = '';
+
+  if (quality.wordCount > 0 && quality.wordCount < 6) {
+    needsRedirect = true;
+    reason = 'minimal_answer';
+  } else if (priorityWeight >= 5 && quality.wordCount < 18) {
+    needsRedirect = true;
+    reason = 'high_priority_thin_answer';
+  } else if (priorityWeight >= 4 && quality.wordCount < 14) {
+    needsRedirect = true;
+    reason = 'important_thin_answer';
+  } else if (priorityWeight >= 4 && quality.wordCount < 30 && !hasEnoughShape) {
+    needsRedirect = true;
+    reason = 'missing_example_or_range';
+  } else if (priorityWeight >= 3 && quality.wordCount < 10) {
+    needsRedirect = true;
+    reason = 'short_answer';
+  }
+
+  return { needsRedirect, reason, priorityWeight, quality };
+}
+
+function answeredCoreQuestionCount() {
+  let completed = answers.filter(answer => String(answer || '').trim()).length;
+  if (activeScenarioStepCount() > 0) {
+    if (scenarioGood && scenarioGood.trim()) completed += 1;
+    if (scenarioBad && scenarioBad.trim()) completed += 1;
+  }
+  return completed;
+}
+
+function totalCoreQuestionCount() {
+  return QUESTIONS.length + activeScenarioStepCount();
+}
+
+function progressMetrics(extra = {}) {
+  const totalPromptCount = totalCoreQuestionCount();
+  const completedPromptCount = answeredCoreQuestionCount();
+  return {
+    totalPromptCount,
+    completedPromptCount,
+    completionFraction: totalPromptCount ? Number((completedPromptCount / totalPromptCount).toFixed(3)) : 0,
+    completionPercent: totalPromptCount ? Math.round((completedPromptCount / totalPromptCount) * 100) : 0,
+    currentPromptNumber: scenarioStage === 'good' ? 1 : scenarioStage === 'bad' ? 2 : currentQ + 1 + activeScenarioStepCount(),
+    lastCompletedQuestionIndex: Math.max(-1, answers.reduce((last, answer, index) => String(answer || '').trim() ? index : last, -1)),
+    lastCompletedQuestionNumber: Math.max(0, answers.reduce((last, answer, index) => String(answer || '').trim() ? index + 1 : last, 0)),
+    generatedProbeCount: generatedProbeCount(),
+    answeredProbeCount: Object.values(domainProbes || {}).filter(probe => probe?.answer && countWords(probe.answer) > 0).length,
+    ...extra
+  };
+}
 function interviewKpiSummary() {
   const texts = allAnswerTexts();
   const wordCounts = texts.map(text => countWords(text));
@@ -3297,11 +3422,9 @@ function interviewKpiSummary() {
     businessNiche,
     shareComfort,
     intakeVariant,
-    questionSet: isSnapshotFirstCampaign()
-      ? 'snapshot_first_short_set'
-      : isAfpaDecemberAiCourseCampaign()
-        ? 'afpa_december_ai_course_training_needs_set'
-        : 'full_diagnostic_set'
+    questionSet: activeQuestionSetName(),
+    maxAdaptiveProbes: activeMaxAdaptiveProbes(),
+    ...progressMetrics()
   };
 }
 
@@ -3344,7 +3467,7 @@ function logHermesEvent(eventType, status = 'info', details = {}) {
         partner: campaignPartner,
         campaign: campaignId,
         intakeVariant,
-        questionSet: isSnapshotFirstCampaign() ? 'snapshot_first_short_set' : 'full_diagnostic_set',
+        questionSet: activeQuestionSetName(),
         hasWebsite: !!websiteUrl,
         businessNiche,
         shareComfort,
@@ -3400,9 +3523,10 @@ function domainAnswerStats(domainName) {
     .map((q, i) => ({ q, i }))
     .filter(x => x.q.section === 'business' && x.q.domain === domainName);
   const baseWords = indexes.reduce((sum, x) => sum + countWords(answers[x.i] || ''), 0);
-  const probeWords = countWords(domainProbes[domainName]?.answer || '');
+  const probes = probeEntriesForDomain(domainName);
+  const probeWords = probes.reduce((sum, probe) => sum + countWords(probe?.answer || ''), 0);
   return {
-    questionCount: indexes.length + (domainProbes[domainName]?.asked && domainProbes[domainName]?.question ? 1 : 0),
+    questionCount: indexes.length + probes.filter(probe => probe?.asked && probe?.question).length,
     totalWordCount: baseWords + probeWords
   };
 }
@@ -3422,9 +3546,10 @@ function captureVisibleTranscript() {
   else if (scenarioStage === 'bad') scenarioBad = val;
   else if (subStep === 'followup') masteryFollowups[currentQ] = val;
   else if (subStep === 'probe' && activeProbe) {
-    if (!domainProbes[activeProbe.domain]) domainProbes[activeProbe.domain] = { question: activeProbe.question, answer: '', asked: true };
-    domainProbes[activeProbe.domain].answer = val;
-    domainProbes[activeProbe.domain].asked = true;
+    const probeKey = activeProbe.key || activeProbe.domain || questionProbeKey(currentQ);
+    if (!domainProbes[probeKey]) domainProbes[probeKey] = { ...activeProbe, answer: '', asked: true };
+    domainProbes[probeKey].answer = val;
+    domainProbes[probeKey].asked = true;
   } else if (answers.length) {
     answers[currentQ] = val;
   }
@@ -3532,7 +3657,7 @@ function buildDraftPayload(captureTranscript = true) {
     campaignId,
     partnerDisplayName,
     intakeVariant,
-    questionSet: isSnapshotFirstCampaign() ? 'snapshot_first_short_set' : 'full_diagnostic_set',
+    questionSet: activeQuestionSetName(),
     businessName,
     businessCategory,
     businessNiche,
@@ -4023,12 +4148,12 @@ async function startInterview(evt) {
   const startBtn = evt && evt.target ? evt.target : null;
   if (startBtn) { startBtn.disabled = true; startBtn.textContent = 'Setting up your session...'; }
   await researchBusinessContext();
-  if (!isSnapshotFirstCampaign()) await generateScenario();
+  if (activeScenarioStepCount() > 0) await generateScenario();
   if (startBtn) { startBtn.disabled = false; startBtn.textContent = 'Begin my discovery session ->'; }
   saveDraft(false, true);
 
   showScreen('screen-interview');
-  if (isSnapshotFirstCampaign()) {
+  if (activeScenarioStepCount() === 0) {
     scenarioDone = true;
     scenarioStage = null;
     logHermesEvent('snapshot_voice_scenario_skipped', 'success', {
@@ -4134,7 +4259,10 @@ function isSoloOrNoStaff() {
 }
 
 function currentIndustryGuidance() {
-  return INDUSTRY_GUIDANCE[businessCategory] || INDUSTRY_GUIDANCE.Other;
+  const base = INDUSTRY_GUIDANCE[businessCategory] || INDUSTRY_GUIDANCE.Other;
+  const niche = String(businessNiche || '').trim();
+  if (!niche) return base;
+  return { ...base, label: `${niche} within ${base.label}` };
 }
 
 function industryList(items) {
@@ -4309,7 +4437,7 @@ function renderQuestion() {
       domainLabel = (activeProbe.domain || 'Discovery Question') + ' - one more thing';
       qText = activeProbe.question || 'What else should we understand about this before moving on?';
       qHint = 'A quick follow-up to make sure we capture this accurately.';
-      savedValue = (domainProbes[activeProbe.domain] && domainProbes[activeProbe.domain].answer) || '';
+      savedValue = (domainProbes[activeProbe.key || activeProbe.domain] && domainProbes[activeProbe.key || activeProbe.domain].answer) || '';
       countText = 'Follow-up';
     } else if (q.section === 'mastery') {
       countText = 'About you';
@@ -4372,9 +4500,10 @@ function saveCurrentAnswer(value = null) {
   if (subStep === 'followup') {
     masteryFollowups[currentQ] = val;
   } else if (subStep === 'probe' && activeProbe) {
-    if (!domainProbes[activeProbe.domain]) domainProbes[activeProbe.domain] = { question: activeProbe.question, answer: '', asked: true };
-    domainProbes[activeProbe.domain].answer = val;
-    domainProbes[activeProbe.domain].asked = true;
+    const probeKey = activeProbe.key || activeProbe.domain || questionProbeKey(currentQ);
+    if (!domainProbes[probeKey]) domainProbes[probeKey] = { ...activeProbe, answer: '', asked: true };
+    domainProbes[probeKey].answer = val;
+    domainProbes[probeKey].asked = true;
   } else {
     answers[currentQ] = val;
   }
@@ -4415,6 +4544,9 @@ async function nextQuestion() {
       return;
     }
 
+    const redirected = await maybeRunAdaptiveRedirect(currentQ, val);
+    if (redirected) return;
+
     if (q.section === 'mastery') {
       await runMasteryFollowup(currentQ);
       return;
@@ -4423,14 +4555,7 @@ async function nextQuestion() {
     const nextQ = QUESTIONS[currentQ + 1];
     const isDomainEnd = (currentQ === total - 1) || !nextQ || (nextQ.domain !== q.domain) || (nextQ.section !== 'business');
     if (isDomainEnd) {
-      if (domainProbes[q.domain] && domainProbes[q.domain].asked) {
-        logHermesSectionCompleted('business_domain', q.domain, domainAnswerStats(q.domain));
-        if (currentQ < total - 1) transitionToQuestion(currentQ + 1, 'main', null);
-        else submitInterview();
-        return;
-      }
-      await runDomainProbe(q.domain);
-      return;
+      logHermesSectionCompleted('business_domain', q.domain, domainAnswerStats(q.domain));
     }
 
     if (currentQ < total - 1) transitionToQuestion(currentQ + 1, 'main', null);
@@ -4506,31 +4631,57 @@ function validateProbeCandidate(candidate, domainName) {
 
   return { ok: true, question, reason: 'accepted', questionType, sensitivity };
 }
-async function runDomainProbe(domainName) {
+async function maybeRunAdaptiveRedirect(qIndex, answer) {
+  const q = QUESTIONS[qIndex];
+  if (!q || !String(answer || '').trim()) return false;
+  const probeKey = questionProbeKey(qIndex);
+  if (domainProbes[probeKey]?.asked) return false;
+
+  const decision = adaptiveRedirectDecision(q, answer);
+  if (!decision.needsRedirect) return false;
+
   const maxAdaptiveProbes = activeMaxAdaptiveProbes();
   if (generatedProbeCount() >= maxAdaptiveProbes) {
-    logHermesEvent('adaptive_probe_rejected_limit_reached', 'success', { domain: domainName, maxAdaptiveProbes });
-    domainProbes[domainName] = { question: null, answer: '', asked: true, rejectedReason: 'limit_reached' };
-    logHermesSectionCompleted('business_domain', domainName, domainAnswerStats(domainName));
-    if (currentQ < QUESTIONS.length - 1) transitionToQuestion(currentQ + 1, 'main', null);
-    else { submitInterview(); }
-    return;
+    domainProbes[probeKey] = {
+      key: probeKey,
+      domain: q.domain || '',
+      sourceQuestionIndex: qIndex,
+      sourceQuestionType: q.type || '',
+      question: null,
+      answer: '',
+      asked: true,
+      rejectedReason: 'limit_reached',
+      priorityWeight: decision.priorityWeight
+    };
+    logHermesEvent('adaptive_probe_rejected_limit_reached', 'success', {
+      domain: q.domain || '',
+      sourceQuestionIndex: qIndex,
+      sourceQuestionType: q.type || '',
+      priorityWeight: decision.priorityWeight,
+      maxAdaptiveProbes,
+      weakAnswerRedirect: true
+    });
+    return false;
   }
 
-  // Gather this domain's Q&A
-  const domainQA = QUESTIONS
-    .map((q, i) => ({ q, i }))
-    .filter(x => x.q.section === 'business' && x.q.domain === domainName)
-    .map(x => `Q (${x.q.type}): ${x.q.text}\nA: ${answers[x.i] || ''}`)
-    .join('\n\n');
-
-  // Show a brief inline "thinking" state on the button
   const btn = document.getElementById('btn-next');
-  const originalLabel = btn.textContent;
-  btn.textContent = 'One moment...';
-  btn.disabled = true;
-  logHermesEvent('adaptive_probe_requested', 'info', { domain: domainName });
-  logHermesSectionStarted('adaptive_probe', domainName, { questionCount: 1 });
+  const originalLabel = btn ? btn.textContent : '';
+  if (btn) {
+    btn.textContent = 'One moment...';
+    btn.disabled = true;
+  }
+
+  logHermesEvent('weak_answer_redirect_needed', 'info', {
+    domain: q.domain || '',
+    sourceQuestionIndex: qIndex,
+    sourceQuestionType: q.type || '',
+    priorityWeight: decision.priorityWeight,
+    weakAnswerReason: decision.reason,
+    answerQualityBucket: decision.quality.bucket,
+    weakAnswerRedirect: true,
+    ...progressMetrics()
+  });
+  logHermesSectionStarted('adaptive_probe', q.domain || 'Discovery Question', { questionCount: 1 });
 
   let probeQuestion = null;
   let probeMeta = null;
@@ -4539,46 +4690,109 @@ async function runDomainProbe(domainName) {
     const resp = await fetch('/api/interview-ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ task: 'probe', domain: domainName, qa: domainQA, businessCategory, businessNiche, shareComfort, companySize, ownerWorkStatus, departments, businessContext })
+      body: JSON.stringify({
+        task: 'probe',
+        domain: q.domain || '',
+        qa: `Q (${q.type || 'Question'}): ${q.text || ''}\nA: ${answer || ''}`,
+        sourceQuestion: q.text || '',
+        sourceQuestionType: q.type || '',
+        answerQualityBucket: decision.quality.bucket,
+        priorityWeight: decision.priorityWeight,
+        weakAnswerReason: decision.reason,
+        businessCategory,
+        businessNiche,
+        shareComfort,
+        companySize,
+        ownerWorkStatus,
+        departments,
+        businessContext
+      })
     });
     if (resp.ok) {
       const data = await resp.json();
       const candidate = normalizeProbePayload(data);
       if (candidate) {
-        const validation = validateProbeCandidate(candidate, domainName);
+        const validation = validateProbeCandidate(candidate, q.domain || '');
         if (validation.ok) {
           probeQuestion = validation.question;
           probeMeta = validation;
         } else {
           rejectedReason = validation.reason;
-          logHermesEvent('adaptive_probe_rejected_by_guardrail', 'success', { domain: domainName, rejectedReason, proposedQuestionType: candidate.question_type || '', sensitivityLevel: candidate.sensitivity_level || '' });
+          logHermesEvent('adaptive_probe_rejected_by_guardrail', 'success', {
+            domain: q.domain || '',
+            sourceQuestionIndex: qIndex,
+            sourceQuestionType: q.type || '',
+            priorityWeight: decision.priorityWeight,
+            rejectedReason,
+            proposedQuestionType: candidate.question_type || '',
+            sensitivityLevel: candidate.sensitivity_level || ''
+          });
         }
+      } else {
+        rejectedReason = 'model_skipped';
       }
+    } else {
+      rejectedReason = 'probe_request_failed';
     }
   } catch (e) {
-    probeQuestion = null; // fail gracefully - just skip the probe
+    rejectedReason = 'probe_request_error';
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = originalLabel || 'Continue ->';
+    }
   }
 
-  btn.disabled = false;
-  btn.textContent = originalLabel;
-
-  const total = QUESTIONS.length;
-
-  if (probeQuestion) {
-    logHermesEvent('domain_probe_generated', 'success', { domain: domainName, questionType: probeMeta?.questionType || '', sensitivityLevel: probeMeta?.sensitivity || '', generatedProbeCount: generatedProbeCount() + 1 });
-    activeProbe = { domain: domainName, question: probeQuestion };
-    domainProbes[domainName] = { question: probeQuestion, answer: '', asked: true, questionType: probeMeta?.questionType || '', sensitivityLevel: probeMeta?.sensitivity || 'low' };
-    saveDraft(false);
-    transitionToQuestion(currentQ, 'probe', activeProbe);
-  } else {
-    // no probe needed - mark asked so we don't retry on backtrack, then advance
-    logHermesEvent('domain_probe_skipped', 'success', { domain: domainName, rejectedReason });
-    domainProbes[domainName] = { question: null, answer: '', asked: true, rejectedReason };
-    logHermesSectionCompleted('adaptive_probe', domainName, { questionCount: 0, totalWordCount: 0 });
-    logHermesSectionCompleted('business_domain', domainName, domainAnswerStats(domainName));
-    if (currentQ < total - 1) transitionToQuestion(currentQ + 1, 'main', null);
-    else { submitInterview(); }
+  if (!probeQuestion) {
+    domainProbes[probeKey] = {
+      key: probeKey,
+      domain: q.domain || '',
+      sourceQuestionIndex: qIndex,
+      sourceQuestionType: q.type || '',
+      question: null,
+      answer: '',
+      asked: true,
+      rejectedReason,
+      priorityWeight: decision.priorityWeight
+    };
+    logHermesEvent('adaptive_probe_skipped', 'success', {
+      domain: q.domain || '',
+      sourceQuestionIndex: qIndex,
+      sourceQuestionType: q.type || '',
+      priorityWeight: decision.priorityWeight,
+      rejectedReason
+    });
+    return false;
   }
+
+  activeProbe = {
+    key: probeKey,
+    domain: q.domain || '',
+    sourceQuestionIndex: qIndex,
+    sourceQuestionType: q.type || '',
+    question: probeQuestion,
+    priorityWeight: decision.priorityWeight
+  };
+  domainProbes[probeKey] = {
+    ...activeProbe,
+    answer: '',
+    asked: true,
+    questionType: probeMeta?.questionType || '',
+    sensitivityLevel: probeMeta?.sensitivity || 'low'
+  };
+  logHermesEvent('adaptive_probe_generated', 'success', {
+    domain: q.domain || '',
+    sourceQuestionIndex: qIndex,
+    sourceQuestionType: q.type || '',
+    priorityWeight: decision.priorityWeight,
+    questionType: probeMeta?.questionType || '',
+    sensitivityLevel: probeMeta?.sensitivity || '',
+    generatedProbeCount: generatedProbeCount() + 1,
+    weakAnswerRedirect: true
+  });
+  saveDraft(false);
+  transitionToQuestion(qIndex, 'probe', activeProbe);
+  return true;
 }
 
 // -- Smart mastery follow-up: reflect back what they said, conditionally ------
@@ -4750,12 +4964,29 @@ function friendlyReportDeliveryError(message = '') {
   }
   return text ? `Report delivery did not confirm: ${text}` : 'We could not confirm report delivery. Please try again or contact team@bridgetoai.ca.';
 }
+function logAbandonmentProgress(reason = 'pagehide') {
+  try {
+    captureVisibleTranscript();
+    if (!draftAutosaveEnabled || interviewSubmitted || !clientDraftId) return;
+    const progress = progressMetrics({ abandonmentReason: reason, abandoned: true });
+    if (progress.completedPromptCount <= 0 && !scenarioStage) return;
+    const now = Date.now();
+    if (now - lastAbandonmentLogAt < 1500) return;
+    lastAbandonmentLogAt = now;
+    logHermesEvent('interview_abandoned_progress', 'info', progress);
+  } catch (e) { /* monitoring must never block navigation */ }
+}
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden' && draftAutosaveEnabled && clientDraftId) {
+    logAbandonmentProgress('visibility_hidden');
     logHermesEvent('page_hidden_with_active_or_draft_session', 'info', interviewKpiSummary());
   }
 });
+window.addEventListener('pagehide', () => {
+  logAbandonmentProgress('pagehide');
+});
 window.addEventListener('beforeunload', () => {
+  logAbandonmentProgress('beforeunload');
   saveDraft();
   flushDraftSave(true);
 });
@@ -4844,6 +5075,7 @@ function stopRecording() {
 
 // -- Submit & process -------------------------------------------------------
 async function submitInterview() {
+  interviewSubmitted = true;
   showScreen('screen-processing');
   animateProcessingSteps();
 
@@ -5021,18 +5253,17 @@ function buildPrompt() {
     if (q.section !== 'business') return;
     if (q.domain !== lastDomain) {
       // close previous domain's probe
-      if (lastDomain && domainProbes[lastDomain] && domainProbes[lastDomain].answer) {
-        businessBlock += `  FOLLOW-UP: ${domainProbes[lastDomain].question}\n  ANSWER: ${domainProbes[lastDomain].answer}\n`;
-      }
+
       businessBlock += `\n### DOMAIN: ${q.domain}\n`;
       lastDomain = q.domain;
     }
     businessBlock += `[${q.type}] ${q.text}\n-> ${answers[i] || '(no answer provided)'}\n`;
+    probeEntriesForQuestion(i).forEach(probe => {
+      if (!probe?.answer) return;
+      businessBlock += `  FOLLOW-UP (${probe.sourceQuestionType || probe.questionType || 'adaptive'}): ${probe.question}\n  ANSWER: ${probe.answer}\n`;
+    });
   });
-  // close the final domain's probe
-  if (lastDomain && domainProbes[lastDomain] && domainProbes[lastDomain].answer) {
-    businessBlock += `  FOLLOW-UP: ${domainProbes[lastDomain].question}\n  ANSWER: ${domainProbes[lastDomain].answer}\n`;
-  }
+
   const snapshotArchiveBlock = snapshotAnswersArchive.length ? snapshotAnswersArchive.map(item => (
     `\n[${item.domain} - ${item.type}]\nQUESTION: ${item.question}\nANSWER: ${item.answer}`
   )).join('\n') : 'None.';
@@ -5112,7 +5343,7 @@ Privacy Consent Timestamp: ${privacyConsentAt || '(not recorded)'}
 Partner: ${partnerDisplayName || campaignPartner || '(not specified)'}
 Campaign: ${campaignId || '(not specified)'}
 Intake Variant: ${intakeVariant}
-Question Set: ${isSnapshotFirstCampaign() ? 'Snapshot First short set' : 'Full diagnostic set'}
+Question Set: ${isSnapshotFirstCampaign() ? 'Snapshot First short set' : isAfpaMemberIntake() ? 'AFPA member 20-question set' : 'Full diagnostic set'}
 Interview Date: ${new Date().toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' })}
 
 Use company size, owner work status, and department structure to calibrate your recommendations: a solo operator, semi-retired owner, or side-business operator needs different AI leverage than a 50-person, multi-department business. If they are solo or semi-retired, do not imply staff exist unless the client clearly said so. Where departments are listed, consider whether AI opportunities should be scoped per-function, per-person, or future-hire readiness.
@@ -5134,7 +5365,7 @@ ${businessBlock}
 
 =======================================
 PART B - OWNER SELF-ASSESSMENT (6 areas)
-${isSnapshotFirstCampaign() ? 'The full owner mastery section was not part of this free snapshot.' : 'Each area: where the owner is today, and what they\'d want AI to free up.'}
+${isSnapshotFirstCampaign() || isAfpaMemberIntake() ? 'The full owner mastery section was not part of this shorter intake. Do not infer a coaching-style owner profile.' : 'Each area: where the owner is today, and what they\'d want AI to free up.'}
 =======================================
 ${masteryBlock}
 
@@ -5233,7 +5464,7 @@ async function generateDNAWithClaude() {
         partnerDisplayName,
         intakeVariant,
         privacyScanText: buildPrivacyScanText(),
-        questionSet: isSnapshotFirstCampaign() ? 'snapshot_first_short_set' : 'full_diagnostic_set',
+        questionSet: activeQuestionSetName(),
         businessCategory,
         companySize,
         ownerWorkStatus,

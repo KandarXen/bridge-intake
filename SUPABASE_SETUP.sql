@@ -106,6 +106,13 @@ select
   nullif(metadata #>> '{details,durationSeconds}', '')::integer as duration_seconds,
   nullif(metadata #>> '{details,totalWordCount}', '')::integer as total_word_count,
   nullif(metadata #>> '{details,answeredPromptCount}', '')::integer as answered_prompt_count,
+  nullif(metadata #>> '{details,totalPromptCount}', '')::integer as total_prompt_count,
+  nullif(metadata #>> '{details,completedPromptCount}', '')::integer as completed_prompt_count,
+  nullif(metadata #>> '{details,completionFraction}', '')::numeric as completion_fraction,
+  nullif(metadata #>> '{details,completionPercent}', '')::numeric as completion_percent,
+  nullif(metadata #>> '{details,currentPromptNumber}', '')::integer as current_prompt_number,
+  nullif(metadata #>> '{details,lastCompletedQuestionIndex}', '')::integer as last_completed_question_index,
+  nullif(metadata #>> '{details,lastCompletedQuestionNumber}', '')::integer as last_completed_question_number,
   nullif(metadata #>> '{details,averageWordsPerAnswer}', '')::integer as average_words_per_answer,
   nullif(metadata #>> '{details,shortAnswerCount}', '')::integer as short_answer_count,
   nullif(metadata #>> '{details,shortAnswerRate}', '')::numeric as short_answer_rate,
@@ -114,6 +121,13 @@ select
   metadata #>> '{details,rejectedReason}' as adaptive_probe_rejected_reason,
   metadata #>> '{details,sensitivityLevel}' as adaptive_probe_sensitivity_level,
   metadata #>> '{details,proposedQuestionType}' as adaptive_probe_proposed_type,
+  nullif(metadata #>> '{details,sourceQuestionIndex}', '')::integer as adaptive_probe_source_question_index,
+  metadata #>> '{details,sourceQuestionType}' as adaptive_probe_source_question_type,
+  nullif(metadata #>> '{details,priorityWeight}', '')::integer as adaptive_probe_priority_weight,
+  metadata #>> '{details,weakAnswerReason}' as adaptive_probe_weak_answer_reason,
+  (metadata #>> '{details,weakAnswerRedirect}')::boolean as adaptive_probe_weak_answer_redirect,
+  metadata #>> '{details,abandonmentReason}' as abandonment_reason,
+  (metadata #>> '{details,abandoned}')::boolean as abandoned,
   metadata
 from public.intake_events;
 

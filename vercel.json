@@ -2,8 +2,12 @@
   "cleanUrls": true,
   "rewrites": [
     { "source": "/", "destination": "/index.html" },
+    { "source": "/full", "destination": "/index.html" },
+    { "source": "/AFPA", "destination": "/index.html" },
+    { "source": "/afpa", "destination": "/index.html" },
     { "source": "/snapshot", "destination": "/index.html" },
     { "source": "/snapshot-first", "destination": "/index.html" },
+    { "source": "/btai-console", "destination": "/btai-records-console.html" },
     { "source": "/btai-records-console", "destination": "/btai-records-console.html" },
     { "source": "/btai-records-console.html", "destination": "/btai-records-console.html" }
   ]

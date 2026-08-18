@@ -1,4 +1,4 @@
-﻿// api/hermes-log.js
+// api/hermes-log.js
 // Hermes intake monitor. Stores sanitized event metadata in Supabase.
 // No answer bodies are logged.
 
@@ -54,6 +54,20 @@ function sanitizeEvent(body) {
       generatedProbeCount: Number.isFinite(details.generatedProbeCount) ? details.generatedProbeCount : undefined,
       answeredProbeCount: Number.isFinite(details.answeredProbeCount) ? details.answeredProbeCount : undefined,
       maxAdaptiveProbes: Number.isFinite(details.maxAdaptiveProbes) ? details.maxAdaptiveProbes : undefined,
+      totalPromptCount: Number.isFinite(details.totalPromptCount) ? details.totalPromptCount : undefined,
+      completedPromptCount: Number.isFinite(details.completedPromptCount) ? details.completedPromptCount : undefined,
+      completionFraction: Number.isFinite(details.completionFraction) ? details.completionFraction : undefined,
+      completionPercent: Number.isFinite(details.completionPercent) ? details.completionPercent : undefined,
+      currentPromptNumber: Number.isFinite(details.currentPromptNumber) ? details.currentPromptNumber : undefined,
+      lastCompletedQuestionIndex: Number.isFinite(details.lastCompletedQuestionIndex) ? details.lastCompletedQuestionIndex : undefined,
+      lastCompletedQuestionNumber: Number.isFinite(details.lastCompletedQuestionNumber) ? details.lastCompletedQuestionNumber : undefined,
+      sourceQuestionIndex: Number.isFinite(details.sourceQuestionIndex) ? details.sourceQuestionIndex : undefined,
+      sourceQuestionType: details.sourceQuestionType ? String(details.sourceQuestionType).slice(0, 120) : undefined,
+      priorityWeight: Number.isFinite(details.priorityWeight) ? details.priorityWeight : undefined,
+      weakAnswerReason: details.weakAnswerReason ? String(details.weakAnswerReason).slice(0, 120) : undefined,
+      weakAnswerRedirect: typeof details.weakAnswerRedirect === 'boolean' ? details.weakAnswerRedirect : undefined,
+      abandonmentReason: details.abandonmentReason ? String(details.abandonmentReason).slice(0, 80) : undefined,
+      abandoned: typeof details.abandoned === 'boolean' ? details.abandoned : undefined,
       rejectedReason: details.rejectedReason ? String(details.rejectedReason).slice(0, 160) : undefined,
       proposedQuestionType: details.proposedQuestionType ? String(details.proposedQuestionType).slice(0, 80) : undefined,
       sensitivityLevel: details.sensitivityLevel ? String(details.sensitivityLevel).slice(0, 80) : undefined,

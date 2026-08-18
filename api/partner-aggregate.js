@@ -100,7 +100,9 @@ function recordSummaries(events) {
     const followupYes = recordEvents.some(event => event.btai_followup_interest === 'yes');
     const followupMaybe = recordEvents.some(event => event.btai_followup_interest === 'maybe');
     const completionRows = recordEvents.filter(event => ['interview_submission_complete', 'interview_completed_answers'].includes(event.event_type));
+    const abandonmentRows = recordEvents.filter(event => event.event_type === 'interview_abandoned_progress');
     const completion = completionRows[0] || recordEvents[0] || {};
+    const latestAbandonment = abandonmentRows[0] || {};
     return {
       clientDraftId,
       started,
@@ -115,7 +117,12 @@ function recordSummaries(events) {
       owner_work_status: latestValue(recordEvents, 'owner_work_status') || 'Not captured',
       average_words_per_answer: completion.average_words_per_answer,
       short_answer_rate: completion.short_answer_rate,
-      answered_prompt_count: completion.answered_prompt_count,
+      answered_prompt_count: completion.answered_prompt_count || latestAbandonment.completed_prompt_count || latestAbandonment.answered_prompt_count,
+      total_prompt_count: completion.total_prompt_count || latestAbandonment.total_prompt_count,
+      completed_prompt_count: completion.completed_prompt_count || latestAbandonment.completed_prompt_count,
+      completion_percent: completion.completion_percent || latestAbandonment.completion_percent,
+      abandonment_reason: latestAbandonment.abandonment_reason || '',
+      abandoned: started && !completed,
       generated_probe_count: completion.generated_probe_count,
       answered_probe_count: completion.answered_probe_count,
       duration_seconds: completion.duration_seconds
@@ -145,6 +152,8 @@ function aggregateReportMarkdown({ partner, campaign, days, events, excludedReco
   const totalRecords = records.length;
   const completedCount = completed.length;
   const startedCount = records.filter(record => record.started).length;
+  const abandonedCount = records.filter(record => record.abandoned).length;
+  const avgAbandonmentProgress = avg(records.filter(record => record.abandoned).map(record => record.completion_percent));
   const freeSentCount = records.filter(record => record.freeReportSent).length;
   const followupYesCount = records.filter(record => record.followupYes).length;
   const followupMaybeCount = records.filter(record => record.followupMaybe).length;
@@ -172,6 +181,8 @@ The purpose is to help ${partner} understand what members appear to need from pr
 | Test/demo records excluded | ${excludedRecordCount} | Not included |
 | Started interview | ${startedCount} | ${pct(startedCount, totalRecords)} |
 | Completed interview | ${completedCount} | ${pct(completedCount, totalRecords)} |
+| Abandoned / incomplete interview | ${abandonedCount} | ${pct(abandonedCount, startedCount)} |
+| Average progress before abandonment | ${avgAbandonmentProgress === null ? 'Not enough data' : Math.round(avgAbandonmentProgress) + '%'} | Among incomplete interviews |
 | Free report delivery logged | ${freeSentCount} | ${pct(freeSentCount, completedCount)} |
 | Asked to talk about next steps | ${followupYesCount} | ${pct(followupYesCount, completedCount)} |
 | Maybe later / send free report first | ${followupMaybeCount} | ${pct(followupMaybeCount, completedCount)} |

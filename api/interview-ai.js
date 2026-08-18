@@ -191,7 +191,7 @@ function soloOrNoStaff(companySize, ownerWorkStatus, departments) {
 }
 
 async function probe(body) {
-  const { domain, qa, businessCategory, businessNiche, shareComfort, companySize, ownerWorkStatus, departments = [], businessContext } = body || {};
+  const { domain, qa, businessCategory, businessNiche, shareComfort, companySize, ownerWorkStatus, departments = [], businessContext, sourceQuestion, sourceQuestionType, answerQualityBucket, priorityWeight, weakAnswerReason } = body || {};
   if (!qa) return { status: 400, body: { error: 'Missing qa' } };
   const contextBlock = businessContext ? `\n\nInternal context for sharper judgment only:\n${JSON.stringify(businessContext).slice(0, 3000)}\n\nUse this to understand likely workflows and industry patterns. Do not reveal background research.` : '';
   const orgContext = `Specific niche: ${businessNiche || 'not specified'}. Detail-sharing comfort: ${shareComfort || 'directional only'}. Company size: ${companySize || 'not specified'} people. Owner status/capacity: ${ownerWorkStatus || 'not specified'}. Departments/functions selected: ${Array.isArray(departments) && departments.length ? departments.join(', ') : 'not specified'}.`;
@@ -201,17 +201,22 @@ Organization context:
 ${orgContext}
 ${soloOrNoStaff(companySize, ownerWorkStatus, departments) ? 'Important: This appears to be a solo, no-staff, or semi-retired operator. Do not ask about staff, employees, departments, or team handoffs as if they currently exist.' : ''}
 
-The client just answered the questions in the "${domain}" section below.
+The client just gave a weak or vague answer to this ${sourceQuestionType ? `"${sourceQuestionType}"` : 'discovery'} question${sourceQuestion ? `: "${sourceQuestion}"` : ` in the "${domain}" section`}.
+
+Answer quality signal: ${answerQualityBucket || 'unknown'}.
+Question importance weight: ${priorityWeight || 'not supplied'} out of 5.
+Reason the redirect may be needed: ${weakAnswerReason || 'not supplied'}.
 
 ${qa}
 ${contextBlock}
 
-Your job: decide if ONE short follow-up question would meaningfully improve the quality of this section. Default to no follow-up.
+Your job: ask ONE short redirect question only if it would meaningfully turn a thin answer into usable business context. Default to no follow-up if the answer is already usable.
 
 Rules:
 - If the answers are clear enough to analyze, return ask_followup false.
 - Do not ask broad recap questions such as "walk me through your process" or "what does your current process look like".
-- Only ask for one missing high-value fact.
+- Only ask for one missing high-value fact: a concrete example, frequency/range, blocker, owner/readiness, information location, human-review boundary, or desired practical output.
+- Make the redirect specific to the business niche and question they just answered. Do not ask a generic "tell me more" question.
 - Keep the question under 220 characters.
 - Ask for directional ranges, severity, priority, frequency, blocker, owner/readiness, risk, low-risk pilot, clarify, or voice/tone only.
 - Never ask for exact revenue, exact profit, exact margin, payroll, bank/tax/legal records, customer names, supplier names, employee personal details, recipes, formulas, contracts, invoices, purchase orders, passwords, API keys, health information, or legal personal information.

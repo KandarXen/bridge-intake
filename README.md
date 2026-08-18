@@ -1,17 +1,21 @@
-﻿# Bridge To AI Intake App - v1.72.1 Report Branding & Readability
+# Bridge To AI Intake App - v1.72.1 Report Branding & Readability
 
 This build keeps the trust-first, controlled industry-adaptive intake, live-intended report funnel, paid-report breadcrumbs, server-side privacy-proof logging, admin privacy proof export, deterministic privacy certificates, HTML-first client reports, privacy-safe partner aggregate intelligence reports, the private records console route, the regenerate report checkbox, report quality gates, the tightened Darren voice report prompt, the required high-value "Try This This Week" prompt in the free report, selectable report export formats, searchable/sortable admin interview index, deterministic final-section safety net, the clearer core-question/follow-up progress language, the Snapshot First campaign URL, and the real Snapshot Scorecard in the free report. v1.72.1 adds the Bridge To AI brand system to the intake and snapshot forms, including optimized SIL/partner badge assets, branded header styling, trust panels, and a more vibrant report header.
 
 ## Snapshot First Campaign
 
-- New clean campaign URLs:
+- Clean public URLs:
+  - `/full` for the full diagnostic interview
+  - `/AFPA` for the AFPA member 20-question intake
   - `/snapshot`
   - `/snapshot-first`
+  - `/btai-console` for the private records console
 - `snapshot.html` and `snapshot-first.html` are physical copies of `index.html` so Vercel `cleanUrls` can serve the campaign reliably even if rewrite handling changes.
 - Query-string equivalent:
   - `/?campaign=snapshot_first`
 - The normal `/` URL remains the full diagnostic.
-- The snapshot campaign is intentionally not hard-branded as AFPA. AFPA can be offered this link as a shorter participation-friendly option, but the same campaign can later become the broader public/SEO front door.
+- The AFPA member intake is available at `/AFPA`. It uses 20 fixed questions, skips the two Voice & Standards scenario prompts, and uses the business type plus specific niche field to tailor examples and report context.
+- The snapshot campaign is intentionally not hard-branded as AFPA. AFPA can still use snapshot-style links where useful, but `/AFPA` is the clean member intake path.
 - The campaign uses a purpose-built 12-question free interview: business snapshot, top bottleneck, frequency, current workaround, handoffs, roles involved, information location, readiness assets, AI comfort boundary, human-review boundary, first useful win, and practical leverage.
 - Snapshot mode skips the two Voice & Standards prompts. Those belong to the deeper diagnostic because the free snapshot does not build a business voice/DNA profile.
 - Snapshot mode limits adaptive AI probes to 2 instead of the full diagnostic cap of 5.
@@ -137,9 +141,9 @@ This build keeps the trust-first, controlled industry-adaptive intake, live-inte
 - Clicking a row fills the Record ID and filename fields for faster Venture DNA retrieval or report generation.
 - The interview index can be downloaded as CSV for private BTAI admin use.
 - The index is protected by `BTAI_ADMIN_SECRET` and logs an admin access audit event.
-- `vercel.json` now explicitly rewrites `/btai-records-console` to `/btai-records-console.html`.
+- `vercel.json` now explicitly rewrites `/btai-console` to the private records console.
 - The private records console file is now `btai-records-console.html`.
-- With Vercel `cleanUrls`, use `/btai-records-console` instead of `/admin` or `/admin.html`.
+- With Vercel `cleanUrls`, use `/btai-console` instead of `/admin` or `/admin.html`.
 - The obvious `admin.html` file is no longer included in the deploy package.
 - This is reduced visibility, not the security boundary. The real protection remains `BTAI_ADMIN_SECRET` plus server-side authorization on the admin APIs.
 - Partner aggregate reports now exclude completion-page test records and obvious test Record IDs by default.
@@ -303,7 +307,7 @@ The email must match the email stored on that secure intake session. This mode d
 After a completed intake, use:
 
 ```text
-/btai-records-console
+/btai-console
 ```
 
 Paste the notification email's Record ID and the private `BTAI_ADMIN_SECRET` to download the decrypted `.md` file.
@@ -327,7 +331,7 @@ The internal BTAI Advisor Brief is for Bridge To AI only. It summarizes what to 
 
 ## Privacy Proof Export
 
-Use `/btai-records-console`, paste the Record ID and `BTAI_ADMIN_SECRET`, then click **Download Privacy Proof JSON**.
+Use `/btai-console`, paste the Record ID and `BTAI_ADMIN_SECRET`, then click **Download Privacy Proof JSON**.
 
 The export is designed for AFPA/client trust review. It includes sanitized event proof such as:
 
@@ -429,4 +433,5 @@ privacy.js
 supabase-rest.js
 validate-output.js
 ```
+
 
