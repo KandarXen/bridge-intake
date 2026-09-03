@@ -6,7 +6,7 @@ import { gateProofDetails, publicGateSummary, runPrivacyGate } from '../lib/priv
 import { validateDnaOutput } from '../lib/validate-output.js';
 import { assertRateLimit, assertTrustedOrigin, authorizedAdminRequest, safeError } from '../lib/security.js';
 
-const APP_VERSION = 'v1.72.22';
+const APP_VERSION = 'v1.72.23';
 
 const REPORTS = {
   free: {
@@ -1942,13 +1942,3 @@ export default async function handler(req, res) {
     return safeError(res, err, 'Report-pack request failed');
   }
 }
-
-
-
-
-
-
-
-
-
-

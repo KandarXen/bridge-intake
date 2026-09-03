@@ -2090,7 +2090,7 @@
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag" id="header-tag">Business Discovery Session</span>
-      <span class="header-version">v1.72.22</span>
+      <span class="header-version">v1.72.23</span>
   </div>
 </header>
 
@@ -2653,64 +2653,83 @@ const PARTNER_PROFILES = {
   }
 };
 
-const INDUSTRY_GUIDANCE = {
-  'Bakery / Grains': {
-    label: 'bakery or grain processor',
-    opportunities: ['production planning', 'batch sequencing', 'shelf life', 'SKU complexity', 'costing confidence', 'wholesale follow-up', 'food safety and SOPs', 'seasonal demand', 'buyer readiness', 'product storytelling'],
-    customerTypes: ['walk-in retail customers', 'repeat local customers', 'wholesale cafes', 'grocery or specialty buyers', 'catering or seasonal orders', 'larger commercial accounts']
+const INDUSTRY_PACKS = {
+  trade_field_services: {
+    id: 'trade_field_services',
+    label: 'Trade Services / Field Services',
+    shortLabel: 'trade or field service business',
+    aliases: ['home builder', 'builder', 'contractor', 'renovation', 'electrician', 'plumber', 'hvac', 'roofer', 'landscaper', 'arborist', 'tree service', 'restoration', 'field service', 'trades'],
+    subtypes: ['Builder / renovation contractor', 'Electrical / plumbing / HVAC', 'Roofing / exterior work', 'Landscaping / tree service', 'Restoration / emergency service', 'Other trade or field service'],
+    opportunities: ['lead intake', 'quote requests', 'site visits', 'job photos', 'crew scheduling', 'dispatch handoffs', 'materials coordination', 'change requests', 'customer updates', 'invoice follow-up', 'warranty/service history'],
+    customerTypes: ['homeowners', 'property managers', 'commercial accounts', 'repeat service customers', 'larger project clients', 'maintenance customers', 'referral partners'],
+    workflowExamples: ['lead to quote', 'site visit to estimate', 'scheduled job to crew handoff', 'field notes to invoice', 'customer update to follow-up'],
+    riskBoundaries: ['safety decisions', 'code or inspection decisions', 'legal disputes', 'insurance claims', 'customer private addresses beyond what is needed', 'payment details', 'employee personal information'],
+    reportFraming: 'Look first at the handoff from inquiry to quote, scheduled job, field notes, customer update, and invoice/follow-up.'
   },
-  'Beverages': {
-    label: 'beverage producer',
-    opportunities: ['batch planning', 'seasonal demand', 'distribution follow-up', 'retail buyer readiness', 'label and product storytelling', 'quality documentation', 'inventory visibility', 'promo planning'],
-    customerTypes: ['direct customers', 'retail buyers', 'restaurants or cafes', 'distributors', 'event or seasonal accounts', 'repeat online customers']
+  healthcare_care_services_non_clinical: {
+    id: 'healthcare_care_services_non_clinical',
+    label: 'Healthcare & Care Services: Non-Clinical Operations',
+    shortLabel: 'non-clinical healthcare or care-services business',
+    aliases: ['doctor', 'clinic', 'medical office', 'nurse practitioner', 'dentist', 'dental', 'home care', 'physio', 'physiotherapy', 'chiropractor', 'allied health', 'wellness clinic', 'care service', 'senior care'],
+    subtypes: ['Medical clinic / doctor office', 'Dental office', 'Home care agency', 'Allied health / therapy clinic', 'Wellness or care-services office', 'Other non-clinical care operation'],
+    opportunities: ['appointment requests', 'intake forms', 'reminders', 'cancellations', 'referral tracking', 'phone messages', 'document routing', 'staff handoffs', 'billing admin', 'policy/SOP updates', 'supply ordering'],
+    customerTypes: ['patients or clients', 'care recipients', 'families/caregivers', 'referring offices', 'staff teams', 'administrative leads'],
+    workflowExamples: ['appointment request to booking', 'form intake to admin review', 'referral received to follow-up', 'phone message to staff handoff', 'policy update to staff checklist'],
+    riskBoundaries: ['diagnosis', 'treatment advice', 'care planning', 'medication decisions', 'clinical triage', 'patient chart details', 'health card numbers', 'lab results', 'identifiable patient/client information'],
+    reportFraming: 'Keep recommendations limited to non-clinical operations: scheduling, forms, reminders, routing, internal SOPs, and administrative handoffs.'
   },
-  'Meat / Protein': {
-    label: 'meat or protein processor',
-    opportunities: ['production scheduling', 'yield tracking confidence', 'compliance documentation', 'order planning', 'buyer readiness', 'cold chain communication', 'SOP capture', 'inventory visibility'],
-    customerTypes: ['retail customers', 'wholesale buyers', 'food service accounts', 'distributors', 'specialty retailers', 'institutional buyers']
+  food_processing_manufacturing_distribution: {
+    id: 'food_processing_manufacturing_distribution',
+    label: 'Food Processing / Manufacturing / Distribution',
+    shortLabel: 'food, manufacturing, or distribution business',
+    aliases: ['food processor', 'food processing', 'copacker', 'co-packer', 'contract manufacturer', 'cpg', 'food brand', 'manufacturer', 'manufacturing', 'distributor', 'wholesaler', 'importer', 'commissary', 'beverage', 'bakery', 'meat', 'seafood', 'dairy', 'produce', 'prepared foods'],
+    subtypes: ['Food processor / manufacturer', 'Copacker / contract manufacturer', 'Food brand / CPG company', 'Distributor / wholesaler / importer', 'Foodservice production / commissary', 'Value-added agriculture', 'Other food or beverage business'],
+    productAreas: ['Bakery / baked goods', 'Beverage / bottling', 'Meat / seafood / protein', 'Dairy / cheese', 'Produce / value-added farm product', 'Prepared foods / ready-to-eat', 'Sauces / condiments / preserves', 'Snacks / shelf-stable packaged goods', 'Other'],
+    opportunities: ['order intake', 'production planning', 'batch/SKU coordination', 'QA records', 'label or spec-sheet updates', 'inventory visibility', 'buyer follow-up', 'supplier updates', 'shipping exceptions', 'SOP capture', 'training templates'],
+    customerTypes: ['retail buyers', 'foodservice accounts', 'distributors', 'brokers', 'private-label customers', 'direct customers', 'regional accounts'],
+    workflowExamples: ['order to production run', 'buyer request to spec sheet', 'QA note to corrective action', 'supplier document to internal record', 'shipment update to customer follow-up'],
+    riskBoundaries: ['recipes', 'confidential formulas', 'supplier contracts', 'customer lists', 'private financials', 'payroll', 'invoices', 'food safety decisions without review', 'regulated compliance decisions'],
+    reportFraming: 'Look at repeated admin around orders, production, QA/compliance-adjacent records, buyer follow-up, document control, and planning.'
   },
-  'Produce / Fresh Pack': {
-    label: 'produce or fresh-pack business',
-    opportunities: ['harvest or receiving coordination', 'freshness windows', 'order prioritization', 'waste reduction', 'buyer communication', 'seasonal demand', 'inventory visibility', 'quality checks'],
-    customerTypes: ['retail buyers', 'food service accounts', 'direct customers', 'distributors', 'seasonal accounts', 'institutional buyers']
+  professional_services_advisory: {
+    id: 'professional_services_advisory',
+    label: 'Professional Services / Advisory Businesses',
+    shortLabel: 'professional services or advisory business',
+    aliases: ['business coach', 'coach', 'consultant', 'advisor', 'bookkeeper', 'accountant', 'insurance broker', 'real estate', 'hr consultant', 'trainer', 'facilitator', 'agency', 'professional services'],
+    subtypes: ['Business coach / consultant', 'Bookkeeping / accounting', 'Broker / advisor', 'Training / facilitation', 'Agency / marketing services', 'Other professional service'],
+    opportunities: ['client intake', 'discovery notes', 'proposal drafting', 'scope control', 'session summaries', 'follow-up emails', 'progress tracking', 'reporting', 'resource reuse', 'workshop preparation'],
+    customerTypes: ['retainer clients', 'project clients', 'referral partners', 'workshop participants', 'business owners', 'professional buyers'],
+    workflowExamples: ['lead to discovery call', 'session notes to action items', 'proposal request to scope draft', 'client check-in to follow-up', 'repeat advice to reusable resource'],
+    riskBoundaries: ['confidential client strategy', 'legal advice', 'regulated financial advice', 'HR records', 'therapy-like disclosures', 'private customer data', 'contracts', 'payment details'],
+    reportFraming: 'Look first at client intake, notes, proposals, follow-up, repeated advice, reporting, and reusable knowledge.'
   },
-  'Prepared Foods': {
-    label: 'prepared foods business',
-    opportunities: ['production planning', 'SKU prioritization', 'label and allergen documentation', 'food safety SOPs', 'buyer readiness', 'repeat order follow-up', 'demand planning', 'product storytelling'],
-    customerTypes: ['retail customers', 'retail buyers', 'food service accounts', 'online customers', 'catering or event accounts', 'distribution partners']
-  },
-  'Distribution / Wholesale': {
-    label: 'distribution or wholesale business',
-    opportunities: ['order intake', 'routing or fulfillment coordination', 'inventory visibility', 'buyer follow-up', 'supplier updates', 'quote support', 'customer service summaries', 'exception tracking'],
-    customerTypes: ['repeat wholesale customers', 'larger accounts', 'retail partners', 'food service accounts', 'regional buyers', 'new territories']
-  },
-  'Retail / Food Service': {
-    label: 'retail or food service business',
-    opportunities: ['daily specials', 'staff checklists', 'customer reviews', 'local marketing', 'inventory notes', 'event planning', 'training material', 'repeat customer communication'],
-    customerTypes: ['walk-in customers', 'repeat local customers', 'event customers', 'online followers', 'catering customers', 'community partners']
-  },
-  'Professional Services': {
-    label: 'professional services firm',
-    opportunities: ['proposal drafting', 'discovery notes', 'client onboarding', 'scope control', 'reporting', 'knowledge reuse', 'client follow-up', 'thought leadership'],
-    customerTypes: ['higher-fit clients', 'larger retainers', 'referral partners', 'repeat clients', 'strategic accounts', 'new niches']
-  },
-  'Trades / Field Services': {
-    label: 'trades or field services business',
-    opportunities: ['quoting', 'job notes', 'scheduling', 'dispatch handoffs', 'customer updates', 'photo summaries', 'warranty follow-up', 'service history'],
-    customerTypes: ['repeat service customers', 'larger jobs', 'property managers', 'commercial accounts', 'referral partners', 'maintenance contracts']
-  },
-  'Manufacturing': {
-    label: 'manufacturing business',
-    opportunities: ['production planning', 'quality checks', 'SOP capture', 'quote support', 'inventory visibility', 'handoff notes', 'maintenance logs', 'customer updates'],
-    customerTypes: ['repeat customers', 'larger accounts', 'distributors', 'OEM or private-label buyers', 'regional buyers', 'strategic partnerships']
-  },
-  'Other': {
-    label: 'business',
+  general_business: {
+    id: 'general_business',
+    label: 'General Business Operations',
+    shortLabel: 'business',
+    aliases: [],
+    subtypes: ['Product business', 'Service business', 'Local business', 'Online business', 'Association / training organization', 'Other'],
     opportunities: ['customer follow-up', 'admin work', 'reporting', 'sales support', 'operations checklists', 'training material', 'marketing content', 'decision support'],
-    customerTypes: ['repeat customers', 'larger accounts', 'online/direct customers', 'referral partners', 'strategic partnerships', 'new markets']
+    customerTypes: ['repeat customers', 'larger accounts', 'online/direct customers', 'referral partners', 'strategic partnerships', 'new markets'],
+    workflowExamples: ['lead to follow-up', 'task to handoff', 'notes to report', 'request to response', 'workaround to repeatable process'],
+    riskBoundaries: ['private financials', 'customer names', 'supplier contracts', 'payroll', 'invoices', 'regulated data', 'confidential formulas', 'passwords or keys'],
+    reportFraming: 'Look for repeated work, unclear handoffs, scattered information, and low-risk first AI support.'
   }
 };
 
+const LEGACY_CATEGORY_PACK_MAP = {
+  'Bakery / Grains': 'food_processing_manufacturing_distribution',
+  'Beverages': 'food_processing_manufacturing_distribution',
+  'Meat / Protein': 'food_processing_manufacturing_distribution',
+  'Produce / Fresh Pack': 'food_processing_manufacturing_distribution',
+  'Prepared Foods': 'food_processing_manufacturing_distribution',
+  'Distribution / Wholesale': 'food_processing_manufacturing_distribution',
+  'Retail / Food Service': 'food_processing_manufacturing_distribution',
+  'Manufacturing': 'food_processing_manufacturing_distribution',
+  'Professional Services': 'professional_services_advisory',
+  'Trades / Field Services': 'trade_field_services',
+  'Other': 'general_business'
+};
 const SENSITIVE_DETAIL_WARNING = 'For this first intake, general ranges and directional examples are enough. Please avoid private financials, recipes, customer names, supplier contracts, payroll details, invoices, or confidential formulas.';
 const FULL_MAX_ADAPTIVE_PROBES = 5;
 const SNAPSHOT_MAX_ADAPTIVE_PROBES = 2;
@@ -3678,6 +3697,7 @@ function buildDraftPayload(captureTranscript = true) {
     scenarioStage,
     scenarioDone,
     businessContext,
+    industryPack: industryPackSummary(),
     subStep,
     activeProbe,
     interviewStarted: scenarioDone || !!scenarioStage || answers.some(Boolean) || masteryFollowups.some(Boolean) || Object.keys(domainProbes).length > 0
@@ -4137,6 +4157,7 @@ async function startInterview(evt) {
   ensureClientDraftId();
   saveDraft(false, true);
   logHermesEvent('interview_started', 'success', {
+    industryPack: industryPackSummary(),
     privacyConsentAt,
     privacyPolicyVersion: PRIVACY_POLICY_VERSION,
     questionCount: QUESTIONS.length,
@@ -4258,15 +4279,60 @@ function isSoloOrNoStaff() {
   return size === 0 || size === 1 || status.includes('semi-retired') || status.includes('semi retired') || status.includes('mostly just me') || status.includes('solo') || status.includes('self-employed') || status.includes('self employed') || status.includes('no employees');
 }
 
+function normalizeIndustryText(value) {
+  return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function detectIndustryPack() {
+  if (isAfpaMemberIntake()) return INDUSTRY_PACKS.food_processing_manufacturing_distribution;
+  const categoryMapped = LEGACY_CATEGORY_PACK_MAP[businessCategory];
+  if (categoryMapped && INDUSTRY_PACKS[categoryMapped]) return INDUSTRY_PACKS[categoryMapped];
+  const haystack = normalizeIndustryText([businessCategory, businessNiche, businessName, websiteUrl].filter(Boolean).join(' '));
+  if (!haystack) return INDUSTRY_PACKS.general_business;
+  const packs = Object.values(INDUSTRY_PACKS).filter(pack => pack.id !== 'general_business');
+  let best = { pack: null, score: 0 };
+  packs.forEach(pack => {
+    const score = (pack.aliases || []).reduce((total, alias) => {
+      const needle = normalizeIndustryText(alias);
+      return total + (needle && haystack.includes(needle) ? Math.max(1, needle.split(' ').length) : 0);
+    }, 0);
+    if (score > best.score) best = { pack, score };
+  });
+  return best.pack || INDUSTRY_PACKS.general_business;
+}
+
+function inferIndustrySubtype(pack, source = '') {
+  const text = normalizeIndustryText(source);
+  const subtypes = pack?.subtypes || [];
+  if (!text || !subtypes.length) return '';
+  const match = subtypes.find(subtype => normalizeIndustryText(subtype).split(' ').some(word => word.length > 4 && text.includes(word)));
+  return match || '';
+}
+
 function currentIndustryGuidance() {
-  const base = INDUSTRY_GUIDANCE[businessCategory] || INDUSTRY_GUIDANCE.Other;
+  const base = detectIndustryPack();
   const niche = String(businessNiche || '').trim();
-  if (!niche) return base;
-  return { ...base, label: `${niche} within ${base.label}` };
+  const subtype = inferIndustrySubtype(base, niche || businessCategory);
+  const label = subtype && !/other/i.test(subtype) ? `${subtype} (${base.label})` : base.label;
+  return { ...base, label, subtype };
 }
 
 function industryList(items) {
   return (items || []).slice(0, 8).join(', ');
+}
+
+function industryPackSummary() {
+  const guidance = currentIndustryGuidance();
+  return {
+    id: guidance.id,
+    label: guidance.label,
+    subtype: guidance.subtype || '',
+    opportunities: guidance.opportunities || [],
+    customerTypes: guidance.customerTypes || [],
+    workflowExamples: guidance.workflowExamples || [],
+    riskBoundaries: guidance.riskBoundaries || [],
+    reportFraming: guidance.reportFraming || ''
+  };
 }
 
 function adaptQuestionForContext(q) {
@@ -4295,6 +4361,22 @@ function adaptQuestionForContext(q) {
     'Information & Systems|Current Reality': {
       text: 'Where does the important information in your business actually live?',
       hint: 'Think about tools and places, not private records: accounting software, POS, spreadsheets, email, shared drives, notebooks, scheduling tools, production records, CRM, or people\'s heads.'
+    },
+    'Operations & Delivery|Current Workaround': {
+      text: 'How do you handle that work today?',
+      hint: `For a ${guidance.shortLabel || guidance.label}, think about ${industryList(guidance.workflowExamples)}. Who starts it, what tools or notes they use, and what workaround keeps it moving?`
+    },
+    'Information & Systems|Information Location': {
+      text: 'Where does the information needed for this work usually live?',
+      hint: `Examples: ${industryList(guidance.workflowExamples)}, plus email, spreadsheets, software, shared folders, paper forms, photos, notes, or memory.`
+    },
+    'Risk & Adoption|Current Reality': {
+      text: 'What privacy, compliance, or confidentiality constraints apply to your business?',
+      hint: `Relevant boundaries for a ${guidance.shortLabel || guidance.label}: ${industryList(guidance.riskBoundaries)}. Keep this directional; do not paste private records.`
+    },
+    'Risk & Adoption|Human Review Boundary': {
+      text: 'What should AI absolutely not touch or decide without a person reviewing it?',
+      hint: `Think about human-review boundaries such as ${industryList(guidance.riskBoundaries)}.`
     },
     'Risk & Adoption|AI Fit': {
       text: 'Which low-risk, reversible AI uses could you try first to build confidence?',
@@ -5205,6 +5287,7 @@ function buildPrivacyScanText() {
     }
     return answer;
   };
+  const pack = industryPackSummary();
   const lines = [
     'PARTICIPANT-PROVIDED INTAKE DATA',
     `Business Name: ${businessName || ''}`,
@@ -5214,7 +5297,9 @@ function buildPrivacyScanText() {
     `Website URL: ${websiteUrl || ''}`,
     `Company Size: ${companySize || ''}`,
     `Owner Work Status / Capacity: ${ownerWorkStatus || ''}`,
-    `Departments / Functions: ${departments.join(', ')}`
+    `Departments / Functions: ${departments.join(', ')}`,
+    `Industry Pack: ${pack.label || ''}`,
+    `Industry Privacy Boundaries: ${industryList(pack.riskBoundaries) || ''}`
   ];
 
   QUESTIONS.forEach((q, i) => {
@@ -5322,6 +5407,7 @@ Use this as background signal only. Do not claim that website observations are f
   const opportunitySourceNote = hasVoiceProfile
     ? 'the voice/standards in Part C'
     : 'the stated business answers only; do not use inferred voice/standards because they were not captured';
+  const pack = industryPackSummary();
 
   return `You are a business analyst for Bridge To AI, an AI implementation consulting firm run by Darren Randles (Kandar Consulting, Alberta, Canada).
 
@@ -5338,6 +5424,13 @@ Website URL: ${websiteUrl || '(not provided)'}
 Company Size: ${companySize ? companySize + ' people' : '(not specified)'}
 Owner Work Status / Capacity: ${ownerWorkStatus || '(not specified)'}
 Departments / Functions: ${departments.length ? departments.join(', ') : '(not specified)'}
+Industry Pack: ${pack.label || '(not specified)'}
+Industry Pack ID: ${pack.id || '(not specified)'}
+Detected Subtype: ${pack.subtype || '(not specified)'}
+Industry Workflow Examples: ${industryList(pack.workflowExamples) || '(not specified)'}
+Industry AI Opportunity Areas: ${industryList(pack.opportunities) || '(not specified)'}
+Industry Privacy / Human Review Boundaries: ${industryList(pack.riskBoundaries) || '(not specified)'}
+Industry Report Framing: ${pack.reportFraming || '(not specified)'}
 Privacy Consent: ${privacyConsent ? 'Accepted' : 'Not accepted'}
 Privacy Policy Version: ${PRIVACY_POLICY_VERSION}
 Privacy Consent Timestamp: ${privacyConsentAt || '(not recorded)'}
@@ -5346,6 +5439,8 @@ Campaign: ${campaignId || '(not specified)'}
 Intake Variant: ${intakeVariant}
 Question Set: ${isSnapshotFirstCampaign() ? 'Snapshot First short set' : isAfpaMemberIntake() ? 'AFPA member 20-question set' : 'Full diagnostic set'}
 Interview Date: ${new Date().toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' })}
+
+Use the Industry Pack as vocabulary and context guidance. Do not pretend to be a licensed expert in the client's trade or regulated field. For healthcare/care services, keep recommendations non-clinical and explicitly preserve privacy/human-review boundaries. For food businesses, avoid recipes, formulas, customer lists, supplier contracts, private financials, and food-safety decisions without human review. For trades, keep safety, code, insurance, and legal decisions human-reviewed. For professional services, avoid confidential client strategy, legal/financial advice, HR records, and private client data.
 
 Use company size, owner work status, and department structure to calibrate your recommendations: a solo operator, semi-retired owner, or side-business operator needs different AI leverage than a 50-person, multi-department business. If they are solo or semi-retired, do not imply staff exist unless the client clearly said so. Where departments are listed, consider whether AI opportunities should be scoped per-function, per-person, or future-hire readiness.
 
@@ -5466,6 +5561,7 @@ async function generateDNAWithClaude() {
         intakeVariant,
         privacyScanText: buildPrivacyScanText(),
         questionSet: activeQuestionSetName(),
+        industryPack: industryPackSummary(),
         businessCategory,
         companySize,
         ownerWorkStatus,
@@ -5677,22 +5773,3 @@ maybeContinueDeepInterviewFromLink().then(handled => {
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
