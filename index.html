@@ -3018,6 +3018,7 @@ let QUESTIONS = FULL_QUESTIONS;
 // Fixed follow-up shown after every mastery question
 const MASTERY_FOLLOWUP = 'And if AI quietly handled this area for you, what would that free you up to do, or how would it change things?';
 const SESSION_KEY = 'bridge-to-ai-intake-session-v1';
+const DRAFT_ACCESS_KEY = 'bridge-to-ai-intake-access-v1';
 const LEGACY_DRAFT_KEY = 'bridge-to-ai-intake-draft-v1';
 
 // State ------------------------------------------------------------------
@@ -3064,6 +3065,7 @@ let subStep = 'main';
 let activeProbe = null;        // { key, domain, sourceQuestionIndex, question } when a probe is showing
 let draftAutosaveEnabled = true;
 let clientDraftId = '';
+let draftAccessToken = '';
 let lastLoggedQuestionKey = '';
 let loggedSectionStarts = {};
 let loggedSectionCompletes = {};
@@ -3078,6 +3080,9 @@ let lastSecureStorage = null;
 
 // -- Screen management ------------------------------------------------------
 function ensureClientDraftId() {
+  if (!draftAccessToken) {
+    try { draftAccessToken = localStorage.getItem(DRAFT_ACCESS_KEY) || ''; } catch (e) { /* session resume unavailable */ }
+  }
   if (!clientDraftId) {
     try { clientDraftId = localStorage.getItem(SESSION_KEY) || ''; } catch (e) { /* ignore */ }
   }
@@ -3708,8 +3713,8 @@ function postDraftToServer(payload, useBeacon = false) {
   if (!payload || !payload.clientDraftId) return Promise.resolve({ saved: false });
   try { localStorage.setItem(SESSION_KEY, payload.clientDraftId); } catch (e) { /* ignore */ }
 
-  const body = JSON.stringify({ action: 'save', payload });
-  if (useBeacon && navigator.sendBeacon) {
+  const body = JSON.stringify({ action: 'save', payload, draftAccessToken });
+  if (useBeacon && draftAccessToken && navigator.sendBeacon) {
     try {
       const blob = new Blob([body], { type: 'application/json' });
       if (navigator.sendBeacon('/api/draft', blob)) return Promise.resolve({ saved: true, queued: true });
@@ -3721,7 +3726,15 @@ function postDraftToServer(payload, useBeacon = false) {
     headers: { 'Content-Type': 'application/json' },
     body,
     keepalive: useBeacon
-  }).then(resp => resp.ok ? resp.json() : Promise.reject(new Error('Draft save failed')));
+  }).then(async resp => {
+    if (!resp.ok) throw new Error('Draft save failed');
+    const data = await resp.json();
+    if (data.draftAccessToken) {
+      draftAccessToken = data.draftAccessToken;
+      try { localStorage.setItem(DRAFT_ACCESS_KEY, draftAccessToken); } catch (e) { /* session resume unavailable */ }
+    }
+    return data;
+  });
 }
 
 function flushDraftSave(useBeacon = false) {
@@ -3756,13 +3769,16 @@ async function loadDraft(clientDraftIdOverride = '') {
   else {
     try { sessionId = localStorage.getItem(SESSION_KEY) || ''; } catch (e) { sessionId = ''; }
   }
+  if (!draftAccessToken) {
+    try { draftAccessToken = localStorage.getItem(DRAFT_ACCESS_KEY) || ''; } catch (e) { /* session resume unavailable */ }
+  }
   if (!sessionId) return null;
 
   try {
     const resp = await fetch('/api/draft', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'load', clientDraftId: sessionId })
+      body: JSON.stringify({ action: 'load', clientDraftId: sessionId, draftAccessToken })
     });
     if (!resp.ok) return null;
     const data = await resp.json();
@@ -4009,6 +4025,7 @@ function clearSavedInterview(resetFields = false) {
   const priorDraftId = clientDraftId;
   try {
     localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(DRAFT_ACCESS_KEY);
     localStorage.removeItem(LEGACY_DRAFT_KEY);
   } catch (e) { /* ignore */ }
   lastLoadedDraft = null;
@@ -4016,7 +4033,7 @@ function clearSavedInterview(resetFields = false) {
     fetch('/api/draft', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'delete', clientDraftId: priorDraftId }),
+      body: JSON.stringify({ action: 'delete', clientDraftId: priorDraftId, draftAccessToken }),
       keepalive: true
     }).catch(() => {});
   }
@@ -4154,6 +4171,7 @@ async function startInterview(evt) {
   draftAutosaveEnabled = true;
   clearSavedInterview(false);
   clientDraftId = '';
+  draftAccessToken = '';
   ensureClientDraftId();
   saveDraft(false, true);
   logHermesEvent('interview_started', 'success', {
@@ -5554,6 +5572,7 @@ async function generateDNAWithClaude() {
     body: JSON.stringify({
       prompt: buildPrompt(),
       clientDraftId: ensureClientDraftId(),
+      draftAccessToken,
       sourceMeta: {
         partner: campaignPartner,
         campaign: campaignId,
@@ -5624,23 +5643,8 @@ async function generateDNAWithClaude() {
 // -- Send email via serverless function ------------------------------------
 async function sendEmailWithDNA() {
   const payload = {
-    to: CONFIG.DARREN_EMAIL,
-    subject: `New DNA Interview Complete - ${businessName} (${businessCategory})`,
-    clientName: `${clientName} - ${businessName}`,
-    clientEmail,
-    privacyConsent,
-    privacyConsentAt,
-    privacyPolicyVersion: PRIVACY_POLICY_VERSION,
-    partner: campaignPartner,
-    campaign: campaignId,
-    partnerDisplayName,
-    businessCategory,
-    companySize,
-    ownerWorkStatus,
-    departments: departments.join(', '),
     recordId: ensureClientDraftId(),
-    secureStorage: lastSecureStorage || { saved: false, reason: 'Secure storage result was not returned to browser' },
-    date: new Date().toLocaleDateString('en-CA')
+    draftAccessToken
   };
 
   const response = await fetch(CONFIG.EMAIL_ENDPOINT, {
@@ -5685,7 +5689,7 @@ function triggerFreeReportDelivery(options = {}) {
   const payload = {
     action: 'generate-free-email',
     clientDraftId: ensureClientDraftId(),
-    clientEmail
+    draftAccessToken
   };
 
   fetch(CONFIG.REPORT_PACK_ENDPOINT, {

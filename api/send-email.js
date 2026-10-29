@@ -1,153 +1,69 @@
-﻿// api/send-email.js
-// Sends completion notifications through Resend. By default this endpoint does
-// not email raw DNA content or attachments; the encrypted Supabase record is the
-// system of record.
+import { decryptJson } from '../lib/crypto.js';
+import { assertDraftAccess } from '../lib/draft-access.js';
+import { getIntakeSession } from '../lib/supabase-rest.js';
+import { assertRateLimit, assertTrustedOrigin, safeError } from '../lib/security.js';
 
-function uniqueList(values) {
-  return Array.from(new Set(values.filter(Boolean)));
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
-function attachmentsEnabled() {
-  return String(process.env.INTAKE_EMAIL_ATTACHMENTS_ENABLED || '').toLowerCase() === 'true';
+function clean(value, length = 160) {
+  return String(value || '').trim().slice(0, length);
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  const {
-    to,
-    subject,
-    clientName,
-    clientEmail,
-    privacyConsent,
-    privacyConsentAt,
-    privacyPolicyVersion,
-    partner,
-    campaign,
-    partnerDisplayName,
-    businessCategory,
-    companySize,
-    ownerWorkStatus,
-    departments,
-    date,
-    recordId,
-    secureStorage,
-    dnaContent
-  } = req.body || {};
-
-  if (!clientName) {
-    return res.status(400).json({ error: 'Missing clientName' });
-  }
-
-  if (!process.env.RESEND_API_KEY) {
-    console.error('RESEND_API_KEY is not configured');
-    return res.status(500).json({ error: 'Email service is not configured', details: 'Missing RESEND_API_KEY' });
-  }
-
-  const directRecipient = process.env.INTAKE_DIRECT_RECIPIENT || 'darren@ourcopacker.ca';
-  const bccRecipient = process.env.INTAKE_BCC_RECIPIENT || 'darren.randles@gmail.com';
-  const recipients = uniqueList([to || 'team@bridgetoai.ca', directRecipient]);
-  const bccRecipients = uniqueList([bccRecipient]);
-  const includeAttachment = attachmentsEnabled() && !!dnaContent;
-  const storageStatus = secureStorage?.saved ? 'Encrypted Supabase storage confirmed' : 'Secure storage did not confirm';
-
-  const htmlBody = `
-    <div style="font-family: Inter, Arial, sans-serif; max-width: 640px; margin: 0 auto; color: #111827;">
-      <div style="background: #0d6e5e; padding: 24px 32px; border-radius: 10px 10px 0 0;">
-        <h1 style="color: white; font-size: 1.15rem; font-weight: 600; margin: 0;">
-          Bridge To AI - New Intake Complete
-        </h1>
-      </div>
-      <div style="background: #fafaf8; border: 1px solid #e4e2dd; border-top: none; padding: 28px 32px; border-radius: 0 0 10px 10px;">
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
-          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280; width: 150px;">Client</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; font-weight: 600;">${clientName}</td></tr>
-          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Client email</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${clientEmail || 'Not provided'}</td></tr>
-          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Business type</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${businessCategory || 'Not provided'}</td></tr>
-          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Size</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${companySize || 'Not provided'}</td></tr>
-          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Owner status</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${ownerWorkStatus || 'Not provided'}</td></tr>
-          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Departments</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${departments || 'Not provided'}</td></tr>
-          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Privacy consent</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${privacyConsent ? 'Accepted' : 'Not confirmed'}${privacyConsentAt ? ` at ${privacyConsentAt}` : ''}</td></tr>
-          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Policy version</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${privacyPolicyVersion || 'Not provided'}</td></tr>
-          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Partner / campaign</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${partnerDisplayName || partner || 'BTAI'} / ${campaign || 'general_intake'}</td></tr>
-          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Record ID</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;"><code>${recordId || 'Not provided'}</code></td></tr>
-          <tr><td style="padding: 8px 0; color: #6b7280;">Date</td><td style="padding: 8px 0;">${date || new Date().toISOString()}</td></tr>
-        </table>
-
-        <div style="background: ${secureStorage?.saved ? '#e8f4f1' : '#fdf6e8'}; border: 1px solid ${secureStorage?.saved ? '#b8ddd7' : '#f0d9a8'}; border-radius: 8px; padding: 14px 16px; font-size: 0.9rem; color: ${secureStorage?.saved ? '#0d6e5e' : '#8a6d2a'}; margin-bottom: 18px;">
-          <strong>${storageStatus}.</strong>
-          ${secureStorage?.reason ? `<br>Reason: ${secureStorage.reason}` : ''}
-        </div>
-
-        <p style="font-size: 0.9rem; line-height: 1.6; color: #374151;">
-          The completed intake output is stored in the secure backend record above. This email is a notification only${includeAttachment ? ', with emergency attachment mode enabled' : ''}.
-        </p>
-      </div>
-      <p style="font-size: 0.75rem; color: #8a8a8a; text-align: center; margin-top: 16px;">
-        Bridge To AI - Alberta, Canada - Confidential
-      </p>
-    </div>
-  `;
-
-  const textBody = `
-NEW INTAKE COMPLETE - Bridge To AI
-==================================
-Client: ${clientName}
-Client email: ${clientEmail || 'Not provided'}
-Business type: ${businessCategory || 'Not provided'}
-Record ID: ${recordId || 'Not provided'}
-Date: ${date || new Date().toISOString()}
-Storage: ${storageStatus}
-Privacy consent: ${privacyConsent ? 'Accepted' : 'Not confirmed'}
-Privacy consent at: ${privacyConsentAt || 'Not provided'}
-Privacy policy version: ${privacyPolicyVersion || 'Not provided'}
-Partner: ${partnerDisplayName || partner || 'BTAI'}
-Campaign: ${campaign || 'general_intake'}
-
-This is a notification-only email. The encrypted intake output is stored in the secure backend record.
-`;
-
-  const emailPayload = {
-    from: 'The Bridge Team <team@bridgetoai.ca>',
-    to: recipients,
-    bcc: bccRecipients,
-    subject: subject || `New Intake Complete - ${clientName}`,
-    html: htmlBody,
-    text: textBody
-  };
-
-  if (includeAttachment) {
-    emailPayload.attachments = [
-      {
-        filename: `${String(clientName).replace(/[^a-zA-Z0-9]/g, '_')}_VENTURE_DNA.md`,
-        content: Buffer.from(dnaContent).toString('base64'),
-        content_type: 'text/markdown'
-      }
-    ];
-  }
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const emailResponse = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(emailPayload)
-    });
+    assertTrustedOrigin(req);
+    assertRateLimit(req, { key: 'completion-notification', limit: 5, windowMs: 60_000 });
 
-    if (!emailResponse.ok) {
-      const error = await emailResponse.json();
-      console.error('Resend error:', error);
-      return res.status(500).json({ error: 'Email delivery failed', details: error });
+    const recordId = clean(req.body?.recordId, 120);
+    const draftAccessToken = clean(req.body?.draftAccessToken, 4096);
+    if (!recordId) return res.status(400).json({ error: 'Missing recordId' });
+    assertDraftAccess(draftAccessToken, recordId);
+
+    const session = await getIntakeSession(recordId);
+    if (!session?.encrypted_payload) return res.status(404).json({ error: 'No secure intake record found' });
+    const payload = decryptJson(session.encrypted_payload);
+    if (!payload?.privacyConsent || !payload?.privacyConsentAt || !payload?.privacyPolicyVersion) {
+      return res.status(409).json({ error: 'Privacy consent must be recorded before notification' });
     }
+    if (session.status !== 'complete') return res.status(409).json({ error: 'Intake is not complete' });
 
-    const result = await emailResponse.json();
-    return res.status(200).json({ success: true, id: result.id, attachmentIncluded: includeAttachment });
+    if (!process.env.RESEND_API_KEY) return res.status(503).json({ error: 'Email service is not configured' });
+    const recipient = clean(process.env.INTAKE_DIRECT_RECIPIENT, 320);
+    if (!recipient) return res.status(503).json({ error: 'Notification recipient is not configured' });
+
+    const fields = {
+      clientName: clean(payload.clientName, 120) || 'Not provided',
+      clientEmail: clean(payload.clientEmail, 320) || 'Not provided',
+      businessCategory: clean(payload.businessCategory, 160) || 'Not provided',
+      partner: clean(payload.partnerDisplayName || payload.campaignPartner || 'BTAI', 120),
+      campaign: clean(payload.campaignId || 'general_intake', 120),
+      consentAt: clean(payload.privacyConsentAt, 80),
+      policyVersion: clean(payload.privacyPolicyVersion, 80)
+    };
+    const html = `<div style="font-family:Arial,sans-serif;color:#111827"><h1>Bridge To AI — Intake Complete</h1><p>A verified intake is ready for internal review.</p><table><tr><th align="left">Client</th><td>${escapeHtml(fields.clientName)}</td></tr><tr><th align="left">Email</th><td>${escapeHtml(fields.clientEmail)}</td></tr><tr><th align="left">Business type</th><td>${escapeHtml(fields.businessCategory)}</td></tr><tr><th align="left">Partner / campaign</th><td>${escapeHtml(fields.partner)} / ${escapeHtml(fields.campaign)}</td></tr><tr><th align="left">Consent</th><td>Accepted at ${escapeHtml(fields.consentAt)} (policy ${escapeHtml(fields.policyVersion)})</td></tr><tr><th align="left">Record</th><td><code>${escapeHtml(recordId)}</code></td></tr></table><p>This notification contains no report content or attachments.</p></div>`;
+    const text = `BTAI intake complete\nClient: ${fields.clientName}\nEmail: ${fields.clientEmail}\nBusiness type: ${fields.businessCategory}\nPartner/campaign: ${fields.partner} / ${fields.campaign}\nConsent: accepted at ${fields.consentAt} (policy ${fields.policyVersion})\nRecord: ${recordId}\n\nNo report content or attachments are included.`;
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: 'The Bridge Team <team@bridgetoai.ca>', to: [recipient], subject: 'Bridge To AI intake complete', html, text })
+    });
+    if (!response.ok) {
+      console.error('Resend completion notification failed:', response.status);
+      return res.status(502).json({ error: 'Email delivery failed' });
+    }
+    const result = await response.json();
+    return res.status(200).json({ success: true, id: result.id, notificationOnly: true });
   } catch (err) {
-    console.error('Server error:', err);
-    return res.status(500).json({ error: 'Server error', message: err.message });
+    console.error('completion notification error:', err);
+    return safeError(res, err, 'Email service unavailable');
   }
 }
-

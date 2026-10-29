@@ -1,13 +1,15 @@
-﻿// api/generate-dna.js
+// api/generate-dna.js
 // Server-side function that calls Claude to compile the DNA file.
 // Keeps the Anthropic API key hidden from the browser.
 // Hermes privacy layer: anonymizes obvious identifiers before sending the
 // prompt to Claude, then re-identifies the final output before returning it.
 
-import { encryptJson } from '../lib/crypto.js';
-import { insertClaimTrace, insertIntakeEvent, insertIntakeOutput, updateIntakeSession } from '../lib/supabase-rest.js';
+import { decryptJson, encryptJson } from '../lib/crypto.js';
+import { getIntakeSession, insertClaimTrace, insertIntakeEvent, insertIntakeOutput, updateIntakeSession } from '../lib/supabase-rest.js';
 import { gateProofDetails, publicGateSummary, runPrivacyGate } from '../lib/privacy-gate.js';
 import { validateDnaOutput } from '../lib/validate-output.js';
+import { assertDraftAccess } from '../lib/draft-access.js';
+import { assertRateLimit, assertTrustedOrigin, safeError } from '../lib/security.js';
 
 async function logPrivacyProof(clientDraftId, eventType, status, details = {}) {
   try {
@@ -288,12 +290,23 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { prompt, clientDraftId, sourceMeta } = req.body;
+  const { prompt, clientDraftId, draftAccessToken, sourceMeta } = req.body;
   if (!prompt) {
     return res.status(400).json({ error: 'Missing prompt' });
   }
 
   try {
+    assertTrustedOrigin(req);
+    assertRateLimit(req, { key: 'generate-dna', limit: 3, windowMs: 60_000 });
+    assertDraftAccess(draftAccessToken, clientDraftId);
+    const storedSession = await getIntakeSession(clientDraftId);
+    const storedPayload = storedSession?.encrypted_payload ? decryptJson(storedSession.encrypted_payload) : null;
+    if (!storedPayload?.privacyConsent || !storedPayload?.privacyConsentAt || !storedPayload?.privacyPolicyVersion) {
+      return res.status(409).json({ error: 'Privacy consent must be saved before generating a report' });
+    }
+    if (String(process.env.BTAI_ENABLE_AUTOMATED_AI || '').toLowerCase() !== 'true') {
+      return res.status(503).json({ error: 'Automated report generation is not enabled for this pilot' });
+    }
     await logPrivacyProof(clientDraftId, 'privacy_proof_consent_recorded', sourceMeta?.privacyConsent ? 'success' : 'failed', {
       privacyProofType: 'consent',
       privacyConsentAccepted: !!sourceMeta?.privacyConsent,
@@ -465,7 +478,7 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error('Server error:', err);
-    return res.status(500).json({ error: 'Server error', message: err.message });
+    return safeError(res, err, 'Report generation unavailable');
   }
 }
 

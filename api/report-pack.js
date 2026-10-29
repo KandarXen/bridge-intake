@@ -5,6 +5,7 @@ import { getIntakeEvents, getIntakeSession, getLatestIntakeOutput, insertIntakeE
 import { gateProofDetails, publicGateSummary, runPrivacyGate } from '../lib/privacy-gate.js';
 import { validateDnaOutput } from '../lib/validate-output.js';
 import { assertRateLimit, assertTrustedOrigin, authorizedAdminRequest, safeError } from '../lib/security.js';
+import { assertDraftAccess } from '../lib/draft-access.js';
 
 const APP_VERSION = 'v1.72.23';
 
@@ -1494,38 +1495,18 @@ function isValidEmail(value = '') {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(value));
 }
 
-async function resolveReportRecipientEmail(clientDraftId, sessionPayload, providedEmail = '') {
+async function resolveReportRecipientEmail(sessionPayload) {
   const sessionEmail = normalizeEmail(sessionPayload.clientEmail || '');
-  const requestEmail = normalizeEmail(providedEmail || '');
-  const recipientEmail = requestEmail || sessionEmail;
+  const recipientEmail = sessionEmail;
   if (!recipientEmail) throw new Error('No client email found on the intake session');
   if (!isValidEmail(recipientEmail)) throw new Error('The report email address is not valid');
-
-  if (requestEmail && requestEmail !== sessionEmail) {
-    const correctedPayload = {
-      ...sessionPayload,
-      clientEmail: requestEmail,
-      reportDeliveryEmailCorrectedAt: new Date().toISOString()
-    };
-    await updateIntakeSession(clientDraftId, {
-      encrypted_payload: encryptJson(correctedPayload),
-      updated_at: new Date().toISOString()
-    });
-    await logReportEvent(clientDraftId, 'free_report_delivery_email_corrected', 'success', privacyProofDefaults({
-      reportTier: 'free',
-      recipientCorrected: true,
-      piiLogged: false,
-      proofStatus: 'delivery_email_corrected_in_encrypted_session'
-    }));
-  }
-
   return recipientEmail;
 }
 
-async function generateFreeAndEmail(clientDraftId, providedEmail = '') {
+async function generateFreeAndEmail(clientDraftId) {
   const startedAt = Date.now();
   const sessionPayload = await getSessionPayload(clientDraftId);
-  const recipientEmail = await resolveReportRecipientEmail(clientDraftId, sessionPayload, providedEmail);
+  const recipientEmail = await resolveReportRecipientEmail(sessionPayload);
 
   await logReportEvent(clientDraftId, 'free_report_delivery_started', 'success', privacyProofDefaults({
     reportTier: 'free',
@@ -1880,7 +1861,11 @@ export default async function handler(req, res) {
     assertTrustedOrigin(req);
     assertRateLimit(req, { key: `report-pack:${action || 'unknown'}`, limit: action === 'generate-free-email' ? 8 : 12, windowMs: 60_000 });
     if (action === 'generate-free-email') {
-      return res.status(200).json(await generateFreeAndEmail(clientDraftId, req.body?.clientEmail || ''));
+      assertDraftAccess(req.body?.draftAccessToken, clientDraftId);
+      if (String(process.env.BTAI_ENABLE_CLIENT_REPORT_PACK || '').toLowerCase() !== 'true') {
+        return res.status(503).json({ error: 'Automated report delivery is not enabled for this pilot' });
+      }
+      return res.status(200).json(await generateFreeAndEmail(clientDraftId));
     }
     if (!(await authorizedAdminRequest(req))) return res.status(401).json({ error: 'Unauthorized' });
     if (action === 'approve-privacy-gate') return res.status(200).json(await approvePrivacyGate(clientDraftId, req.body?.purpose || 'all', req.body?.reviewNote || ''));
