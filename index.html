@@ -1841,6 +1841,34 @@
     color: #a33a24;
   }
 
+  .draft-save-status {
+    display: none;
+    margin: 1rem 0;
+    padding: 0.85rem 1rem;
+    border: 1px solid #b8ddd7;
+    border-left: 5px solid var(--bridge-teal);
+    border-radius: 8px;
+    background: #f1fbf8;
+    color: #164a43;
+    font-size: 0.9rem;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+
+  .draft-save-status:not(:empty) { display: block; }
+  .draft-save-status.saving {
+    border-color: #c8d5d2;
+    border-left-color: #6a7f7a;
+    background: #f5f8f7;
+    color: #38504b;
+  }
+  .draft-save-status.error {
+    border-color: #efc5bb;
+    border-left-color: #a33a24;
+    background: #fff4f1;
+    color: #81301e;
+  }
+
   .name-field input.field-invalid {
     border-color: #c45a42;
     box-shadow: 0 0 0 3px rgba(196, 90, 66, 0.12);
@@ -2445,7 +2473,7 @@
         </div>
 
         <div id="welcome-error" class="error-banner">Please fill in your name, valid email, business name, business type, and privacy consent before continuing.</div>
-        <div class="field-status" id="draft-save-status" aria-live="polite"></div>
+        <div class="draft-save-status" id="draft-save-status" aria-live="polite"></div>
 
         <button class="btn-primary" onclick="startInterview(event)" style="width:100%;">
           Begin my discovery session ->
@@ -3737,7 +3765,7 @@ function postDraftToServer(payload, useBeacon = false) {
       draftAccessToken = data.draftAccessToken;
       try { localStorage.setItem(DRAFT_ACCESS_KEY, draftAccessToken); } catch (e) { /* session resume unavailable */ }
     }
-    updateDraftSaveStatus('Saved securely.', 'ok');
+    updateDraftSaveStatus('Your answers are saved. It is safe to refresh this page.', 'ok');
     return data;
   });
 }
@@ -3746,7 +3774,7 @@ function updateDraftSaveStatus(message = '', state = '') {
   const status = document.getElementById('draft-save-status');
   if (!status) return;
   status.textContent = message;
-  status.className = `field-status${state ? ` ${state}` : ''}`;
+  status.className = `draft-save-status${state ? ` ${state}` : ''}`;
 }
 
 function flushDraftSave(useBeacon = false) {
@@ -3758,7 +3786,7 @@ function flushDraftSave(useBeacon = false) {
   pendingDraftPayload = null;
   if (!payload) return Promise.resolve({ saved: false });
   return postDraftToServer(payload, useBeacon).catch(err => {
-    updateDraftSaveStatus('Could not save. Please do not refresh yet.', 'error');
+    updateDraftSaveStatus('We could not save the latest changes. Please do not refresh yet.', 'error');
     logHermesEvent('autosave_failed', 'failed', { autosaveTarget: 'server_encrypted_supabase', error: err.message || 'Server draft storage unavailable' });
     return { saved: false, error: err.message };
   });
@@ -3769,7 +3797,7 @@ function saveDraft(captureTranscript = true, immediate = false) {
   try {
     const payload = buildDraftPayload(captureTranscript);
     if (!payload) return;
-    updateDraftSaveStatus('Saving securely…');
+    updateDraftSaveStatus('Saving your answers…', 'saving');
     pendingDraftPayload = payload;
     if (draftSaveTimer) clearTimeout(draftSaveTimer);
     if (immediate) flushDraftSave(false);
@@ -3860,7 +3888,7 @@ async function showResumeCardIfNeeded() {
   departments = Array.isArray(draft.departments) ? draft.departments : [];
   applyPartnerBranding();
   applyWelcomeFields();
-  updateDraftSaveStatus('Saved draft restored securely.', 'ok');
+  updateDraftSaveStatus('Your saved answers were restored. You can keep going.', 'ok');
 
   if (draft.interviewStarted) {
     logHermesEvent('resume_prompt_shown', 'success', { autosaveTarget: 'server_encrypted_supabase', resumeUsed: false });
