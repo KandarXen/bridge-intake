@@ -832,9 +832,8 @@
   .time-gauge {
     min-height: 190px;
     border-radius: 8px;
-    background:
-      radial-gradient(circle at 50% 44%, #fff 0 38%, transparent 39%),
-      conic-gradient(var(--bridge-teal) 0 72%, #e4e2dd 72% 100%);
+    padding: 1.2rem;
+    background: linear-gradient(135deg, #075f53 0%, #0b7665 100%);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -846,31 +845,55 @@
   .time-gauge::after {
     content: "";
     position: absolute;
-    inset: 18px;
+    inset: 12px;
     border-radius: 50%;
-    border: 1px solid rgba(13, 110, 94, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.16);
     pointer-events: none;
   }
 
+  .gauge-eyebrow {
+    color: #c8f0e7;
+    font-size: 0.64rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    z-index: 1;
+  }
+
   .gauge-number {
-    color: var(--bridge-teal);
-    font-size: 2.65rem;
+    color: #fff;
+    font-size: 3.1rem;
     font-weight: 800;
     line-height: 1;
+    margin-top: 0.2rem;
     z-index: 1;
   }
 
   .gauge-label {
-    color: var(--ink-mid);
+    color: #fff;
     font-size: 0.8rem;
     font-weight: 700;
     z-index: 1;
   }
 
+  .gauge-dots {
+    display: flex;
+    gap: 0.38rem;
+    margin: 0.65rem 0 0.35rem;
+    z-index: 1;
+  }
+
+  .gauge-dots span {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #f0cd69;
+    box-shadow: 0 0 0 3px rgba(240, 205, 105, 0.14);
+  }
+
   .gauge-sub {
-    color: var(--ink-soft);
+    color: #d4eee8;
     font-size: 0.68rem;
-    margin-top: 0.25rem;
+    text-align: center;
     z-index: 1;
   }
 
@@ -2277,9 +2300,11 @@
           </div>
           <div class="payoff-grid">
             <div class="time-gauge" aria-label="Snapshot Scorecard signal count">
+              <div class="gauge-eyebrow">YOUR PRIVATE SNAPSHOT</div>
               <div class="gauge-number" id="gauge-number">5</div>
-              <div class="gauge-label" id="gauge-label">scorecard signals</div>
-              <div class="gauge-sub" id="gauge-sub">workflow drag, AI fit, readiness, review boundary, first win</div>
+              <div class="gauge-label" id="gauge-label">signals we review</div>
+              <div class="gauge-dots" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+              <div class="gauge-sub" id="gauge-sub">One clear starting point for AI</div>
             </div>
             <div class="payoff-chart" aria-label="Snapshot Scorecard preview">
               <div class="scorecard-preview">
@@ -3909,8 +3934,8 @@ function applyCampaignCopy() {
   setText('payoff-title', 'Your free report starts with a Snapshot Scorecard');
   setText('payoff-note', 'Directional signals based on your answers, not fake ROI math.');
   setText('gauge-number', '5');
-  setText('gauge-label', 'scorecard signals');
-  setText('gauge-sub', 'workflow drag, AI fit, readiness, review boundary, first win');
+  setText('gauge-label', 'signals we review');
+  setText('gauge-sub', 'One clear starting point for AI');
   setText('outcome-title-1', 'Best first AI win');
   setText('outcome-copy-1', 'A practical use case tied to real friction, not AI hype.');
   setText('outcome-title-2', 'Ready vs. cleanup');
