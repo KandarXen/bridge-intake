@@ -2445,6 +2445,7 @@
         </div>
 
         <div id="welcome-error" class="error-banner">Please fill in your name, valid email, business name, business type, and privacy consent before continuing.</div>
+        <div class="field-status" id="draft-save-status" aria-live="polite"></div>
 
         <button class="btn-primary" onclick="startInterview(event)" style="width:100%;">
           Begin my discovery session ->
@@ -3727,14 +3728,25 @@ function postDraftToServer(payload, useBeacon = false) {
     body,
     keepalive: useBeacon
   }).then(async resp => {
-    if (!resp.ok) throw new Error('Draft save failed');
+    if (!resp.ok) {
+      const data = await resp.json().catch(() => ({}));
+      throw new Error(data.error || 'Draft save failed');
+    }
     const data = await resp.json();
     if (data.draftAccessToken) {
       draftAccessToken = data.draftAccessToken;
       try { localStorage.setItem(DRAFT_ACCESS_KEY, draftAccessToken); } catch (e) { /* session resume unavailable */ }
     }
+    updateDraftSaveStatus('Saved securely.', 'ok');
     return data;
   });
+}
+
+function updateDraftSaveStatus(message = '', state = '') {
+  const status = document.getElementById('draft-save-status');
+  if (!status) return;
+  status.textContent = message;
+  status.className = `field-status${state ? ` ${state}` : ''}`;
 }
 
 function flushDraftSave(useBeacon = false) {
@@ -3746,6 +3758,7 @@ function flushDraftSave(useBeacon = false) {
   pendingDraftPayload = null;
   if (!payload) return Promise.resolve({ saved: false });
   return postDraftToServer(payload, useBeacon).catch(err => {
+    updateDraftSaveStatus('Could not save. Please do not refresh yet.', 'error');
     logHermesEvent('autosave_failed', 'failed', { autosaveTarget: 'server_encrypted_supabase', error: err.message || 'Server draft storage unavailable' });
     return { saved: false, error: err.message };
   });
@@ -3756,6 +3769,7 @@ function saveDraft(captureTranscript = true, immediate = false) {
   try {
     const payload = buildDraftPayload(captureTranscript);
     if (!payload) return;
+    updateDraftSaveStatus('Saving securely…');
     pendingDraftPayload = payload;
     if (draftSaveTimer) clearTimeout(draftSaveTimer);
     if (immediate) flushDraftSave(false);
