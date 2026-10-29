@@ -7,7 +7,7 @@ import { validateDnaOutput } from '../lib/validate-output.js';
 import { assertRateLimit, assertTrustedOrigin, authorizedAdminRequest, safeError } from '../lib/security.js';
 import { assertDraftAccess } from '../lib/draft-access.js';
 
-const APP_VERSION = 'v1.72.23';
+const APP_VERSION = 'v1.72.24';
 
 const REPORTS = {
   free: {
