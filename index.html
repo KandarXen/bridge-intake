@@ -3860,6 +3860,7 @@ async function showResumeCardIfNeeded() {
   departments = Array.isArray(draft.departments) ? draft.departments : [];
   applyPartnerBranding();
   applyWelcomeFields();
+  updateDraftSaveStatus('Saved draft restored securely.', 'ok');
 
   if (draft.interviewStarted) {
     logHermesEvent('resume_prompt_shown', 'success', { autosaveTarget: 'server_encrypted_supabase', resumeUsed: false });
