@@ -32,6 +32,7 @@ assert.match(aiApi, /runPrivacyGate\(prompt, \{ purpose: 'venture_dna_generation
 assert.match(reportApi, /const bccRecipient = process\.env\.INTAKE_BCC_RECIPIENT \|\| '';/, 'free-report BCC has no hard-coded recipient');
 assert.match(reportApi, /const continueInterviewUrl = `\$\{publicBaseUrl\}\/snapshot`;/, 'free-report link does not expose a draft ID');
 assert.match(reportApi, /function assertPreviewRecipientAllowed\(email\)/, 'Preview report delivery requires an approved recipient');
+assert.match(reportApi, /Preview public base URL is not configured/, 'Preview report delivery fails closed without a Preview base URL');
 assert.match(draftAccessSource, /const DEFAULT_TTL_DAYS = 30;/, 'draft capability lifetime matches the pilot retention window');
 
 requireBefore(

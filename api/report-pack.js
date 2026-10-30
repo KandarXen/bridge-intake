@@ -1432,7 +1432,11 @@ async function sendFreeReportEmail({ clientDraftId, clientEmail, clientName, bus
   const bccRecipient = process.env.INTAKE_BCC_RECIPIENT || '';
   assertPreviewRecipientAllowed(clientEmail);
   const { level2Price, level3Price, level2Url, level3Url, consultUrl } = paymentConfig();
-  const publicBaseUrl = (process.env.BTAI_PUBLIC_BASE_URL || 'https://intake.bridgetoai.ca').replace(/\/+$/, '');
+  const configuredPublicBaseUrl = String(process.env.BTAI_PUBLIC_BASE_URL || '').trim().replace(/\/+$/, '');
+  if (String(process.env.VERCEL_ENV || '').toLowerCase() === 'preview' && !configuredPublicBaseUrl) {
+    throw new Error('Preview public base URL is not configured');
+  }
+  const publicBaseUrl = configuredPublicBaseUrl || 'https://intake.bridgetoai.ca';
   const continueInterviewUrl = `${publicBaseUrl}/snapshot`;
   const showUpsellLinks = String(process.env.BTAI_ENABLE_UPSELL_LINKS || '').toLowerCase() === 'true';
   const lockMarkUrl = `${publicBaseUrl}/assets/brand/sil-lock-mark.png`;
