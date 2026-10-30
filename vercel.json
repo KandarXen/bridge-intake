@@ -1,7 +1,9 @@
 {
   "cleanUrls": true,
   "redirects": [
-    { "source": "/afpa", "destination": "/AFPA", "permanent": false }
+    { "source": "/afpa", "destination": "/AFPA", "permanent": false },
+    { "source": "/snapshot", "destination": "/?campaign=snapshot_first", "permanent": false },
+    { "source": "/snapshot-first", "destination": "/?campaign=snapshot_first", "permanent": false }
   ],
   "rewrites": [
     { "source": "/", "destination": "/index.html" },

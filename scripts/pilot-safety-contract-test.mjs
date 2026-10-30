@@ -22,6 +22,7 @@ const reportApi = read('api/report-pack.js');
 const notificationApi = read('api/send-email.js');
 const intakePage = read('index.html');
 const testerPage = read('private-test-page.html');
+const vercelConfig = read('vercel.json');
 const draftAccessSource = read('lib/draft-access.js');
 const draftAccess = await import('../lib/draft-access.js');
 
@@ -57,7 +58,8 @@ requireBefore(
 );
 assert.doesNotMatch(intakePage, /await sendEmailWithDNA\(\)/, 'interview completion cannot send an email automatically');
 assert.match(testerPage, /<meta name="robots" content="noindex, nofollow, noarchive">/, 'private tester page is excluded from indexing');
-assert.match(testerPage, /<meta http-equiv="refresh" content="0; url=\/snapshot">/, 'tester page immediately opens the short Snapshot path');
+assert.match(testerPage, /<meta http-equiv="refresh" content="0; url=\/\?campaign=snapshot_first">/, 'tester page immediately opens the short Snapshot mode');
+assert.match(vercelConfig, /"source": "\/snapshot", "destination": "\/\?campaign=snapshot_first"/, 'legacy Snapshot route redirects to the current Snapshot mode');
 
 const savedSecret = process.env.BTAI_DRAFT_ACCESS_SECRET;
 process.env.BTAI_DRAFT_ACCESS_SECRET = 'v1.72.25-contract-test-secret-with-32-plus-characters';
