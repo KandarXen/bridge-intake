@@ -39,5 +39,6 @@ Do not send minor wording, formatting, or preference differences back and forth 
 - `REVIEW_QUEUE.md` — the one active independent review and its complete evidence packet.
 - `INBOX/CLAUDE/` — Claude’s structured review reports for Codex to read.
 - `HERMES_RUNNER.md` — local, dependency-free runner instructions and its safe activation boundary.
+- `GLOBAL_PARKING_LOT.md` — deferred improvements and the exact conditions for revisiting them.
 - `../review-packages/` — versioned, self-contained reviewer evidence.
 - `../releases/` — concise release notes by version.
