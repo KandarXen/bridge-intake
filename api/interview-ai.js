@@ -120,7 +120,7 @@ async function researchBusiness(body) {
 
 Client-provided information:
 - Business name: ${businessName || '(not provided)'}
-- Business type/category: ${businessCategory || '(not provided)'}
+- Business description: ${businessCategory || '(not provided)'}
 - Specific niche: ${businessNiche || '(not provided)'}
 - Detail-sharing comfort: ${shareComfort || '(not provided)'}
 - Website URL: ${normalizedWebsiteUrl || '(not provided)'}

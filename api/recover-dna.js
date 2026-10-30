@@ -177,7 +177,7 @@ CLIENT INFORMATION:
 Owner Name: ${safeText(payload.clientName)}
 Owner Email: ${safeText(payload.clientEmail)}
 Business Name: ${safeText(payload.businessName)}
-Business Category: ${safeText(payload.businessCategory)}
+Business Description: ${safeText(payload.businessCategory)}
 Specific Niche: ${safeText(payload.businessNiche)}
 Website URL: ${safeText(payload.websiteUrl)}
 Company Size: ${safeText(payload.companySize)}
