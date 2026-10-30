@@ -1413,12 +1413,28 @@ async function generateAll(clientDraftId, forceRegenerate = false, formatsInput 
   return { ready: true, results, zip };
 }
 
+function assertPreviewRecipientAllowed(email) {
+  if (String(process.env.VERCEL_ENV || '').toLowerCase() !== 'preview') return;
+  const allowed = String(process.env.BTAI_PREVIEW_REPORT_RECIPIENTS || '')
+    .split(',')
+    .map(value => normalizeEmail(value))
+    .filter(Boolean);
+  if (!allowed.length) {
+    throw new Error('Preview report recipients are not configured');
+  }
+  if (!allowed.includes(normalizeEmail(email))) {
+    throw new Error('This email address is not approved for Preview report delivery');
+  }
+}
+
 async function sendFreeReportEmail({ clientDraftId, clientEmail, clientName, businessName, reportFile }) {
   if (!process.env.RESEND_API_KEY) throw new Error('Missing RESEND_API_KEY');
-  const bccRecipient = process.env.INTAKE_BCC_RECIPIENT || 'darren.randles@gmail.com';
+  const bccRecipient = process.env.INTAKE_BCC_RECIPIENT || '';
+  assertPreviewRecipientAllowed(clientEmail);
   const { level2Price, level3Price, level2Url, level3Url, consultUrl } = paymentConfig();
   const publicBaseUrl = (process.env.BTAI_PUBLIC_BASE_URL || 'https://intake.bridgetoai.ca').replace(/\/+$/, '');
-  const continueInterviewUrl = `${publicBaseUrl}/snapshot?continue=deep&recordId=${encodeURIComponent(clientDraftId)}`;
+  const continueInterviewUrl = `${publicBaseUrl}/snapshot`;
+  const showUpsellLinks = String(process.env.BTAI_ENABLE_UPSELL_LINKS || '').toLowerCase() === 'true';
   const lockMarkUrl = `${publicBaseUrl}/assets/brand/sil-lock-mark.png`;
   const trustSealUrl = `${publicBaseUrl}/assets/brand/sil-trust-seal.png`;
   const html = `
@@ -1452,15 +1468,15 @@ async function sendFreeReportEmail({ clientDraftId, clientEmail, clientName, bus
           <strong style="display:block;margin-bottom:8px;color:#111827;">What this snapshot does not fully cover yet</strong>
           <div style="margin-bottom:10px;">The free report gives you a directional scorecard and first useful move. The deeper interview is not a payment step. It is the context step that helps Bridge To AI understand whether you need a report, an action plan, a workbench, or simply a practical conversation.</div>
           ${ctaLineHtml('Continue the deeper interview', continueInterviewUrl, 'No payment is required to add the missing context. This helps Bridge To AI guide you better and decide what kind of next step, if any, is actually worth your time.')}
-          <div style="margin-bottom:10px;color:#6b7280;font-size:13px;">Privacy note: this continuation link opens your saved secure interview. Please do not forward this email if you do not want someone else to access that continuation path.</div>
-          ${ctaLineHtml(`Detailed AI Opportunity Report - ${level2Price}`, '', 'Best considered after the deeper interview confirms enough detail for ranking and first projects.')}
-          ${ctaLineHtml(`Preliminary AI Action Plan - ${level3Price}`, '', 'Best considered after workflow priorities, risk controls, and scoping questions are clearer.')}
-          ${ctaLineHtml('Talk with Bridge To AI about implementation or a custom workbench', consultUrl, 'Useful if you already know you want help turning the opportunity into a working system.')}
+          <div style="margin-bottom:10px;color:#6b7280;font-size:13px;">Privacy note: continue only from the same browser and device where you started the interview. Please do not forward this email.</div>
+          ${showUpsellLinks ? ctaLineHtml(`Detailed AI Opportunity Report - ${level2Price}`, '', 'Best considered after the deeper interview confirms enough detail for ranking and first projects.') : ''}
+          ${showUpsellLinks ? ctaLineHtml(`Preliminary AI Action Plan - ${level3Price}`, '', 'Best considered after workflow priorities, risk controls, and scoping questions are clearer.') : ''}
+          ${showUpsellLinks ? ctaLineHtml('Talk with Bridge To AI about implementation or a custom workbench', consultUrl, 'Useful if you already know you want help turning the opportunity into a working system.') : ''}
         </div>
-        <p style="font-size:13px;color:#6b7280;line-height:1.5;margin-bottom:0;margin-top:18px;">Record ID: <code>${escapeHtml(clientDraftId)}</code><br>Built with Bridge To AI Intake ${escapeHtml(APP_VERSION)}</p>
+        <p style="font-size:13px;color:#6b7280;line-height:1.5;margin-bottom:0;margin-top:18px;">Built with Bridge To AI Intake ${escapeHtml(APP_VERSION)}</p>
       </div>
     </div>`;
-  const text = `Your Bridge To AI opportunity snapshot is ready.\n\nThe free report is attached. Inside, you will see a Snapshot Scorecard, the likely first AI opportunity, what should stay human-reviewed, and one safe prompt or next move you can try without putting sensitive details into a public AI tool.\n\nBridge To AI exists for business owners who do not want to become AI experts before they can benefit from AI. I learned the AI side so you do not have to, and the goal is to translate your real workflow into practical next steps you can actually use.\n\nHandled through the Bridge To AI Secure Intelligence Layer: encrypted intake, controlled use, privacy-aware AI processing, and private report delivery.\n\nWhat this snapshot does not fully cover yet:\nThe free report gives you a directional scorecard and first useful move. The deeper interview is not a payment step. It is the context step that helps Bridge To AI understand whether you need a report, an action plan, a workbench, or simply a practical conversation.\n\nBest next step:\n- Continue the deeper interview: ${continueInterviewUrl}\nNo payment is required to add the missing context. This helps Bridge To AI guide you better and decide what kind of next step, if any, is actually worth your time.\n\nPrivacy note: this continuation link opens your saved secure interview. Please do not forward this email if you do not want someone else to access that continuation path.\n\nPossible next steps after context is clearer:\n- Detailed AI Opportunity Report - ${level2Price}: deeper diagnosis, readiness gaps, and prioritized first projects.\n- Preliminary AI Action Plan - ${level3Price}: implementation phases, workflow priorities, and scoping questions.\n- Implementation support: help turning the plan into a working AI system or workbench after private scoping. ${consultUrl || 'Reply to this email to request a conversation.'}\n\nA workbench is a private operating dashboard built around your business so repeated workflows can run from one place.\n\nRecord ID: ${clientDraftId}\nBuilt with Bridge To AI Intake ${APP_VERSION}`;
+  const text = `Your Bridge To AI opportunity snapshot is ready.\n\nThe free report is attached. Inside, you will see a Snapshot Scorecard, the likely first AI opportunity, what should stay human-reviewed, and one safe prompt or next move you can try without putting sensitive details into a public AI tool.\n\nBridge To AI exists for business owners who do not want to become AI experts before they can benefit from AI. I learned the AI side so you do not have to, and the goal is to translate your real workflow into practical next steps you can actually use.\n\nHandled through the Bridge To AI Secure Intelligence Layer: encrypted intake, controlled use, privacy-aware AI processing, and private report delivery.\n\nWhat this snapshot does not fully cover yet:\nThe free report gives you a directional scorecard and first useful move. The deeper interview is not a payment step. It is the context step that helps Bridge To AI understand whether you need a report, an action plan, a workbench, or simply a practical conversation.\n\nBest next step:\n- Continue the deeper interview in the same browser and device: ${continueInterviewUrl}\nNo payment is required to add the missing context. This helps Bridge To AI guide you better and decide what kind of next step, if any, is actually worth your time.\n\nPrivacy note: continue only from the same browser and device where you started the interview. Please do not forward this email.\n\n${showUpsellLinks ? `Possible next steps after context is clearer:\n- Detailed AI Opportunity Report - ${level2Price}: deeper diagnosis, readiness gaps, and prioritized first projects.\n- Preliminary AI Action Plan - ${level3Price}: implementation phases, workflow priorities, and scoping questions.\n- Implementation support: help turning the plan into a working AI system or workbench after private scoping. ${consultUrl || 'Reply to this email to request a conversation.'}\n\n` : ''}Built with Bridge To AI Intake ${APP_VERSION}`;
   const payload = {
     from: 'The Bridge Team <team@bridgetoai.ca>',
     to: [clientEmail],

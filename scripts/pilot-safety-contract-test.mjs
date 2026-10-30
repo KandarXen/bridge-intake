@@ -21,12 +21,18 @@ const aiApi = read('api/generate-dna.js');
 const reportApi = read('api/report-pack.js');
 const notificationApi = read('api/send-email.js');
 const intakePage = read('index.html');
+const draftAccessSource = read('lib/draft-access.js');
 const draftAccess = await import('../lib/draft-access.js');
 
 assert.match(draftApi, /assertDraftAccess\(draftAccessToken, clientDraftId\)/, 'existing draft saves require a capability');
 assert.match(draftApi, /assertDraftAccess\(draftAccessToken, id\)/, 'draft loads and deletes require a capability');
 assert.match(aiApi, /assertDraftAccess\(draftAccessToken, clientDraftId\)/, 'AI generation requires a capability');
 assert.match(reportApi, /assertDraftAccess\(req\.body\?\.draftAccessToken, clientDraftId\)/, 'free report requests require a capability');
+assert.match(aiApi, /runPrivacyGate\(prompt, \{ purpose: 'venture_dna_generation_prompt' \}\)/, 'AI prompt is scanned by the privacy gate');
+assert.match(reportApi, /const bccRecipient = process\.env\.INTAKE_BCC_RECIPIENT \|\| '';/, 'free-report BCC has no hard-coded recipient');
+assert.match(reportApi, /const continueInterviewUrl = `\$\{publicBaseUrl\}\/snapshot`;/, 'free-report link does not expose a draft ID');
+assert.match(reportApi, /function assertPreviewRecipientAllowed\(email\)/, 'Preview report delivery requires an approved recipient');
+assert.match(draftAccessSource, /const DEFAULT_TTL_DAYS = 30;/, 'draft capability lifetime matches the pilot retention window');
 
 requireBefore(
   aiApi,

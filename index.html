@@ -5124,6 +5124,9 @@ function friendlyReportDeliveryError(message = '') {
   if (/Missing RESEND_API_KEY|Email service is not configured|Free report email failed|Email delivery failed|RESEND/i.test(text)) {
     return 'The email service did not confirm delivery. Please try again shortly.';
   }
+  if (/Automated report delivery is not enabled for this pilot/i.test(text)) {
+    return 'Free-report email is not available in this private test yet. Your answers are securely saved.';
+  }
   if (/quality gate failed/i.test(text)) {
     return 'The report did not pass the quality check, so it was not sent automatically.';
   }

@@ -336,7 +336,13 @@ export default async function handler(req, res) {
       proofStatus: 'passed'
     });
     const participantPrivacySource = String(sourceMeta?.privacyScanText || '').trim();
-    const privacyGate = runPrivacyGate(participantPrivacySource || prompt, { purpose: 'venture_dna_generation' });
+    const promptPrivacyGate = runPrivacyGate(prompt, { purpose: 'venture_dna_generation_prompt' });
+    const sourcePrivacyGate = participantPrivacySource && participantPrivacySource !== prompt
+      ? runPrivacyGate(participantPrivacySource, { purpose: 'venture_dna_generation_source' })
+      : null;
+    const privacyGate = promptPrivacyGate.requiresReview
+      ? promptPrivacyGate
+      : (sourcePrivacyGate?.requiresReview ? sourcePrivacyGate : promptPrivacyGate);
     const privacyGateSave = await savePrivacyGateRecord(clientDraftId, privacyGate, 'venture_dna_generation');
     await logPrivacyProof(clientDraftId, 'privacy_gate_scan_completed', privacyGateSave.saved ? 'success' : 'failed', gateProofDetails(privacyGate, {
       payloadType: participantPrivacySource ? 'participant_supplied_interview_text' : 'raw_interview_prompt',
@@ -370,9 +376,7 @@ export default async function handler(req, res) {
       });
     }
 
-    const gatedPrompt = participantPrivacySource
-      ? applyPrivacyRedactions(prompt, privacyGate.redactionMap)
-      : privacyGate.sanitizedText;
+    const gatedPrompt = promptPrivacyGate.sanitizedText;
     const hermesPrivacy = anonymizePrompt(gatedPrompt);
     await logPrivacyProof(clientDraftId, 'privacy_proof_anonymization_completed', 'success', {
       privacyProofType: 'anonymization',
