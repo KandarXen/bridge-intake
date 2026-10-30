@@ -38,5 +38,6 @@ Do not send minor wording, formatting, or preference differences back and forth 
 - `MODEL_ROLES.md` — firm boundaries and handoff rules.
 - `REVIEW_QUEUE.md` — the one active independent review and its complete evidence packet.
 - `INBOX/CLAUDE/` — Claude’s structured review reports for Codex to read.
+- `HERMES_RUNNER.md` — local, dependency-free runner instructions and its safe activation boundary.
 - `../review-packages/` — versioned, self-contained reviewer evidence.
 - `../releases/` — concise release notes by version.
