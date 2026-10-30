@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bridge To AI — Private Test</title>
+  <style>
+    :root {
+      --canvas: #fcfbf9;
+      --ink: #172c38;
+      --teal: #075f53;
+      --teal-deep: #06483f;
+      --gold: #e3a63c;
+      --gold-hover: #d2942b;
+      --line: #d9e7e3;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--canvas);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.6;
+    }
+    a:focus-visible {
+      outline: 3px solid var(--teal);
+      outline-offset: 3px;
+    }
+    .banner {
+      padding: 0.75rem 1rem;
+      background: var(--teal-deep);
+      color: #fff;
+      text-align: center;
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+    main {
+      width: min(100% - 2.5rem, 700px);
+      margin: 0 auto;
+      padding: 4rem 0;
+    }
+    .eyebrow {
+      margin: 0 0 0.65rem;
+      color: var(--teal);
+      font-size: 0.73rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    h1 {
+      max-width: 13ch;
+      margin: 0;
+      color: var(--teal-deep);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(2.15rem, 6vw, 3.5rem);
+      line-height: 1.08;
+    }
+    .lead {
+      max-width: 58ch;
+      margin: 1.35rem 0 0;
+      font-size: 1.1rem;
+    }
+    .steps {
+      display: grid;
+      gap: 0.85rem;
+      margin: 2.5rem 0;
+      padding: 0;
+      list-style: none;
+      counter-reset: test-step;
+    }
+    .steps li {
+      position: relative;
+      padding: 1rem 1rem 1rem 4rem;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      counter-increment: test-step;
+    }
+    .steps li::before {
+      position: absolute;
+      top: 1rem;
+      left: 1rem;
+      display: grid;
+      width: 2.15rem;
+      height: 2.15rem;
+      place-items: center;
+      border-radius: 50%;
+      background: #e8f4f1;
+      color: var(--teal);
+      font-weight: 800;
+      content: counter(test-step);
+    }
+    .steps strong { display: block; color: var(--teal-deep); }
+    .cta {
+      display: inline-block;
+      padding: 1rem 1.4rem;
+      border-radius: 8px;
+      background: var(--gold);
+      color: #172c38;
+      font-size: 1.05rem;
+      font-weight: 800;
+      text-decoration: none;
+    }
+    .cta:hover { background: var(--gold-hover); }
+    .fine-print {
+      margin-top: 0.8rem;
+      color: #50615f;
+      font-size: 0.88rem;
+    }
+    .feedback {
+      margin-top: 3.5rem;
+      padding: 1.5rem;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #f5faf8;
+    }
+    .feedback h2 { margin: 0; color: var(--teal-deep); font-size: 1.25rem; }
+    .feedback p { margin: 0.65rem 0; }
+    .feedback ul { margin: 0.8rem 0 0; padding-left: 1.25rem; }
+    @media (max-width: 480px) {
+      main { width: min(100% - 2rem, 700px); padding: 2.75rem 0; }
+      .cta { display: block; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+  <div class="banner" role="status">Private early test — please use sample or non-sensitive business information only.</div>
+  <main>
+    <p class="eyebrow">Bridge To AI · invited tester access</p>
+    <h1>Find one practical place where AI could remove repeated work.</h1>
+    <p class="lead">This short private test looks for a useful first AI opportunity in your day-to-day workflow—before you spend money on a large implementation.</p>
+
+    <ol class="steps">
+      <li><strong>Answer a short set of business questions.</strong> General examples are enough. Please do not use customer lists, financials, payroll, recipes, contracts, or other confidential details.</li>
+      <li><strong>Complete the private intake.</strong> The test will create an AI-backed opportunity snapshot from the safe, directional information you provide.</li>
+      <li><strong>Share what worked and what did not.</strong> We are looking for what felt useful, confusing, or missing—not polished answers.</li>
+    </ol>
+
+    <a class="cta" href="https://bridge-intake-cuzgg1rhq-bridgetoai-projects.vercel.app">Start the private test</a>
+    <p class="fine-print">This link opens the private Bridge To AI Intake Preview. It is not the public production site.</p>
+
+    <section class="feedback" aria-labelledby="feedback-title">
+      <h2 id="feedback-title">What we would like to learn</h2>
+      <p>After you finish, please reply to the person who invited you and tell us:</p>
+      <ul>
+        <li>What made sense right away?</li>
+        <li>What felt unclear or unhelpful?</li>
+        <li>Did the result feel relevant to your business?</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>
