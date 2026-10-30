@@ -336,7 +336,7 @@ export default async function handler(req, res) {
       proofStatus: 'passed'
     });
     const participantPrivacySource = String(sourceMeta?.privacyScanText || '').trim();
-    const promptPrivacyGate = runPrivacyGate(prompt, { purpose: 'venture_dna_generation_prompt' });
+    const promptPrivacyGate = runPrivacyGate(prompt, { purpose: 'venture_dna_generation' });
     const sourcePrivacyGate = participantPrivacySource && participantPrivacySource !== prompt
       ? runPrivacyGate(participantPrivacySource, { purpose: 'venture_dna_generation_source' })
       : null;
@@ -346,6 +346,10 @@ export default async function handler(req, res) {
     const privacyGateSave = await savePrivacyGateRecord(clientDraftId, privacyGate, 'venture_dna_generation');
     await logPrivacyProof(clientDraftId, 'privacy_gate_scan_completed', privacyGateSave.saved ? 'success' : 'failed', gateProofDetails(privacyGate, {
       payloadType: participantPrivacySource ? 'participant_supplied_interview_text' : 'raw_interview_prompt',
+      promptGateDecision: promptPrivacyGate.decision,
+      promptGateRequiresReview: promptPrivacyGate.requiresReview,
+      sourceGateDecision: sourcePrivacyGate?.decision || '',
+      sourceGateRequiresReview: !!sourcePrivacyGate?.requiresReview,
       privacyGateOutputId: privacyGateSave.outputId || '',
       privacyGateSaveReason: privacyGateSave.reason || '',
       proofStatus: privacyGateSave.saved ? (privacyGate.requiresReview ? 'review_required' : 'passed') : 'failed'

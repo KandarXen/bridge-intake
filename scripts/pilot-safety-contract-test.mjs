@@ -21,6 +21,7 @@ const aiApi = read('api/generate-dna.js');
 const reportApi = read('api/report-pack.js');
 const notificationApi = read('api/send-email.js');
 const intakePage = read('index.html');
+const testerPage = read('private-test-page.html');
 const draftAccessSource = read('lib/draft-access.js');
 const draftAccess = await import('../lib/draft-access.js');
 
@@ -28,8 +29,9 @@ assert.match(draftApi, /assertDraftAccess\(draftAccessToken, clientDraftId\)/, '
 assert.match(draftApi, /assertDraftAccess\(draftAccessToken, id\)/, 'draft loads and deletes require a capability');
 assert.match(aiApi, /assertDraftAccess\(draftAccessToken, clientDraftId\)/, 'AI generation requires a capability');
 assert.match(reportApi, /assertDraftAccess\(req\.body\?\.draftAccessToken, clientDraftId\)/, 'free report requests require a capability');
-assert.match(aiApi, /runPrivacyGate\(prompt, \{ purpose: 'venture_dna_generation_prompt' \}\)/, 'AI prompt is scanned by the privacy gate');
+assert.match(aiApi, /runPrivacyGate\(prompt, \{ purpose: 'venture_dna_generation' \}\)/, 'AI prompt is scanned by the privacy gate');
 assert.match(reportApi, /const bccRecipient = process\.env\.INTAKE_BCC_RECIPIENT \|\| '';/, 'free-report BCC has no hard-coded recipient');
+assert.match(reportApi, /\.\.\.\(bccRecipient \? \{ bcc: \[bccRecipient\] \} : \{\}\)/, 'free-report payload omits BCC when none is configured');
 assert.match(reportApi, /const continueInterviewUrl = `\$\{publicBaseUrl\}\/snapshot`;/, 'free-report link does not expose a draft ID');
 assert.match(reportApi, /function assertPreviewRecipientAllowed\(email\)/, 'Preview report delivery requires an approved recipient');
 assert.match(reportApi, /Preview public base URL is not configured/, 'Preview report delivery fails closed without a Preview base URL');
@@ -54,6 +56,8 @@ requireBefore(
   'completion notification feature switch'
 );
 assert.doesNotMatch(intakePage, /await sendEmailWithDNA\(\)/, 'interview completion cannot send an email automatically');
+assert.match(testerPage, /<meta name="robots" content="noindex, nofollow, noarchive">/, 'private tester page is excluded from indexing');
+assert.match(testerPage, /<a class="cta" href="\/">Start the private test<\/a>/, 'tester page uses the current deployment rather than a stale Preview URL');
 
 const savedSecret = process.env.BTAI_DRAFT_ACCESS_SECRET;
 process.env.BTAI_DRAFT_ACCESS_SECRET = 'v1.72.25-contract-test-secret-with-32-plus-characters';
