@@ -4,6 +4,8 @@
 
 You are building a small, private test webpage for Bridge To AI. Your job is to make it clear, trustworthy, mobile-friendly, and easy for a few invited people to test.
 
+Read and follow `docs/ai-roles/v1.72.25/SHARED_RELEASE_VERIFICATION_GUARDRAIL.md` and `docs/ai-roles/v1.72.25/GEMINI_BUILDER_ROLE.md` before starting work.
+
 This is a **test asset**, not a public launch and not a replacement for the existing BTAI Intake product.
 
 ## Goal
@@ -111,5 +113,7 @@ Report back with only:
 3. The files changed.
 4. The tests completed and their results.
 5. Any blocker that requires the owner's decision.
+
+Do not call the page ready until the shared release-verification guardrail has passed.
 
 Do not make a production deployment. Stop and ask for approval before any action that sends email, stores tester data, turns on an external service, incurs cost, or changes the public site.
