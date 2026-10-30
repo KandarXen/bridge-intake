@@ -1,0 +1,68 @@
+#!/usr/bin/env node
+
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const read = relativePath => fs.readFileSync(path.join(root, relativePath), 'utf8');
+
+function requireBefore(source, earlier, later, label) {
+  const earlierIndex = source.indexOf(earlier);
+  const laterIndex = source.indexOf(later);
+  assert.ok(earlierIndex >= 0, `${label}: missing ${earlier}`);
+  assert.ok(laterIndex >= 0, `${label}: missing ${later}`);
+  assert.ok(earlierIndex < laterIndex, `${label}: ${earlier} must appear before ${later}`);
+}
+
+const draftApi = read('api/draft.js');
+const aiApi = read('api/generate-dna.js');
+const reportApi = read('api/report-pack.js');
+const notificationApi = read('api/send-email.js');
+const intakePage = read('index.html');
+const draftAccess = await import('../lib/draft-access.js');
+
+assert.match(draftApi, /assertDraftAccess\(draftAccessToken, clientDraftId\)/, 'existing draft saves require a capability');
+assert.match(draftApi, /assertDraftAccess\(draftAccessToken, id\)/, 'draft loads and deletes require a capability');
+assert.match(aiApi, /assertDraftAccess\(draftAccessToken, clientDraftId\)/, 'AI generation requires a capability');
+assert.match(reportApi, /assertDraftAccess\(req\.body\?\.draftAccessToken, clientDraftId\)/, 'free report requests require a capability');
+
+requireBefore(
+  aiApi,
+  "String(process.env.BTAI_ENABLE_AUTOMATED_AI || '').toLowerCase() !== 'true'",
+  'await callClaude(',
+  'AI feature switch'
+);
+requireBefore(
+  reportApi,
+  "String(process.env.BTAI_ENABLE_CLIENT_REPORT_PACK || '').toLowerCase() !== 'true'",
+  'return res.status(200).json(await generateFreeAndEmail(clientDraftId));',
+  'client report feature switch'
+);
+requireBefore(
+  notificationApi,
+  "String(process.env.BTAI_ENABLE_COMPLETION_NOTIFICATIONS || '').toLowerCase() !== 'true'",
+  "fetch('https://api.resend.com/emails'",
+  'completion notification feature switch'
+);
+assert.doesNotMatch(intakePage, /await sendEmailWithDNA\(\)/, 'interview completion cannot send an email automatically');
+
+const savedSecret = process.env.BTAI_DRAFT_ACCESS_SECRET;
+process.env.BTAI_DRAFT_ACCESS_SECRET = 'v1.72.25-contract-test-secret-with-32-plus-characters';
+const token = draftAccess.issueDraftAccess('synthetic-record-a', 1);
+assert.doesNotThrow(() => draftAccess.assertDraftAccess(token, 'synthetic-record-a'));
+assert.throws(
+  () => draftAccess.assertDraftAccess(token, 'synthetic-record-b'),
+  error => error?.statusCode === 403,
+  'a capability cannot be reused for a different draft'
+);
+assert.throws(
+  () => draftAccess.assertDraftAccess('', 'synthetic-record-a'),
+  error => error?.statusCode === 403,
+  'a draft ID alone cannot grant access'
+);
+if (savedSecret === undefined) delete process.env.BTAI_DRAFT_ACCESS_SECRET;
+else process.env.BTAI_DRAFT_ACCESS_SECRET = savedSecret;
+
+console.log('pilot safety contract tests passed');

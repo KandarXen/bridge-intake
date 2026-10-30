@@ -2141,7 +2141,7 @@
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag" id="header-tag">Business Discovery Session</span>
-      <span class="header-version">v1.72.24 Preview</span>
+      <span class="header-version">v1.72.25 Preview</span>
   </div>
 </header>
 
@@ -5257,8 +5257,7 @@ async function submitInterview() {
     }
 
     logHermesEvent('drive_save_result', 'success', { driveSaved: false, driveReason: 'Secure Supabase storage is primary; plaintext Drive save skipped.' });
-    await sendEmailWithDNA();
-    logHermesEvent('email_delivery_result', 'success', { emailDelivered: true, driveSaved: false });
+    logHermesEvent('email_delivery_result', 'skipped', { emailDelivered: false, reason: 'Completion notifications are disabled for this private preview.', driveSaved: false });
     logHermesEvent('interview_submission_complete', 'success', interviewKpiSummary());
 
     draftAutosaveEnabled = false;
@@ -5316,7 +5315,7 @@ function animateProcessingSteps() {
       'Reviewing the full interview for business patterns and constraints.',
       'Creating the secure business profile. Longer answers can take a little more time.',
       'Preparing the free-report analysis and proof trail.',
-      'Saving encrypted records and notifying the Bridge Team.',
+      'Saving encrypted records and preparing your next step.',
       'Still working. This is normal for a detailed profile, especially after a full interview.'
     ];
   const startedAt = Date.now();

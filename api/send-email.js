@@ -27,6 +27,9 @@ export default async function handler(req, res) {
     const draftAccessToken = clean(req.body?.draftAccessToken, 4096);
     if (!recordId) return res.status(400).json({ error: 'Missing recordId' });
     assertDraftAccess(draftAccessToken, recordId);
+    if (String(process.env.BTAI_ENABLE_COMPLETION_NOTIFICATIONS || '').toLowerCase() !== 'true') {
+      return res.status(503).json({ error: 'Completion notifications are not enabled for this pilot' });
+    }
 
     const session = await getIntakeSession(recordId);
     if (!session?.encrypted_payload) return res.status(404).json({ error: 'No secure intake record found' });

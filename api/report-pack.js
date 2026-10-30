@@ -7,7 +7,7 @@ import { validateDnaOutput } from '../lib/validate-output.js';
 import { assertRateLimit, assertTrustedOrigin, authorizedAdminRequest, safeError } from '../lib/security.js';
 import { assertDraftAccess } from '../lib/draft-access.js';
 
-const APP_VERSION = 'v1.72.24';
+const APP_VERSION = 'v1.72.25';
 
 const REPORTS = {
   free: {
@@ -1417,8 +1417,8 @@ async function sendFreeReportEmail({ clientDraftId, clientEmail, clientName, bus
   if (!process.env.RESEND_API_KEY) throw new Error('Missing RESEND_API_KEY');
   const bccRecipient = process.env.INTAKE_BCC_RECIPIENT || 'darren.randles@gmail.com';
   const { level2Price, level3Price, level2Url, level3Url, consultUrl } = paymentConfig();
-  const continueInterviewUrl = `https://intake.bridgetoai.ca/snapshot?continue=deep&recordId=${encodeURIComponent(clientDraftId)}`;
   const publicBaseUrl = (process.env.BTAI_PUBLIC_BASE_URL || 'https://intake.bridgetoai.ca').replace(/\/+$/, '');
+  const continueInterviewUrl = `${publicBaseUrl}/snapshot?continue=deep&recordId=${encodeURIComponent(clientDraftId)}`;
   const lockMarkUrl = `${publicBaseUrl}/assets/brand/sil-lock-mark.png`;
   const trustSealUrl = `${publicBaseUrl}/assets/brand/sil-trust-seal.png`;
   const html = `
