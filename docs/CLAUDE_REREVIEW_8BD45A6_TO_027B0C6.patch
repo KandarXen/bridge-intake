@@ -1,0 +1,328 @@
+diff --git a/api/generate-dna.js b/api/generate-dna.js
+index f8609dd..46e4f2e 100644
+--- a/api/generate-dna.js
++++ b/api/generate-dna.js
+@@ -336,7 +336,13 @@ export default async function handler(req, res) {
+       proofStatus: 'passed'
+     });
+     const participantPrivacySource = String(sourceMeta?.privacyScanText || '').trim();
+-    const privacyGate = runPrivacyGate(participantPrivacySource || prompt, { purpose: 'venture_dna_generation' });
++    const promptPrivacyGate = runPrivacyGate(prompt, { purpose: 'venture_dna_generation_prompt' });
++    const sourcePrivacyGate = participantPrivacySource && participantPrivacySource !== prompt
++      ? runPrivacyGate(participantPrivacySource, { purpose: 'venture_dna_generation_source' })
++      : null;
++    const privacyGate = promptPrivacyGate.requiresReview
++      ? promptPrivacyGate
++      : (sourcePrivacyGate?.requiresReview ? sourcePrivacyGate : promptPrivacyGate);
+     const privacyGateSave = await savePrivacyGateRecord(clientDraftId, privacyGate, 'venture_dna_generation');
+     await logPrivacyProof(clientDraftId, 'privacy_gate_scan_completed', privacyGateSave.saved ? 'success' : 'failed', gateProofDetails(privacyGate, {
+       payloadType: participantPrivacySource ? 'participant_supplied_interview_text' : 'raw_interview_prompt',
+@@ -370,9 +376,7 @@ export default async function handler(req, res) {
+       });
+     }
+ 
+-    const gatedPrompt = participantPrivacySource
+-      ? applyPrivacyRedactions(prompt, privacyGate.redactionMap)
+-      : privacyGate.sanitizedText;
++    const gatedPrompt = promptPrivacyGate.sanitizedText;
+     const hermesPrivacy = anonymizePrompt(gatedPrompt);
+     await logPrivacyProof(clientDraftId, 'privacy_proof_anonymization_completed', 'success', {
+       privacyProofType: 'anonymization',
+diff --git a/api/report-pack.js b/api/report-pack.js
+index b526f52..6787c27 100644
+--- a/api/report-pack.js
++++ b/api/report-pack.js
+@@ -1413,12 +1413,32 @@ async function generateAll(clientDraftId, forceRegenerate = false, formatsInput
+   return { ready: true, results, zip };
+ }
+ 
++function assertPreviewRecipientAllowed(email) {
++  if (String(process.env.VERCEL_ENV || '').toLowerCase() !== 'preview') return;
++  const allowed = String(process.env.BTAI_PREVIEW_REPORT_RECIPIENTS || '')
++    .split(',')
++    .map(value => normalizeEmail(value))
++    .filter(Boolean);
++  if (!allowed.length) {
++    throw new Error('Preview report recipients are not configured');
++  }
++  if (!allowed.includes(normalizeEmail(email))) {
++    throw new Error('This email address is not approved for Preview report delivery');
++  }
++}
++
+ async function sendFreeReportEmail({ clientDraftId, clientEmail, clientName, businessName, reportFile }) {
+   if (!process.env.RESEND_API_KEY) throw new Error('Missing RESEND_API_KEY');
+-  const bccRecipient = process.env.INTAKE_BCC_RECIPIENT || 'darren.randles@gmail.com';
++  const bccRecipient = process.env.INTAKE_BCC_RECIPIENT || '';
++  assertPreviewRecipientAllowed(clientEmail);
+   const { level2Price, level3Price, level2Url, level3Url, consultUrl } = paymentConfig();
+-  const publicBaseUrl = (process.env.BTAI_PUBLIC_BASE_URL || 'https://intake.bridgetoai.ca').replace(/\/+$/, '');
+-  const continueInterviewUrl = `${publicBaseUrl}/snapshot?continue=deep&recordId=${encodeURIComponent(clientDraftId)}`;
++  const configuredPublicBaseUrl = String(process.env.BTAI_PUBLIC_BASE_URL || '').trim().replace(/\/+$/, '');
++  if (String(process.env.VERCEL_ENV || '').toLowerCase() === 'preview' && !configuredPublicBaseUrl) {
++    throw new Error('Preview public base URL is not configured');
++  }
++  const publicBaseUrl = configuredPublicBaseUrl || 'https://intake.bridgetoai.ca';
++  const continueInterviewUrl = `${publicBaseUrl}/snapshot`;
++  const showUpsellLinks = String(process.env.BTAI_ENABLE_UPSELL_LINKS || '').toLowerCase() === 'true';
+   const lockMarkUrl = `${publicBaseUrl}/assets/brand/sil-lock-mark.png`;
+   const trustSealUrl = `${publicBaseUrl}/assets/brand/sil-trust-seal.png`;
+   const html = `
+@@ -1452,15 +1472,15 @@ async function sendFreeReportEmail({ clientDraftId, clientEmail, clientName, bus
+           <strong style="display:block;margin-bottom:8px;color:#111827;">What this snapshot does not fully cover yet</strong>
+           <div style="margin-bottom:10px;">The free report gives you a directional scorecard and first useful move. The deeper interview is not a payment step. It is the context step that helps Bridge To AI understand whether you need a report, an action plan, a workbench, or simply a practical conversation.</div>
+           ${ctaLineHtml('Continue the deeper interview', continueInterviewUrl, 'No payment is required to add the missing context. This helps Bridge To AI guide you better and decide what kind of next step, if any, is actually worth your time.')}
+-          <div style="margin-bottom:10px;color:#6b7280;font-size:13px;">Privacy note: this continuation link opens your saved secure interview. Please do not forward this email if you do not want someone else to access that continuation path.</div>
+-          ${ctaLineHtml(`Detailed AI Opportunity Report - ${level2Price}`, '', 'Best considered after the deeper interview confirms enough detail for ranking and first projects.')}
+-          ${ctaLineHtml(`Preliminary AI Action Plan - ${level3Price}`, '', 'Best considered after workflow priorities, risk controls, and scoping questions are clearer.')}
+-          ${ctaLineHtml('Talk with Bridge To AI about implementation or a custom workbench', consultUrl, 'Useful if you already know you want help turning the opportunity into a working system.')}
++          <div style="margin-bottom:10px;color:#6b7280;font-size:13px;">Privacy note: continue only from the same browser and device where you started the interview. Please do not forward this email.</div>
++          ${showUpsellLinks ? ctaLineHtml(`Detailed AI Opportunity Report - ${level2Price}`, '', 'Best considered after the deeper interview confirms enough detail for ranking and first projects.') : ''}
++          ${showUpsellLinks ? ctaLineHtml(`Preliminary AI Action Plan - ${level3Price}`, '', 'Best considered after workflow priorities, risk controls, and scoping questions are clearer.') : ''}
++          ${showUpsellLinks ? ctaLineHtml('Talk with Bridge To AI about implementation or a custom workbench', consultUrl, 'Useful if you already know you want help turning the opportunity into a working system.') : ''}
+         </div>
+-        <p style="font-size:13px;color:#6b7280;line-height:1.5;margin-bottom:0;margin-top:18px;">Record ID: <code>${escapeHtml(clientDraftId)}</code><br>Built with Bridge To AI Intake ${escapeHtml(APP_VERSION)}</p>
++        <p style="font-size:13px;color:#6b7280;line-height:1.5;margin-bottom:0;margin-top:18px;">Built with Bridge To AI Intake ${escapeHtml(APP_VERSION)}</p>
+       </div>
+     </div>`;
+-  const text = `Your Bridge To AI opportunity snapshot is ready.\n\nThe free report is attached. Inside, you will see a Snapshot Scorecard, the likely first AI opportunity, what should stay human-reviewed, and one safe prompt or next move you can try without putting sensitive details into a public AI tool.\n\nBridge To AI exists for business owners who do not want to become AI experts before they can benefit from AI. I learned the AI side so you do not have to, and the goal is to translate your real workflow into practical next steps you can actually use.\n\nHandled through the Bridge To AI Secure Intelligence Layer: encrypted intake, controlled use, privacy-aware AI processing, and private report delivery.\n\nWhat this snapshot does not fully cover yet:\nThe free report gives you a directional scorecard and first useful move. The deeper interview is not a payment step. It is the context step that helps Bridge To AI understand whether you need a report, an action plan, a workbench, or simply a practical conversation.\n\nBest next step:\n- Continue the deeper interview: ${continueInterviewUrl}\nNo payment is required to add the missing context. This helps Bridge To AI guide you better and decide what kind of next step, if any, is actually worth your time.\n\nPrivacy note: this continuation link opens your saved secure interview. Please do not forward this email if you do not want someone else to access that continuation path.\n\nPossible next steps after context is clearer:\n- Detailed AI Opportunity Report - ${level2Price}: deeper diagnosis, readiness gaps, and prioritized first projects.\n- Preliminary AI Action Plan - ${level3Price}: implementation phases, workflow priorities, and scoping questions.\n- Implementation support: help turning the plan into a working AI system or workbench after private scoping. ${consultUrl || 'Reply to this email to request a conversation.'}\n\nA workbench is a private operating dashboard built around your business so repeated workflows can run from one place.\n\nRecord ID: ${clientDraftId}\nBuilt with Bridge To AI Intake ${APP_VERSION}`;
++  const text = `Your Bridge To AI opportunity snapshot is ready.\n\nThe free report is attached. Inside, you will see a Snapshot Scorecard, the likely first AI opportunity, what should stay human-reviewed, and one safe prompt or next move you can try without putting sensitive details into a public AI tool.\n\nBridge To AI exists for business owners who do not want to become AI experts before they can benefit from AI. I learned the AI side so you do not have to, and the goal is to translate your real workflow into practical next steps you can actually use.\n\nHandled through the Bridge To AI Secure Intelligence Layer: encrypted intake, controlled use, privacy-aware AI processing, and private report delivery.\n\nWhat this snapshot does not fully cover yet:\nThe free report gives you a directional scorecard and first useful move. The deeper interview is not a payment step. It is the context step that helps Bridge To AI understand whether you need a report, an action plan, a workbench, or simply a practical conversation.\n\nBest next step:\n- Continue the deeper interview in the same browser and device: ${continueInterviewUrl}\nNo payment is required to add the missing context. This helps Bridge To AI guide you better and decide what kind of next step, if any, is actually worth your time.\n\nPrivacy note: continue only from the same browser and device where you started the interview. Please do not forward this email.\n\n${showUpsellLinks ? `Possible next steps after context is clearer:\n- Detailed AI Opportunity Report - ${level2Price}: deeper diagnosis, readiness gaps, and prioritized first projects.\n- Preliminary AI Action Plan - ${level3Price}: implementation phases, workflow priorities, and scoping questions.\n- Implementation support: help turning the plan into a working AI system or workbench after private scoping. ${consultUrl || 'Reply to this email to request a conversation.'}\n\n` : ''}Built with Bridge To AI Intake ${APP_VERSION}`;
+   const payload = {
+     from: 'The Bridge Team <team@bridgetoai.ca>',
+     to: [clientEmail],
+diff --git a/docs/V1.72.25_PRIVATE_PREVIEW_SIGNOFF.md b/docs/V1.72.25_PRIVATE_PREVIEW_SIGNOFF.md
+index 0588d3a..4706dee 100644
+--- a/docs/V1.72.25_PRIVATE_PREVIEW_SIGNOFF.md
++++ b/docs/V1.72.25_PRIVATE_PREVIEW_SIGNOFF.md
+@@ -11,6 +11,8 @@ v1.72.25 improves private-tester readiness without changing the public productio
+ - Visible saved-draft and restored-draft confirmations.
+ - A safety-contract test that checks AI/report feature switches and draft capability boundaries.
+ - Free-report continuation links use the configured private base URL when report delivery is approved later.
++- AI prompts are privacy-gated directly; a separate browser-supplied scan summary cannot bypass the prompt scan.
++- Preview report delivery requires an explicit recipient allowlist and has no default BCC recipient.
+ 
+ ## Private Preview operating state
+ 
+@@ -37,9 +39,10 @@ Expected result from each command: a passing message and exit code `0`.
+ 2. Refresh and confirm **Your saved answers were restored. You can keep going.**
+ 3. Attempt to load a saved draft using only its record ID and no capability: expect `403`.
+ 4. Confirm the scorecard graphic is readable and the five detailed signals are listed only once.
+-5. Do not submit a completed intake if it would trigger an AI call unless the tester is authorized to use the configured AI service.
++5. Only invited testers using synthetic information may submit a completed intake and trigger AI generation.
+ 
+ ## Release boundary
+ 
+ Do not enable `BTAI_ENABLE_CLIENT_REPORT_PACK` or promote this branch to Production without the owner's explicit approval.
+ Do not enable `BTAI_ENABLE_COMPLETION_NOTIFICATIONS` without the owner's explicit approval.
++Before enabling Preview report delivery, configure `BTAI_PREVIEW_REPORT_RECIPIENTS` with the approved tester email addresses and set `BTAI_PUBLIC_BASE_URL` to the intended private Preview host. Preview report delivery fails closed if that base URL is absent.
+diff --git a/index.html b/index.html
+index a78b669..5819c3c 100644
+--- a/index.html
++++ b/index.html
+@@ -5124,6 +5124,9 @@ function friendlyReportDeliveryError(message = '') {
+   if (/Missing RESEND_API_KEY|Email service is not configured|Free report email failed|Email delivery failed|RESEND/i.test(text)) {
+     return 'The email service did not confirm delivery. Please try again shortly.';
+   }
++  if (/Automated report delivery is not enabled for this pilot/i.test(text)) {
++    return 'Free-report email is not available in this private test yet. Your answers are securely saved.';
++  }
+   if (/quality gate failed/i.test(text)) {
+     return 'The report did not pass the quality check, so it was not sent automatically.';
+   }
+diff --git a/lib/draft-access.js b/lib/draft-access.js
+index 11ed0c8..c354be3 100644
+--- a/lib/draft-access.js
++++ b/lib/draft-access.js
+@@ -1,7 +1,7 @@
+ import crypto from 'crypto';
+ 
+ const TOKEN_VERSION = 1;
+-const DEFAULT_TTL_DAYS = 180;
++const DEFAULT_TTL_DAYS = 30;
+ 
+ function secret() {
+   const value = String(process.env.BTAI_DRAFT_ACCESS_SECRET || '');
+diff --git a/private-test-page.html b/private-test-page.html
+new file mode 100644
+index 0000000..7d73b01
+--- /dev/null
++++ b/private-test-page.html
+@@ -0,0 +1,154 @@
++<!DOCTYPE html>
++<html lang="en">
++<head>
++  <meta charset="UTF-8">
++  <meta name="viewport" content="width=device-width, initial-scale=1.0">
++  <title>Bridge To AI — Private Test</title>
++  <style>
++    :root {
++      --canvas: #fcfbf9;
++      --ink: #172c38;
++      --teal: #075f53;
++      --teal-deep: #06483f;
++      --gold: #e3a63c;
++      --gold-hover: #d2942b;
++      --line: #d9e7e3;
++    }
++
++    * { box-sizing: border-box; }
++    body {
++      margin: 0;
++      color: var(--ink);
++      background: var(--canvas);
++      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
++      line-height: 1.6;
++    }
++    a:focus-visible {
++      outline: 3px solid var(--teal);
++      outline-offset: 3px;
++    }
++    .banner {
++      padding: 0.75rem 1rem;
++      background: var(--teal-deep);
++      color: #fff;
++      text-align: center;
++      font-size: 0.9rem;
++      font-weight: 700;
++    }
++    main {
++      width: min(100% - 2.5rem, 700px);
++      margin: 0 auto;
++      padding: 4rem 0;
++    }
++    .eyebrow {
++      margin: 0 0 0.65rem;
++      color: var(--teal);
++      font-size: 0.73rem;
++      font-weight: 800;
++      letter-spacing: 0.12em;
++      text-transform: uppercase;
++    }
++    h1 {
++      max-width: 13ch;
++      margin: 0;
++      color: var(--teal-deep);
++      font-family: Georgia, "Times New Roman", serif;
++      font-size: clamp(2.15rem, 6vw, 3.5rem);
++      line-height: 1.08;
++    }
++    .lead {
++      max-width: 58ch;
++      margin: 1.35rem 0 0;
++      font-size: 1.1rem;
++    }
++    .steps {
++      display: grid;
++      gap: 0.85rem;
++      margin: 2.5rem 0;
++      padding: 0;
++      list-style: none;
++      counter-reset: test-step;
++    }
++    .steps li {
++      position: relative;
++      padding: 1rem 1rem 1rem 4rem;
++      border: 1px solid var(--line);
++      border-radius: 12px;
++      background: #fff;
++      counter-increment: test-step;
++    }
++    .steps li::before {
++      position: absolute;
++      top: 1rem;
++      left: 1rem;
++      display: grid;
++      width: 2.15rem;
++      height: 2.15rem;
++      place-items: center;
++      border-radius: 50%;
++      background: #e8f4f1;
++      color: var(--teal);
++      font-weight: 800;
++      content: counter(test-step);
++    }
++    .steps strong { display: block; color: var(--teal-deep); }
++    .cta {
++      display: inline-block;
++      padding: 1rem 1.4rem;
++      border-radius: 8px;
++      background: var(--gold);
++      color: #172c38;
++      font-size: 1.05rem;
++      font-weight: 800;
++      text-decoration: none;
++    }
++    .cta:hover { background: var(--gold-hover); }
++    .fine-print {
++      margin-top: 0.8rem;
++      color: #50615f;
++      font-size: 0.88rem;
++    }
++    .feedback {
++      margin-top: 3.5rem;
++      padding: 1.5rem;
++      border: 1px solid var(--line);
++      border-radius: 12px;
++      background: #f5faf8;
++    }
++    .feedback h2 { margin: 0; color: var(--teal-deep); font-size: 1.25rem; }
++    .feedback p { margin: 0.65rem 0; }
++    .feedback ul { margin: 0.8rem 0 0; padding-left: 1.25rem; }
++    @media (max-width: 480px) {
++      main { width: min(100% - 2rem, 700px); padding: 2.75rem 0; }
++      .cta { display: block; text-align: center; }
++    }
++  </style>
++</head>
++<body>
++  <div class="banner" role="status">Private early test — please use sample or non-sensitive business information only.</div>
++  <main>
++    <p class="eyebrow">Bridge To AI · invited tester access</p>
++    <h1>Find one practical place where AI could remove repeated work.</h1>
++    <p class="lead">This short private test looks for a useful first AI opportunity in your day-to-day workflow—before you spend money on a large implementation.</p>
++
++    <ol class="steps">
++      <li><strong>Answer a short set of business questions.</strong> General examples are enough. Please do not use customer lists, financials, payroll, recipes, contracts, or other confidential details.</li>
++      <li><strong>Complete the private intake.</strong> The test will create an AI-backed opportunity snapshot from the safe, directional information you provide.</li>
++      <li><strong>Share what worked and what did not.</strong> We are looking for what felt useful, confusing, or missing—not polished answers.</li>
++    </ol>
++
++    <a class="cta" href="https://bridge-intake-cuzgg1rhq-bridgetoai-projects.vercel.app">Start the private test</a>
++    <p class="fine-print">This link opens the private Bridge To AI Intake Preview. It is not the public production site.</p>
++
++    <section class="feedback" aria-labelledby="feedback-title">
++      <h2 id="feedback-title">What we would like to learn</h2>
++      <p>After you finish, please reply to the person who invited you and tell us:</p>
++      <ul>
++        <li>What made sense right away?</li>
++        <li>What felt unclear or unhelpful?</li>
++        <li>Did the result feel relevant to your business?</li>
++      </ul>
++    </section>
++  </main>
++</body>
++</html>
+diff --git a/scripts/pilot-safety-contract-test.mjs b/scripts/pilot-safety-contract-test.mjs
+index e81d343..7357619 100644
+--- a/scripts/pilot-safety-contract-test.mjs
++++ b/scripts/pilot-safety-contract-test.mjs
+@@ -21,12 +21,19 @@ const aiApi = read('api/generate-dna.js');
+ const reportApi = read('api/report-pack.js');
+ const notificationApi = read('api/send-email.js');
+ const intakePage = read('index.html');
++const draftAccessSource = read('lib/draft-access.js');
+ const draftAccess = await import('../lib/draft-access.js');
+ 
+ assert.match(draftApi, /assertDraftAccess\(draftAccessToken, clientDraftId\)/, 'existing draft saves require a capability');
+ assert.match(draftApi, /assertDraftAccess\(draftAccessToken, id\)/, 'draft loads and deletes require a capability');
+ assert.match(aiApi, /assertDraftAccess\(draftAccessToken, clientDraftId\)/, 'AI generation requires a capability');
+ assert.match(reportApi, /assertDraftAccess\(req\.body\?\.draftAccessToken, clientDraftId\)/, 'free report requests require a capability');
++assert.match(aiApi, /runPrivacyGate\(prompt, \{ purpose: 'venture_dna_generation_prompt' \}\)/, 'AI prompt is scanned by the privacy gate');
++assert.match(reportApi, /const bccRecipient = process\.env\.INTAKE_BCC_RECIPIENT \|\| '';/, 'free-report BCC has no hard-coded recipient');
++assert.match(reportApi, /const continueInterviewUrl = `\$\{publicBaseUrl\}\/snapshot`;/, 'free-report link does not expose a draft ID');
++assert.match(reportApi, /function assertPreviewRecipientAllowed\(email\)/, 'Preview report delivery requires an approved recipient');
++assert.match(reportApi, /Preview public base URL is not configured/, 'Preview report delivery fails closed without a Preview base URL');
++assert.match(draftAccessSource, /const DEFAULT_TTL_DAYS = 30;/, 'draft capability lifetime matches the pilot retention window');
+ 
+ requireBefore(
+   aiApi,
