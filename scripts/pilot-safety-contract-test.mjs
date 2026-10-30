@@ -57,7 +57,7 @@ requireBefore(
 );
 assert.doesNotMatch(intakePage, /await sendEmailWithDNA\(\)/, 'interview completion cannot send an email automatically');
 assert.match(testerPage, /<meta name="robots" content="noindex, nofollow, noarchive">/, 'private tester page is excluded from indexing');
-assert.match(testerPage, /<a class="cta" href="\/">Start the private test<\/a>/, 'tester page uses the current deployment rather than a stale Preview URL');
+assert.match(testerPage, /<a class="cta" href="\/snapshot">Start the private test<\/a>/, 'tester page opens the short Snapshot path in the current deployment');
 
 const savedSecret = process.env.BTAI_DRAFT_ACCESS_SECRET;
 process.env.BTAI_DRAFT_ACCESS_SECRET = 'v1.72.25-contract-test-secret-with-32-plus-characters';
