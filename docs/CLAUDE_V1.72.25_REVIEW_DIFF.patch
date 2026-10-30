@@ -1,0 +1,2119 @@
+diff --git a/api/draft.js b/api/draft.js
+index 63bf082..ecc6013 100644
+--- a/api/draft.js
++++ b/api/draft.js
+@@ -1,87 +1,100 @@
+-import { encryptJson, decryptJson } from '../lib/crypto.js';
+-import { getIntakeSession, updateIntakeSession, upsertIntakeSession } from '../lib/supabase-rest.js';
+-
+-function publicLabels(payload) {
+-  const allowLabels = String(process.env.BTAI_STORE_RECORD_LABELS || '').toLowerCase() === 'true';
+-  return {
+-    client_name_label: allowLabels ? String(payload.clientName || '').slice(0, 120) : '',
+-    business_name_label: allowLabels ? String(payload.businessName || '').slice(0, 160) : ''
+-  };
+-}
+-
+-async function saveDraft(payload) {
+-  const clientDraftId = String(payload?.clientDraftId || '').trim();
+-  if (!clientDraftId) return { status: 400, body: { error: 'Missing clientDraftId' } };
+-
+-  const now = new Date().toISOString();
+-  const encrypted = encryptJson(payload);
+-  const labels = publicLabels(payload);
+-  const existing = await getIntakeSession(clientDraftId);
+-  const protectedStatuses = new Set(['complete', 'privacy_review_required']);
+-  const nextStatus = protectedStatuses.has(existing?.status)
+-    ? existing.status
+-    : payload.interviewStarted ? 'draft' : 'created';
+-  await upsertIntakeSession({
+-    client_draft_id: clientDraftId,
+-    status: nextStatus,
+-    business_category: String(payload.businessCategory || '').slice(0, 160),
+-    ...labels,
+-    current_step: String(payload.scenarioStage || payload.subStep || 'welcome').slice(0, 120),
+-    current_question: Number.isInteger(payload.currentQ) ? payload.currentQ : null,
+-    encrypted_payload: encrypted,
+-    updated_at: now
+-  });
+-
+-  return { status: 200, body: { saved: true, clientDraftId, at: now } };
+-}
+-
+-async function loadDraft(clientDraftId) {
+-  const id = String(clientDraftId || '').trim();
+-  if (!id) return { status: 400, body: { error: 'Missing clientDraftId' } };
+-
+-  const record = await getIntakeSession(id);
+-  if (!record) return { status: 200, body: { found: false } };
+-
+-  return {
+-    status: 200,
+-    body: {
+-      found: true,
+-      status: record.status,
+-      savedAt: record.updated_at,
+-      payload: decryptJson(record.encrypted_payload)
+-    }
+-  };
+-}
+-
+-async function deleteDraft(clientDraftId) {
+-  const id = String(clientDraftId || '').trim();
+-  if (!id) return { status: 200, body: { deleted: false, reason: 'No clientDraftId' } };
+-
+-  const existing = await getIntakeSession(id);
+-  const protectedStatuses = new Set(['complete', 'privacy_review_required']);
+-  if (!protectedStatuses.has(existing?.status)) {
+-    await updateIntakeSession(id, {
+-      status: 'abandoned',
+-      updated_at: new Date().toISOString()
+-    });
+-  }
+-  return { status: 200, body: { deleted: true } };
+-}
+-
+-export default async function handler(req, res) {
+-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+-
+-  try {
+-    const action = String(req.body?.action || '').trim();
+-    let result;
+-    if (action === 'save') result = await saveDraft(req.body?.payload || req.body);
+-    else if (action === 'load') result = await loadDraft(req.body?.clientDraftId);
+-    else if (action === 'delete') result = await deleteDraft(req.body?.clientDraftId);
+-    else result = { status: 400, body: { error: 'Unknown draft action' } };
+-
+-    return res.status(result.status).json(result.body);
+-  } catch (err) {
+-    console.error('draft endpoint error:', err);
+-    return res.status(500).json({ error: err.message });
+-  }
+-}
++import { encryptJson, decryptJson } from '../lib/crypto.js';
++import { getIntakeSession, updateIntakeSession, upsertIntakeSession } from '../lib/supabase-rest.js';
++import { assertDraftAccess, issueDraftAccess } from '../lib/draft-access.js';
++import { assertRateLimit, assertTrustedOrigin, safeError } from '../lib/security.js';
++
++function publicLabels(payload) {
++  const allowLabels = String(process.env.BTAI_STORE_RECORD_LABELS || '').toLowerCase() === 'true';
++  return {
++    client_name_label: allowLabels ? String(payload.clientName || '').slice(0, 120) : '',
++    business_name_label: allowLabels ? String(payload.businessName || '').slice(0, 160) : ''
++  };
++}
++
++async function saveDraft(payload, draftAccessToken) {
++  const clientDraftId = String(payload?.clientDraftId || '').trim();
++  if (!clientDraftId) return { status: 400, body: { error: 'Missing clientDraftId' } };
++
++  const now = new Date().toISOString();
++  const encrypted = encryptJson(payload);
++  const labels = publicLabels(payload);
++  const existing = await getIntakeSession(clientDraftId);
++  let accessToken = '';
++  if (existing) {
++    assertDraftAccess(draftAccessToken, clientDraftId);
++  } else {
++    accessToken = issueDraftAccess(clientDraftId);
++  }
++  const protectedStatuses = new Set(['complete', 'privacy_review_required']);
++  const nextStatus = protectedStatuses.has(existing?.status)
++    ? existing.status
++    : payload.interviewStarted ? 'draft' : 'created';
++  await upsertIntakeSession({
++    client_draft_id: clientDraftId,
++    status: nextStatus,
++    business_category: String(payload.businessCategory || '').slice(0, 160),
++    ...labels,
++    current_step: String(payload.scenarioStage || payload.subStep || 'welcome').slice(0, 120),
++    current_question: Number.isInteger(payload.currentQ) ? payload.currentQ : null,
++    encrypted_payload: encrypted,
++    updated_at: now
++  });
++
++  return { status: 200, body: { saved: true, clientDraftId, draftAccessToken: accessToken || undefined, at: now } };
++}
++
++async function loadDraft(clientDraftId, draftAccessToken) {
++  const id = String(clientDraftId || '').trim();
++  if (!id) return { status: 400, body: { error: 'Missing clientDraftId' } };
++
++  assertDraftAccess(draftAccessToken, id);
++  const record = await getIntakeSession(id);
++  if (!record) return { status: 200, body: { found: false } };
++
++  return {
++    status: 200,
++    body: {
++      found: true,
++      status: record.status,
++      savedAt: record.updated_at,
++      payload: decryptJson(record.encrypted_payload)
++    }
++  };
++}
++
++async function deleteDraft(clientDraftId, draftAccessToken) {
++  const id = String(clientDraftId || '').trim();
++  if (!id) return { status: 200, body: { deleted: false, reason: 'No clientDraftId' } };
++
++  assertDraftAccess(draftAccessToken, id);
++  const existing = await getIntakeSession(id);
++  const protectedStatuses = new Set(['complete', 'privacy_review_required']);
++  if (!protectedStatuses.has(existing?.status)) {
++    await updateIntakeSession(id, {
++      status: 'abandoned',
++      updated_at: new Date().toISOString()
++    });
++  }
++  return { status: 200, body: { deleted: true } };
++}
++
++export default async function handler(req, res) {
++  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
++
++  try {
++    assertTrustedOrigin(req);
++    assertRateLimit(req, { key: 'draft', limit: 30, windowMs: 60_000 });
++    const action = String(req.body?.action || '').trim();
++    const draftAccessToken = String(req.body?.draftAccessToken || '').trim();
++    let result;
++    if (action === 'save') result = await saveDraft(req.body?.payload || req.body, draftAccessToken);
++    else if (action === 'load') result = await loadDraft(req.body?.clientDraftId, draftAccessToken);
++    else if (action === 'delete') result = await deleteDraft(req.body?.clientDraftId, draftAccessToken);
++    else result = { status: 400, body: { error: 'Unknown draft action' } };
++
++    return res.status(result.status).json(result.body);
++  } catch (err) {
++    console.error('draft endpoint error:', err);
++    return safeError(res, err, 'Draft service unavailable');
++  }
++}
+diff --git a/api/generate-dna.js b/api/generate-dna.js
+index 77dcd95..f8609dd 100644
+--- a/api/generate-dna.js
++++ b/api/generate-dna.js
+@@ -1,471 +1,484 @@
+-﻿// api/generate-dna.js
+-// Server-side function that calls Claude to compile the DNA file.
+-// Keeps the Anthropic API key hidden from the browser.
+-// Hermes privacy layer: anonymizes obvious identifiers before sending the
+-// prompt to Claude, then re-identifies the final output before returning it.
+-
+-import { encryptJson } from '../lib/crypto.js';
+-import { insertClaimTrace, insertIntakeEvent, insertIntakeOutput, updateIntakeSession } from '../lib/supabase-rest.js';
+-import { gateProofDetails, publicGateSummary, runPrivacyGate } from '../lib/privacy-gate.js';
+-import { validateDnaOutput } from '../lib/validate-output.js';
+-
+-async function logPrivacyProof(clientDraftId, eventType, status, details = {}) {
+-  try {
+-    if (!clientDraftId) return;
+-    await insertIntakeEvent({
+-      client_draft_id: clientDraftId,
+-      event_type: eventType,
+-      status,
+-      stage: 'privacy_proof',
+-      question_index: null,
+-      domain: 'BTAI Secure Intelligence Layer',
+-      answer_word_count: null,
+-      metadata: {
+-        ts: new Date().toISOString(),
+-        app: 'intake.bridgetoai.ca',
+-        eventType,
+-        status,
+-        stage: 'privacy_proof',
+-        privacyProof: true,
+-        details: {
+-          rawInterviewIncluded: false,
+-          rawDnaIncluded: false,
+-          partnerRawAccess: false,
+-          encryptedAtRest: true,
+-          encryptionAlg: 'AES-256-GCM',
+-          ...details
+-        }
+-      }
+-    });
+-  } catch (err) {
+-    console.error('privacy proof log failed:', err);
+-  }
+-}
+-
+-function retentionMetadata(category = 'first_intake') {
+-  const now = new Date();
+-  const review = new Date(now);
+-  if (category === 'draft') review.setDate(review.getDate() + 30);
+-  else review.setMonth(review.getMonth() + 24);
+-  return {
+-    retentionPolicyVersion: '2026-07-30-v1',
+-    retentionCategory: category,
+-    scheduledReviewDate: review.toISOString(),
+-    deletionRequestPathAvailable: true
+-  };
+-}
+-
+-async function callClaude(messages) {
+-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+-    method: 'POST',
+-    headers: {
+-      'Content-Type': 'application/json',
+-      'x-api-key': process.env.ANTHROPIC_API_KEY,
+-      'anthropic-version': '2023-06-01'
+-    },
+-    body: JSON.stringify({
+-      model: 'claude-sonnet-4-6',
+-      max_tokens: 8000,
+-      messages
+-    })
+-  });
+-  if (!response.ok) {
+-    const error = await response.text();
+-    throw new Error('Anthropic API call failed: ' + error);
+-  }
+-  return response.json();
+-}
+-
+-function escapeRegExp(value) {
+-  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+-}
+-
+-function addMapping(map, placeholder, value) {
+-  const cleaned = String(value || '').trim();
+-  if (!cleaned || cleaned.length < 2) return;
+-  if (cleaned === '(not provided)' || cleaned === '(not specified)') return;
+-  if (!map[placeholder]) map[placeholder] = cleaned;
+-}
+-
+-function extractField(prompt, label) {
+-  const re = new RegExp(`^${escapeRegExp(label)}:\\s*(.+)$`, 'im');
+-  const match = prompt.match(re);
+-  return match ? match[1].trim() : '';
+-}
+-
+-function replaceAllLiteral(text, value, placeholder) {
+-  if (!value || value.length < 2) return text;
+-  return text.replace(new RegExp(escapeRegExp(value), 'g'), placeholder);
+-}
+-
+-function anonymizePrompt(prompt) {
+-  const mapping = {};
+-
+-  addMapping(mapping, '[OWNER_NAME]', extractField(prompt, 'Owner Name'));
+-  addMapping(mapping, '[BUSINESS_NAME]', extractField(prompt, 'Business Name'));
+-  addMapping(mapping, '[BUSINESS_CATEGORY]', extractField(prompt, 'Business Category'));
+-  addMapping(mapping, '[WEBSITE_URL]', extractField(prompt, 'Website URL'));
+-
+-  let anonymized = prompt;
+-
+-  Object.entries(mapping)
+-    .sort((a, b) => b[1].length - a[1].length)
+-    .forEach(([placeholder, value]) => {
+-      anonymized = replaceAllLiteral(anonymized, value, placeholder);
+-    });
+-
+-  let emailCount = 0;
+-  anonymized = anonymized.replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, match => {
+-    const placeholder = `[EMAIL_${++emailCount}]`;
+-    mapping[placeholder] = match;
+-    return placeholder;
+-  });
+-
+-  let phoneCount = 0;
+-  anonymized = anonymized.replace(/(?:\+?1[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)\d{3}[\s.-]?\d{4}/g, match => {
+-    const placeholder = `[PHONE_${++phoneCount}]`;
+-    mapping[placeholder] = match;
+-    return placeholder;
+-  });
+-
+-  let urlCount = 0;
+-  anonymized = anonymized.replace(/https?:\/\/[^\s)]+/gi, match => {
+-    if (Object.values(mapping).includes(match)) return '[WEBSITE_URL]';
+-    const placeholder = `[URL_${++urlCount}]`;
+-    mapping[placeholder] = match;
+-    return placeholder;
+-  });
+-
+-  let moneyAccountCount = 0;
+-  anonymized = anonymized.replace(/\b(?:\d[ -]*?){13,19}\b/g, match => {
+-    const digits = match.replace(/\D/g, '');
+-    if (digits.length < 13 || digits.length > 19) return match;
+-    const placeholder = `[FINANCIAL_ACCOUNT_${++moneyAccountCount}]`;
+-    mapping[placeholder] = match;
+-    return placeholder;
+-  });
+-
+-  const privacyHeader = `HERMES PRIVACY LAYER ACTIVE:\nThe source interview below has been anonymized before model analysis. Use placeholders exactly as given. Do not attempt to infer real names, emails, phone numbers, websites, addresses, account numbers, or identities behind placeholders.\n\n`;
+-
+-  return {
+-    anonymizedPrompt: privacyHeader + anonymized,
+-    mapping,
+-    stats: {
+-      replacements: Object.keys(mapping).length,
+-      emails: emailCount,
+-      phones: phoneCount,
+-      urls: urlCount,
+-      financialAccounts: moneyAccountCount
+-    }
+-  };
+-}
+-
+-function reidentifyText(text, mapping) {
+-  let output = text || '';
+-  Object.entries(mapping || {})
+-    .sort((a, b) => b[0].length - a[0].length)
+-    .forEach(([placeholder, value]) => {
+-      output = output.replace(new RegExp(escapeRegExp(placeholder), 'g'), value);
+-    });
+-  return output;
+-}
+-
+-function applyPrivacyRedactions(text, redactionMap = []) {
+-  let output = String(text || '');
+-  const entries = [...(redactionMap || [])]
+-    .filter(item => item && item.original && item.token)
+-    .sort((a, b) => String(b.original).length - String(a.original).length);
+-  for (const item of entries) {
+-    output = output.replace(new RegExp(escapeRegExp(item.original), 'g'), item.token);
+-  }
+-  return output;
+-}
+-
+-async function saveAnonymizationMapping(clientDraftId, mapping, stats) {
+-  try {
+-    const hasMapping = mapping && Object.keys(mapping).length > 0;
+-    if (!hasMapping) return { saved: false, reason: 'No mapping entries' };
+-    if (!clientDraftId) return { saved: false, reason: 'No clientDraftId for mapping storage' };
+-
+-    const business = mapping['[BUSINESS_NAME]'] || 'Client_Business';
+-    const safeBusiness = business.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 80);
+-    const dateStr = new Date().toISOString().replace(/[:.]/g, '-');
+-    const content = {
+-      createdAt: new Date().toISOString(),
+-      warning: 'PRIVATE RE-IDENTIFICATION MAP. Do not send this file to third-party AI models.',
+-      label: `${safeBusiness}_HERMES_PRIVATE_MAPPING_${dateStr}.json`,
+-      stats,
+-      mapping
+-    };
+-
+-    const row = await insertIntakeOutput({
+-      client_draft_id: clientDraftId,
+-      output_type: 'hermes_reidentification_map',
+-      encrypted_payload: encryptJson(content)
+-    });
+-    return { saved: true, fileId: row?.id || '', link: '' };
+-  } catch (err) {
+-    console.error('Hermes mapping save failed:', err);
+-    return { saved: false, reason: err.message };
+-  }
+-}
+-
+-async function savePrivacyGateRecord(clientDraftId, gateResult, sourceLabel = 'venture_dna_generation') {
+-  try {
+-    if (!clientDraftId) return { saved: false, reason: 'No clientDraftId for privacy gate storage' };
+-    const row = await insertIntakeOutput({
+-      client_draft_id: clientDraftId,
+-      output_type: `privacy_gate_${sourceLabel}`,
+-      encrypted_payload: encryptJson({
+-        createdAt: new Date().toISOString(),
+-        gateVersion: gateResult.gateVersion,
+-        purpose: gateResult.purpose,
+-        decision: gateResult.decision,
+-        requiresReview: gateResult.requiresReview,
+-        summary: gateResult.summary,
+-        proofFindings: gateResult.proofFindings,
+-        originalHash: gateResult.originalHash,
+-        sanitizedHash: gateResult.sanitizedHash,
+-        sanitizedText: gateResult.sanitizedText,
+-        redactionMap: gateResult.redactionMap
+-      })
+-    });
+-    return { saved: true, outputId: row?.id || '' };
+-  } catch (err) {
+-    console.error('Privacy Gate secure save failed:', err);
+-    return { saved: false, reason: err.message };
+-  }
+-}
+-
+-async function saveCompletedDna(clientDraftId, dnaContent, meta = {}) {
+-  try {
+-    if (!clientDraftId) return { saved: false, reason: 'No clientDraftId for output storage' };
+-    const row = await insertIntakeOutput({
+-      client_draft_id: clientDraftId,
+-      output_type: 'venture_dna_markdown',
+-      encrypted_payload: encryptJson({
+-        createdAt: new Date().toISOString(),
+-        dnaContent,
+-        meta: {
+-          ...meta,
+-          retention: retentionMetadata('first_intake')
+-        }
+-      })
+-    });
+-    await updateIntakeSession(clientDraftId, {
+-      status: 'complete',
+-      completed_at: new Date().toISOString(),
+-      updated_at: new Date().toISOString()
+-    });
+-    return { saved: true, outputId: row?.id || '' };
+-  } catch (err) {
+-    console.error('Completed DNA secure save failed:', err);
+-    return { saved: false, reason: err.message };
+-  }
+-}
+-
+-async function saveClaimTrace(clientDraftId, validation) {
+-  try {
+-    if (!clientDraftId || !validation?.claims?.length) return { saved: false, reason: 'No evidence-labelled claims found' };
+-    await Promise.all(validation.claims.map(claim => insertClaimTrace({
+-      client_draft_id: clientDraftId,
+-      report_section: claim.reportSection,
+-      claim_text: claim.claimText,
+-      evidence_type: claim.evidenceType,
+-      source_question_id: '',
+-      source_excerpt: '',
+-      confidence: null
+-    })));
+-    return { saved: true, count: validation.claims.length };
+-  } catch (err) {
+-    console.error('Claim trace save failed:', err);
+-    return { saved: false, reason: err.message };
+-  }
+-}
+-
+-export default async function handler(req, res) {
+-  if (req.method !== 'POST') {
+-    return res.status(405).json({ error: 'Method not allowed' });
+-  }
+-
+-  const { prompt, clientDraftId, sourceMeta } = req.body;
+-  if (!prompt) {
+-    return res.status(400).json({ error: 'Missing prompt' });
+-  }
+-
+-  try {
+-    await logPrivacyProof(clientDraftId, 'privacy_proof_consent_recorded', sourceMeta?.privacyConsent ? 'success' : 'failed', {
+-      privacyProofType: 'consent',
+-      privacyConsentAccepted: !!sourceMeta?.privacyConsent,
+-      privacyConsentAt: sourceMeta?.privacyConsentAt || '',
+-      privacyPolicyVersion: sourceMeta?.privacyPolicyVersion || '',
+-      partnerAggregateDisclosureShown: !!sourceMeta?.partnerAggregateDisclosureShown,
+-      partnerAggregateDisclosureAccepted: !!sourceMeta?.partnerAggregateDisclosureAccepted,
+-      proofStatus: sourceMeta?.privacyConsent ? 'passed' : 'failed'
+-    });
+-    const crossBorderNoticePassed = !!(
+-      sourceMeta?.crossBorderProcessingNoticePresented &&
+-      sourceMeta?.serviceProviderPolicyAvailable &&
+-      sourceMeta?.privacyContactPresented &&
+-      sourceMeta?.privacyPolicyVersion
+-    );
+-    await logPrivacyProof(clientDraftId, 'privacy_proof_cross_border_notice', crossBorderNoticePassed ? 'success' : 'failed', {
+-      privacyProofType: 'cross_border_notice',
+-      crossBorderProcessingNoticePresented: !!sourceMeta?.crossBorderProcessingNoticePresented,
+-      serviceProviderPolicyAvailable: !!sourceMeta?.serviceProviderPolicyAvailable,
+-      privacyContactPresented: !!sourceMeta?.privacyContactPresented,
+-      privacyPolicyVersion: sourceMeta?.privacyPolicyVersion || '',
+-      proofStatus: crossBorderNoticePassed ? 'passed' : 'failed'
+-    });
+-    await logPrivacyProof(clientDraftId, 'privacy_proof_retention_policy_recorded', 'success', {
+-      privacyProofType: 'retention',
+-      ...retentionMetadata('first_intake'),
+-      proofStatus: 'passed'
+-    });
+-    const participantPrivacySource = String(sourceMeta?.privacyScanText || '').trim();
+-    const privacyGate = runPrivacyGate(participantPrivacySource || prompt, { purpose: 'venture_dna_generation' });
+-    const privacyGateSave = await savePrivacyGateRecord(clientDraftId, privacyGate, 'venture_dna_generation');
+-    await logPrivacyProof(clientDraftId, 'privacy_gate_scan_completed', privacyGateSave.saved ? 'success' : 'failed', gateProofDetails(privacyGate, {
+-      payloadType: participantPrivacySource ? 'participant_supplied_interview_text' : 'raw_interview_prompt',
+-      privacyGateOutputId: privacyGateSave.outputId || '',
+-      privacyGateSaveReason: privacyGateSave.reason || '',
+-      proofStatus: privacyGateSave.saved ? (privacyGate.requiresReview ? 'review_required' : 'passed') : 'failed'
+-    }));
+-
+-    if (privacyGate.requiresReview) {
+-      if (clientDraftId) {
+-        await updateIntakeSession(clientDraftId, {
+-          status: 'privacy_review_required',
+-          updated_at: new Date().toISOString()
+-        });
+-      }
+-      await logPrivacyProof(clientDraftId, 'privacy_gate_quarantine_created', 'success', gateProofDetails(privacyGate, {
+-        payloadType: participantPrivacySource ? 'participant_supplied_interview_text' : 'raw_interview_prompt',
+-        aiPayloadBlocked: true,
+-        aiReceivesSanitizedPayloadOnly: false,
+-        proofStatus: 'review_required'
+-      }));
+-      return res.status(409).json({
+-        error: 'Privacy review required',
+-        message: 'The interview appears to include sensitive information. The encrypted original has been preserved, a sanitized payload was created, and AI generation has been paused for Bridge To AI review.',
+-        privacyGate: publicGateSummary(privacyGate),
+-        secureStorage: {
+-          saved: !!privacyGateSave.saved,
+-          outputId: privacyGateSave.outputId || '',
+-          reason: privacyGateSave.reason || ''
+-        }
+-      });
+-    }
+-
+-    const gatedPrompt = participantPrivacySource
+-      ? applyPrivacyRedactions(prompt, privacyGate.redactionMap)
+-      : privacyGate.sanitizedText;
+-    const hermesPrivacy = anonymizePrompt(gatedPrompt);
+-    await logPrivacyProof(clientDraftId, 'privacy_proof_anonymization_completed', 'success', {
+-      privacyProofType: 'anonymization',
+-      payloadType: 'sanitized_interview_prompt',
+-      aiPayloadType: 'sanitized_anonymized_business_profile',
+-      privacyGateVersion: privacyGate.gateVersion,
+-      privacyGateDecision: privacyGate.decision,
+-      sanitizedAiPayloadCreated: true,
+-      directIdentifiersRemoved: true,
+-      anonymizationReplacements: hermesPrivacy.stats.replacements || 0,
+-      proofStatus: 'passed'
+-    });
+-    const mappingSave = await saveAnonymizationMapping(clientDraftId, hermesPrivacy.mapping, hermesPrivacy.stats);
+-    await logPrivacyProof(clientDraftId, 'privacy_proof_mapping_storage', mappingSave.saved ? 'success' : 'info', {
+-      privacyProofType: 'reidentification_map',
+-      piiMappingStoredEncrypted: !!mappingSave.saved,
+-      mappingFileId: mappingSave.fileId || '',
+-      proofStatus: mappingSave.saved ? 'passed' : 'not_required',
+-      note: mappingSave.reason || ''
+-    });
+-    const messages = [{ role: 'user', content: hermesPrivacy.anonymizedPrompt }];
+-    await logPrivacyProof(clientDraftId, 'privacy_proof_ai_analysis_requested', 'success', {
+-      privacyProofType: 'ai_analysis',
+-      payloadType: 'anonymized_prompt',
+-      aiPayloadType: 'anonymized_business_profile',
+-      directIdentifiersRemoved: true,
+-      proofStatus: 'passed'
+-    });
+-    let fullText = '';
+-    let stopReason = null;
+-    let passes = 0;
+-    const MAX_PASSES = 4;
+-
+-    do {
+-      const data = await callClaude(messages);
+-      const piece = (data.content && data.content[0] && data.content[0].text) ? data.content[0].text : '';
+-      fullText += piece;
+-      stopReason = data.stop_reason;
+-      passes++;
+-
+-      if (stopReason === 'max_tokens' && passes < MAX_PASSES) {
+-        messages.push({ role: 'assistant', content: piece });
+-        messages.push({ role: 'user', content: 'Continue exactly where you left off. Do not repeat anything already written. Pick up mid-sentence if needed.' });
+-      } else {
+-        break;
+-      }
+-    } while (passes < MAX_PASSES);
+-
+-    const truncated = (stopReason === 'max_tokens');
+-    if (truncated) {
+-      fullText += '\n\n> NOTE TO DARREN: This DNA file reached the maximum generation length. The content above is complete through where it stops; regenerate or extend manually if a later section is cut.';
+-    }
+-
+-    const reidentifiedText = reidentifyText(fullText, hermesPrivacy.mapping);
+-    const validation = validateDnaOutput(reidentifiedText, sourceMeta || {});
+-    const claimTraceSave = await saveClaimTrace(clientDraftId, validation);
+-    const outputSave = await saveCompletedDna(clientDraftId, reidentifiedText, {
+-      truncated,
+-      sourceMeta: sourceMeta || {},
+-      privacyGate: publicGateSummary(privacyGate),
+-      anonymizationStats: hermesPrivacy.stats,
+-      validation: {
+-        ...validation,
+-        claimTraceSaved: !!claimTraceSave.saved,
+-        claimTraceCount: claimTraceSave.count || 0,
+-        claimTraceReason: claimTraceSave.reason || ''
+-      }
+-    });
+-    await logPrivacyProof(clientDraftId, 'privacy_proof_secure_output_storage', outputSave.saved ? 'success' : 'failed', {
+-      privacyProofType: 'secure_storage',
+-      outputType: 'venture_dna_markdown',
+-      encryptedAtRest: !!outputSave.saved,
+-      encryptionAlg: 'AES-256-GCM',
+-      rawDnaIncluded: false,
+-      partnerRawAccess: false,
+-      claimTraceSaved: !!claimTraceSave.saved,
+-      proofStatus: outputSave.saved ? 'passed' : 'failed',
+-      error: outputSave.reason || ''
+-    });
+-
+-    return res.status(200).json({
+-      dnaContent: reidentifiedText,
+-      truncated,
+-      secureStorage: {
+-        saved: !!outputSave.saved,
+-        outputId: outputSave.outputId || '',
+-        reason: outputSave.reason || '',
+-        validation: {
+-          ...validation,
+-          claimTraceSaved: !!claimTraceSave.saved,
+-          claimTraceCount: claimTraceSave.count || 0,
+-          claimTraceReason: claimTraceSave.reason || ''
+-        }
+-      },
+-      hermesPrivacy: {
+-        anonymized: true,
+-        stats: hermesPrivacy.stats,
+-        mappingSaved: !!mappingSave.saved,
+-        mappingSaveReason: mappingSave.reason || '',
+-        mappingFileId: mappingSave.fileId || ''
+-      }
+-    });
+-
+-  } catch (err) {
+-    console.error('Server error:', err);
+-    return res.status(500).json({ error: 'Server error', message: err.message });
+-  }
+-}
++// api/generate-dna.js
++// Server-side function that calls Claude to compile the DNA file.
++// Keeps the Anthropic API key hidden from the browser.
++// Hermes privacy layer: anonymizes obvious identifiers before sending the
++// prompt to Claude, then re-identifies the final output before returning it.
++
++import { decryptJson, encryptJson } from '../lib/crypto.js';
++import { getIntakeSession, insertClaimTrace, insertIntakeEvent, insertIntakeOutput, updateIntakeSession } from '../lib/supabase-rest.js';
++import { gateProofDetails, publicGateSummary, runPrivacyGate } from '../lib/privacy-gate.js';
++import { validateDnaOutput } from '../lib/validate-output.js';
++import { assertDraftAccess } from '../lib/draft-access.js';
++import { assertRateLimit, assertTrustedOrigin, safeError } from '../lib/security.js';
++
++async function logPrivacyProof(clientDraftId, eventType, status, details = {}) {
++  try {
++    if (!clientDraftId) return;
++    await insertIntakeEvent({
++      client_draft_id: clientDraftId,
++      event_type: eventType,
++      status,
++      stage: 'privacy_proof',
++      question_index: null,
++      domain: 'BTAI Secure Intelligence Layer',
++      answer_word_count: null,
++      metadata: {
++        ts: new Date().toISOString(),
++        app: 'intake.bridgetoai.ca',
++        eventType,
++        status,
++        stage: 'privacy_proof',
++        privacyProof: true,
++        details: {
++          rawInterviewIncluded: false,
++          rawDnaIncluded: false,
++          partnerRawAccess: false,
++          encryptedAtRest: true,
++          encryptionAlg: 'AES-256-GCM',
++          ...details
++        }
++      }
++    });
++  } catch (err) {
++    console.error('privacy proof log failed:', err);
++  }
++}
++
++function retentionMetadata(category = 'first_intake') {
++  const now = new Date();
++  const review = new Date(now);
++  if (category === 'draft') review.setDate(review.getDate() + 30);
++  else review.setMonth(review.getMonth() + 24);
++  return {
++    retentionPolicyVersion: '2026-07-30-v1',
++    retentionCategory: category,
++    scheduledReviewDate: review.toISOString(),
++    deletionRequestPathAvailable: true
++  };
++}
++
++async function callClaude(messages) {
++  const response = await fetch('https://api.anthropic.com/v1/messages', {
++    method: 'POST',
++    headers: {
++      'Content-Type': 'application/json',
++      'x-api-key': process.env.ANTHROPIC_API_KEY,
++      'anthropic-version': '2023-06-01'
++    },
++    body: JSON.stringify({
++      model: 'claude-sonnet-4-6',
++      max_tokens: 8000,
++      messages
++    })
++  });
++  if (!response.ok) {
++    const error = await response.text();
++    throw new Error('Anthropic API call failed: ' + error);
++  }
++  return response.json();
++}
++
++function escapeRegExp(value) {
++  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
++}
++
++function addMapping(map, placeholder, value) {
++  const cleaned = String(value || '').trim();
++  if (!cleaned || cleaned.length < 2) return;
++  if (cleaned === '(not provided)' || cleaned === '(not specified)') return;
++  if (!map[placeholder]) map[placeholder] = cleaned;
++}
++
++function extractField(prompt, label) {
++  const re = new RegExp(`^${escapeRegExp(label)}:\\s*(.+)$`, 'im');
++  const match = prompt.match(re);
++  return match ? match[1].trim() : '';
++}
++
++function replaceAllLiteral(text, value, placeholder) {
++  if (!value || value.length < 2) return text;
++  return text.replace(new RegExp(escapeRegExp(value), 'g'), placeholder);
++}
++
++function anonymizePrompt(prompt) {
++  const mapping = {};
++
++  addMapping(mapping, '[OWNER_NAME]', extractField(prompt, 'Owner Name'));
++  addMapping(mapping, '[BUSINESS_NAME]', extractField(prompt, 'Business Name'));
++  addMapping(mapping, '[BUSINESS_CATEGORY]', extractField(prompt, 'Business Category'));
++  addMapping(mapping, '[WEBSITE_URL]', extractField(prompt, 'Website URL'));
++
++  let anonymized = prompt;
++
++  Object.entries(mapping)
++    .sort((a, b) => b[1].length - a[1].length)
++    .forEach(([placeholder, value]) => {
++      anonymized = replaceAllLiteral(anonymized, value, placeholder);
++    });
++
++  let emailCount = 0;
++  anonymized = anonymized.replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, match => {
++    const placeholder = `[EMAIL_${++emailCount}]`;
++    mapping[placeholder] = match;
++    return placeholder;
++  });
++
++  let phoneCount = 0;
++  anonymized = anonymized.replace(/(?:\+?1[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)\d{3}[\s.-]?\d{4}/g, match => {
++    const placeholder = `[PHONE_${++phoneCount}]`;
++    mapping[placeholder] = match;
++    return placeholder;
++  });
++
++  let urlCount = 0;
++  anonymized = anonymized.replace(/https?:\/\/[^\s)]+/gi, match => {
++    if (Object.values(mapping).includes(match)) return '[WEBSITE_URL]';
++    const placeholder = `[URL_${++urlCount}]`;
++    mapping[placeholder] = match;
++    return placeholder;
++  });
++
++  let moneyAccountCount = 0;
++  anonymized = anonymized.replace(/\b(?:\d[ -]*?){13,19}\b/g, match => {
++    const digits = match.replace(/\D/g, '');
++    if (digits.length < 13 || digits.length > 19) return match;
++    const placeholder = `[FINANCIAL_ACCOUNT_${++moneyAccountCount}]`;
++    mapping[placeholder] = match;
++    return placeholder;
++  });
++
++  const privacyHeader = `HERMES PRIVACY LAYER ACTIVE:\nThe source interview below has been anonymized before model analysis. Use placeholders exactly as given. Do not attempt to infer real names, emails, phone numbers, websites, addresses, account numbers, or identities behind placeholders.\n\n`;
++
++  return {
++    anonymizedPrompt: privacyHeader + anonymized,
++    mapping,
++    stats: {
++      replacements: Object.keys(mapping).length,
++      emails: emailCount,
++      phones: phoneCount,
++      urls: urlCount,
++      financialAccounts: moneyAccountCount
++    }
++  };
++}
++
++function reidentifyText(text, mapping) {
++  let output = text || '';
++  Object.entries(mapping || {})
++    .sort((a, b) => b[0].length - a[0].length)
++    .forEach(([placeholder, value]) => {
++      output = output.replace(new RegExp(escapeRegExp(placeholder), 'g'), value);
++    });
++  return output;
++}
++
++function applyPrivacyRedactions(text, redactionMap = []) {
++  let output = String(text || '');
++  const entries = [...(redactionMap || [])]
++    .filter(item => item && item.original && item.token)
++    .sort((a, b) => String(b.original).length - String(a.original).length);
++  for (const item of entries) {
++    output = output.replace(new RegExp(escapeRegExp(item.original), 'g'), item.token);
++  }
++  return output;
++}
++
++async function saveAnonymizationMapping(clientDraftId, mapping, stats) {
++  try {
++    const hasMapping = mapping && Object.keys(mapping).length > 0;
++    if (!hasMapping) return { saved: false, reason: 'No mapping entries' };
++    if (!clientDraftId) return { saved: false, reason: 'No clientDraftId for mapping storage' };
++
++    const business = mapping['[BUSINESS_NAME]'] || 'Client_Business';
++    const safeBusiness = business.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 80);
++    const dateStr = new Date().toISOString().replace(/[:.]/g, '-');
++    const content = {
++      createdAt: new Date().toISOString(),
++      warning: 'PRIVATE RE-IDENTIFICATION MAP. Do not send this file to third-party AI models.',
++      label: `${safeBusiness}_HERMES_PRIVATE_MAPPING_${dateStr}.json`,
++      stats,
++      mapping
++    };
++
++    const row = await insertIntakeOutput({
++      client_draft_id: clientDraftId,
++      output_type: 'hermes_reidentification_map',
++      encrypted_payload: encryptJson(content)
++    });
++    return { saved: true, fileId: row?.id || '', link: '' };
++  } catch (err) {
++    console.error('Hermes mapping save failed:', err);
++    return { saved: false, reason: err.message };
++  }
++}
++
++async function savePrivacyGateRecord(clientDraftId, gateResult, sourceLabel = 'venture_dna_generation') {
++  try {
++    if (!clientDraftId) return { saved: false, reason: 'No clientDraftId for privacy gate storage' };
++    const row = await insertIntakeOutput({
++      client_draft_id: clientDraftId,
++      output_type: `privacy_gate_${sourceLabel}`,
++      encrypted_payload: encryptJson({
++        createdAt: new Date().toISOString(),
++        gateVersion: gateResult.gateVersion,
++        purpose: gateResult.purpose,
++        decision: gateResult.decision,
++        requiresReview: gateResult.requiresReview,
++        summary: gateResult.summary,
++        proofFindings: gateResult.proofFindings,
++        originalHash: gateResult.originalHash,
++        sanitizedHash: gateResult.sanitizedHash,
++        sanitizedText: gateResult.sanitizedText,
++        redactionMap: gateResult.redactionMap
++      })
++    });
++    return { saved: true, outputId: row?.id || '' };
++  } catch (err) {
++    console.error('Privacy Gate secure save failed:', err);
++    return { saved: false, reason: err.message };
++  }
++}
++
++async function saveCompletedDna(clientDraftId, dnaContent, meta = {}) {
++  try {
++    if (!clientDraftId) return { saved: false, reason: 'No clientDraftId for output storage' };
++    const row = await insertIntakeOutput({
++      client_draft_id: clientDraftId,
++      output_type: 'venture_dna_markdown',
++      encrypted_payload: encryptJson({
++        createdAt: new Date().toISOString(),
++        dnaContent,
++        meta: {
++          ...meta,
++          retention: retentionMetadata('first_intake')
++        }
++      })
++    });
++    await updateIntakeSession(clientDraftId, {
++      status: 'complete',
++      completed_at: new Date().toISOString(),
++      updated_at: new Date().toISOString()
++    });
++    return { saved: true, outputId: row?.id || '' };
++  } catch (err) {
++    console.error('Completed DNA secure save failed:', err);
++    return { saved: false, reason: err.message };
++  }
++}
++
++async function saveClaimTrace(clientDraftId, validation) {
++  try {
++    if (!clientDraftId || !validation?.claims?.length) return { saved: false, reason: 'No evidence-labelled claims found' };
++    await Promise.all(validation.claims.map(claim => insertClaimTrace({
++      client_draft_id: clientDraftId,
++      report_section: claim.reportSection,
++      claim_text: claim.claimText,
++      evidence_type: claim.evidenceType,
++      source_question_id: '',
++      source_excerpt: '',
++      confidence: null
++    })));
++    return { saved: true, count: validation.claims.length };
++  } catch (err) {
++    console.error('Claim trace save failed:', err);
++    return { saved: false, reason: err.message };
++  }
++}
++
++export default async function handler(req, res) {
++  if (req.method !== 'POST') {
++    return res.status(405).json({ error: 'Method not allowed' });
++  }
++
++  const { prompt, clientDraftId, draftAccessToken, sourceMeta } = req.body;
++  if (!prompt) {
++    return res.status(400).json({ error: 'Missing prompt' });
++  }
++
++  try {
++    assertTrustedOrigin(req);
++    assertRateLimit(req, { key: 'generate-dna', limit: 3, windowMs: 60_000 });
++    assertDraftAccess(draftAccessToken, clientDraftId);
++    const storedSession = await getIntakeSession(clientDraftId);
++    const storedPayload = storedSession?.encrypted_payload ? decryptJson(storedSession.encrypted_payload) : null;
++    if (!storedPayload?.privacyConsent || !storedPayload?.privacyConsentAt || !storedPayload?.privacyPolicyVersion) {
++      return res.status(409).json({ error: 'Privacy consent must be saved before generating a report' });
++    }
++    if (String(process.env.BTAI_ENABLE_AUTOMATED_AI || '').toLowerCase() !== 'true') {
++      return res.status(503).json({ error: 'Automated report generation is not enabled for this pilot' });
++    }
++    await logPrivacyProof(clientDraftId, 'privacy_proof_consent_recorded', sourceMeta?.privacyConsent ? 'success' : 'failed', {
++      privacyProofType: 'consent',
++      privacyConsentAccepted: !!sourceMeta?.privacyConsent,
++      privacyConsentAt: sourceMeta?.privacyConsentAt || '',
++      privacyPolicyVersion: sourceMeta?.privacyPolicyVersion || '',
++      partnerAggregateDisclosureShown: !!sourceMeta?.partnerAggregateDisclosureShown,
++      partnerAggregateDisclosureAccepted: !!sourceMeta?.partnerAggregateDisclosureAccepted,
++      proofStatus: sourceMeta?.privacyConsent ? 'passed' : 'failed'
++    });
++    const crossBorderNoticePassed = !!(
++      sourceMeta?.crossBorderProcessingNoticePresented &&
++      sourceMeta?.serviceProviderPolicyAvailable &&
++      sourceMeta?.privacyContactPresented &&
++      sourceMeta?.privacyPolicyVersion
++    );
++    await logPrivacyProof(clientDraftId, 'privacy_proof_cross_border_notice', crossBorderNoticePassed ? 'success' : 'failed', {
++      privacyProofType: 'cross_border_notice',
++      crossBorderProcessingNoticePresented: !!sourceMeta?.crossBorderProcessingNoticePresented,
++      serviceProviderPolicyAvailable: !!sourceMeta?.serviceProviderPolicyAvailable,
++      privacyContactPresented: !!sourceMeta?.privacyContactPresented,
++      privacyPolicyVersion: sourceMeta?.privacyPolicyVersion || '',
++      proofStatus: crossBorderNoticePassed ? 'passed' : 'failed'
++    });
++    await logPrivacyProof(clientDraftId, 'privacy_proof_retention_policy_recorded', 'success', {
++      privacyProofType: 'retention',
++      ...retentionMetadata('first_intake'),
++      proofStatus: 'passed'
++    });
++    const participantPrivacySource = String(sourceMeta?.privacyScanText || '').trim();
++    const privacyGate = runPrivacyGate(participantPrivacySource || prompt, { purpose: 'venture_dna_generation' });
++    const privacyGateSave = await savePrivacyGateRecord(clientDraftId, privacyGate, 'venture_dna_generation');
++    await logPrivacyProof(clientDraftId, 'privacy_gate_scan_completed', privacyGateSave.saved ? 'success' : 'failed', gateProofDetails(privacyGate, {
++      payloadType: participantPrivacySource ? 'participant_supplied_interview_text' : 'raw_interview_prompt',
++      privacyGateOutputId: privacyGateSave.outputId || '',
++      privacyGateSaveReason: privacyGateSave.reason || '',
++      proofStatus: privacyGateSave.saved ? (privacyGate.requiresReview ? 'review_required' : 'passed') : 'failed'
++    }));
++
++    if (privacyGate.requiresReview) {
++      if (clientDraftId) {
++        await updateIntakeSession(clientDraftId, {
++          status: 'privacy_review_required',
++          updated_at: new Date().toISOString()
++        });
++      }
++      await logPrivacyProof(clientDraftId, 'privacy_gate_quarantine_created', 'success', gateProofDetails(privacyGate, {
++        payloadType: participantPrivacySource ? 'participant_supplied_interview_text' : 'raw_interview_prompt',
++        aiPayloadBlocked: true,
++        aiReceivesSanitizedPayloadOnly: false,
++        proofStatus: 'review_required'
++      }));
++      return res.status(409).json({
++        error: 'Privacy review required',
++        message: 'The interview appears to include sensitive information. The encrypted original has been preserved, a sanitized payload was created, and AI generation has been paused for Bridge To AI review.',
++        privacyGate: publicGateSummary(privacyGate),
++        secureStorage: {
++          saved: !!privacyGateSave.saved,
++          outputId: privacyGateSave.outputId || '',
++          reason: privacyGateSave.reason || ''
++        }
++      });
++    }
++
++    const gatedPrompt = participantPrivacySource
++      ? applyPrivacyRedactions(prompt, privacyGate.redactionMap)
++      : privacyGate.sanitizedText;
++    const hermesPrivacy = anonymizePrompt(gatedPrompt);
++    await logPrivacyProof(clientDraftId, 'privacy_proof_anonymization_completed', 'success', {
++      privacyProofType: 'anonymization',
++      payloadType: 'sanitized_interview_prompt',
++      aiPayloadType: 'sanitized_anonymized_business_profile',
++      privacyGateVersion: privacyGate.gateVersion,
++      privacyGateDecision: privacyGate.decision,
++      sanitizedAiPayloadCreated: true,
++      directIdentifiersRemoved: true,
++      anonymizationReplacements: hermesPrivacy.stats.replacements || 0,
++      proofStatus: 'passed'
++    });
++    const mappingSave = await saveAnonymizationMapping(clientDraftId, hermesPrivacy.mapping, hermesPrivacy.stats);
++    await logPrivacyProof(clientDraftId, 'privacy_proof_mapping_storage', mappingSave.saved ? 'success' : 'info', {
++      privacyProofType: 'reidentification_map',
++      piiMappingStoredEncrypted: !!mappingSave.saved,
++      mappingFileId: mappingSave.fileId || '',
++      proofStatus: mappingSave.saved ? 'passed' : 'not_required',
++      note: mappingSave.reason || ''
++    });
++    const messages = [{ role: 'user', content: hermesPrivacy.anonymizedPrompt }];
++    await logPrivacyProof(clientDraftId, 'privacy_proof_ai_analysis_requested', 'success', {
++      privacyProofType: 'ai_analysis',
++      payloadType: 'anonymized_prompt',
++      aiPayloadType: 'anonymized_business_profile',
++      directIdentifiersRemoved: true,
++      proofStatus: 'passed'
++    });
++    let fullText = '';
++    let stopReason = null;
++    let passes = 0;
++    const MAX_PASSES = 4;
++
++    do {
++      const data = await callClaude(messages);
++      const piece = (data.content && data.content[0] && data.content[0].text) ? data.content[0].text : '';
++      fullText += piece;
++      stopReason = data.stop_reason;
++      passes++;
++
++      if (stopReason === 'max_tokens' && passes < MAX_PASSES) {
++        messages.push({ role: 'assistant', content: piece });
++        messages.push({ role: 'user', content: 'Continue exactly where you left off. Do not repeat anything already written. Pick up mid-sentence if needed.' });
++      } else {
++        break;
++      }
++    } while (passes < MAX_PASSES);
++
++    const truncated = (stopReason === 'max_tokens');
++    if (truncated) {
++      fullText += '\n\n> NOTE TO DARREN: This DNA file reached the maximum generation length. The content above is complete through where it stops; regenerate or extend manually if a later section is cut.';
++    }
++
++    const reidentifiedText = reidentifyText(fullText, hermesPrivacy.mapping);
++    const validation = validateDnaOutput(reidentifiedText, sourceMeta || {});
++    const claimTraceSave = await saveClaimTrace(clientDraftId, validation);
++    const outputSave = await saveCompletedDna(clientDraftId, reidentifiedText, {
++      truncated,
++      sourceMeta: sourceMeta || {},
++      privacyGate: publicGateSummary(privacyGate),
++      anonymizationStats: hermesPrivacy.stats,
++      validation: {
++        ...validation,
++        claimTraceSaved: !!claimTraceSave.saved,
++        claimTraceCount: claimTraceSave.count || 0,
++        claimTraceReason: claimTraceSave.reason || ''
++      }
++    });
++    await logPrivacyProof(clientDraftId, 'privacy_proof_secure_output_storage', outputSave.saved ? 'success' : 'failed', {
++      privacyProofType: 'secure_storage',
++      outputType: 'venture_dna_markdown',
++      encryptedAtRest: !!outputSave.saved,
++      encryptionAlg: 'AES-256-GCM',
++      rawDnaIncluded: false,
++      partnerRawAccess: false,
++      claimTraceSaved: !!claimTraceSave.saved,
++      proofStatus: outputSave.saved ? 'passed' : 'failed',
++      error: outputSave.reason || ''
++    });
++
++    return res.status(200).json({
++      dnaContent: reidentifiedText,
++      truncated,
++      secureStorage: {
++        saved: !!outputSave.saved,
++        outputId: outputSave.outputId || '',
++        reason: outputSave.reason || '',
++        validation: {
++          ...validation,
++          claimTraceSaved: !!claimTraceSave.saved,
++          claimTraceCount: claimTraceSave.count || 0,
++          claimTraceReason: claimTraceSave.reason || ''
++        }
++      },
++      hermesPrivacy: {
++        anonymized: true,
++        stats: hermesPrivacy.stats,
++        mappingSaved: !!mappingSave.saved,
++        mappingSaveReason: mappingSave.reason || '',
++        mappingFileId: mappingSave.fileId || ''
++      }
++    });
++
++  } catch (err) {
++    console.error('Server error:', err);
++    return safeError(res, err, 'Report generation unavailable');
++  }
++}
+ 
+diff --git a/api/report-pack.js b/api/report-pack.js
+index 8eec97f..b526f52 100644
+--- a/api/report-pack.js
++++ b/api/report-pack.js
+@@ -5,8 +5,9 @@ import { getIntakeEvents, getIntakeSession, getLatestIntakeOutput, insertIntakeE
+ import { gateProofDetails, publicGateSummary, runPrivacyGate } from '../lib/privacy-gate.js';
+ import { validateDnaOutput } from '../lib/validate-output.js';
+ import { assertRateLimit, assertTrustedOrigin, authorizedAdminRequest, safeError } from '../lib/security.js';
++import { assertDraftAccess } from '../lib/draft-access.js';
+ 
+-const APP_VERSION = 'v1.72.23';
++const APP_VERSION = 'v1.72.25';
+ 
+ const REPORTS = {
+   free: {
+@@ -1416,8 +1417,8 @@ async function sendFreeReportEmail({ clientDraftId, clientEmail, clientName, bus
+   if (!process.env.RESEND_API_KEY) throw new Error('Missing RESEND_API_KEY');
+   const bccRecipient = process.env.INTAKE_BCC_RECIPIENT || 'darren.randles@gmail.com';
+   const { level2Price, level3Price, level2Url, level3Url, consultUrl } = paymentConfig();
+-  const continueInterviewUrl = `https://intake.bridgetoai.ca/snapshot?continue=deep&recordId=${encodeURIComponent(clientDraftId)}`;
+   const publicBaseUrl = (process.env.BTAI_PUBLIC_BASE_URL || 'https://intake.bridgetoai.ca').replace(/\/+$/, '');
++  const continueInterviewUrl = `${publicBaseUrl}/snapshot?continue=deep&recordId=${encodeURIComponent(clientDraftId)}`;
+   const lockMarkUrl = `${publicBaseUrl}/assets/brand/sil-lock-mark.png`;
+   const trustSealUrl = `${publicBaseUrl}/assets/brand/sil-trust-seal.png`;
+   const html = `
+@@ -1494,38 +1495,18 @@ function isValidEmail(value = '') {
+   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(value));
+ }
+ 
+-async function resolveReportRecipientEmail(clientDraftId, sessionPayload, providedEmail = '') {
++async function resolveReportRecipientEmail(sessionPayload) {
+   const sessionEmail = normalizeEmail(sessionPayload.clientEmail || '');
+-  const requestEmail = normalizeEmail(providedEmail || '');
+-  const recipientEmail = requestEmail || sessionEmail;
++  const recipientEmail = sessionEmail;
+   if (!recipientEmail) throw new Error('No client email found on the intake session');
+   if (!isValidEmail(recipientEmail)) throw new Error('The report email address is not valid');
+-
+-  if (requestEmail && requestEmail !== sessionEmail) {
+-    const correctedPayload = {
+-      ...sessionPayload,
+-      clientEmail: requestEmail,
+-      reportDeliveryEmailCorrectedAt: new Date().toISOString()
+-    };
+-    await updateIntakeSession(clientDraftId, {
+-      encrypted_payload: encryptJson(correctedPayload),
+-      updated_at: new Date().toISOString()
+-    });
+-    await logReportEvent(clientDraftId, 'free_report_delivery_email_corrected', 'success', privacyProofDefaults({
+-      reportTier: 'free',
+-      recipientCorrected: true,
+-      piiLogged: false,
+-      proofStatus: 'delivery_email_corrected_in_encrypted_session'
+-    }));
+-  }
+-
+   return recipientEmail;
+ }
+ 
+-async function generateFreeAndEmail(clientDraftId, providedEmail = '') {
++async function generateFreeAndEmail(clientDraftId) {
+   const startedAt = Date.now();
+   const sessionPayload = await getSessionPayload(clientDraftId);
+-  const recipientEmail = await resolveReportRecipientEmail(clientDraftId, sessionPayload, providedEmail);
++  const recipientEmail = await resolveReportRecipientEmail(sessionPayload);
+ 
+   await logReportEvent(clientDraftId, 'free_report_delivery_started', 'success', privacyProofDefaults({
+     reportTier: 'free',
+@@ -1880,7 +1861,11 @@ export default async function handler(req, res) {
+     assertTrustedOrigin(req);
+     assertRateLimit(req, { key: `report-pack:${action || 'unknown'}`, limit: action === 'generate-free-email' ? 8 : 12, windowMs: 60_000 });
+     if (action === 'generate-free-email') {
+-      return res.status(200).json(await generateFreeAndEmail(clientDraftId, req.body?.clientEmail || ''));
++      assertDraftAccess(req.body?.draftAccessToken, clientDraftId);
++      if (String(process.env.BTAI_ENABLE_CLIENT_REPORT_PACK || '').toLowerCase() !== 'true') {
++        return res.status(503).json({ error: 'Automated report delivery is not enabled for this pilot' });
++      }
++      return res.status(200).json(await generateFreeAndEmail(clientDraftId));
+     }
+     if (!(await authorizedAdminRequest(req))) return res.status(401).json({ error: 'Unauthorized' });
+     if (action === 'approve-privacy-gate') return res.status(200).json(await approvePrivacyGate(clientDraftId, req.body?.purpose || 'all', req.body?.reviewNote || ''));
+diff --git a/api/send-email.js b/api/send-email.js
+index 9b62694..b225361 100644
+--- a/api/send-email.js
++++ b/api/send-email.js
+@@ -1,153 +1,72 @@
+-﻿// api/send-email.js
+-// Sends completion notifications through Resend. By default this endpoint does
+-// not email raw DNA content or attachments; the encrypted Supabase record is the
+-// system of record.
+-
+-function uniqueList(values) {
+-  return Array.from(new Set(values.filter(Boolean)));
+-}
+-
+-function attachmentsEnabled() {
+-  return String(process.env.INTAKE_EMAIL_ATTACHMENTS_ENABLED || '').toLowerCase() === 'true';
+-}
+-
+-export default async function handler(req, res) {
+-  if (req.method !== 'POST') {
+-    return res.status(405).json({ error: 'Method not allowed' });
+-  }
+-
+-  const {
+-    to,
+-    subject,
+-    clientName,
+-    clientEmail,
+-    privacyConsent,
+-    privacyConsentAt,
+-    privacyPolicyVersion,
+-    partner,
+-    campaign,
+-    partnerDisplayName,
+-    businessCategory,
+-    companySize,
+-    ownerWorkStatus,
+-    departments,
+-    date,
+-    recordId,
+-    secureStorage,
+-    dnaContent
+-  } = req.body || {};
+-
+-  if (!clientName) {
+-    return res.status(400).json({ error: 'Missing clientName' });
+-  }
+-
+-  if (!process.env.RESEND_API_KEY) {
+-    console.error('RESEND_API_KEY is not configured');
+-    return res.status(500).json({ error: 'Email service is not configured', details: 'Missing RESEND_API_KEY' });
+-  }
+-
+-  const directRecipient = process.env.INTAKE_DIRECT_RECIPIENT || 'darren@ourcopacker.ca';
+-  const bccRecipient = process.env.INTAKE_BCC_RECIPIENT || 'darren.randles@gmail.com';
+-  const recipients = uniqueList([to || 'team@bridgetoai.ca', directRecipient]);
+-  const bccRecipients = uniqueList([bccRecipient]);
+-  const includeAttachment = attachmentsEnabled() && !!dnaContent;
+-  const storageStatus = secureStorage?.saved ? 'Encrypted Supabase storage confirmed' : 'Secure storage did not confirm';
+-
+-  const htmlBody = `
+-    <div style="font-family: Inter, Arial, sans-serif; max-width: 640px; margin: 0 auto; color: #111827;">
+-      <div style="background: #0d6e5e; padding: 24px 32px; border-radius: 10px 10px 0 0;">
+-        <h1 style="color: white; font-size: 1.15rem; font-weight: 600; margin: 0;">
+-          Bridge To AI - New Intake Complete
+-        </h1>
+-      </div>
+-      <div style="background: #fafaf8; border: 1px solid #e4e2dd; border-top: none; padding: 28px 32px; border-radius: 0 0 10px 10px;">
+-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
+-          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280; width: 150px;">Client</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; font-weight: 600;">${clientName}</td></tr>
+-          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Client email</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${clientEmail || 'Not provided'}</td></tr>
+-          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Business type</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${businessCategory || 'Not provided'}</td></tr>
+-          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Size</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${companySize || 'Not provided'}</td></tr>
+-          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Owner status</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${ownerWorkStatus || 'Not provided'}</td></tr>
+-          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Departments</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${departments || 'Not provided'}</td></tr>
+-          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Privacy consent</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${privacyConsent ? 'Accepted' : 'Not confirmed'}${privacyConsentAt ? ` at ${privacyConsentAt}` : ''}</td></tr>
+-          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Policy version</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${privacyPolicyVersion || 'Not provided'}</td></tr>
+-          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Partner / campaign</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;">${partnerDisplayName || partner || 'BTAI'} / ${campaign || 'general_intake'}</td></tr>
+-          <tr><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd; color: #6b7280;">Record ID</td><td style="padding: 8px 0; border-bottom: 1px solid #e4e2dd;"><code>${recordId || 'Not provided'}</code></td></tr>
+-          <tr><td style="padding: 8px 0; color: #6b7280;">Date</td><td style="padding: 8px 0;">${date || new Date().toISOString()}</td></tr>
+-        </table>
+-
+-        <div style="background: ${secureStorage?.saved ? '#e8f4f1' : '#fdf6e8'}; border: 1px solid ${secureStorage?.saved ? '#b8ddd7' : '#f0d9a8'}; border-radius: 8px; padding: 14px 16px; font-size: 0.9rem; color: ${secureStorage?.saved ? '#0d6e5e' : '#8a6d2a'}; margin-bottom: 18px;">
+-          <strong>${storageStatus}.</strong>
+-          ${secureStorage?.reason ? `<br>Reason: ${secureStorage.reason}` : ''}
+-        </div>
+-
+-        <p style="font-size: 0.9rem; line-height: 1.6; color: #374151;">
+-          The completed intake output is stored in the secure backend record above. This email is a notification only${includeAttachment ? ', with emergency attachment mode enabled' : ''}.
+-        </p>
+-      </div>
+-      <p style="font-size: 0.75rem; color: #8a8a8a; text-align: center; margin-top: 16px;">
+-        Bridge To AI - Alberta, Canada - Confidential
+-      </p>
+-    </div>
+-  `;
+-
+-  const textBody = `
+-NEW INTAKE COMPLETE - Bridge To AI
+-==================================
+-Client: ${clientName}
+-Client email: ${clientEmail || 'Not provided'}
+-Business type: ${businessCategory || 'Not provided'}
+-Record ID: ${recordId || 'Not provided'}
+-Date: ${date || new Date().toISOString()}
+-Storage: ${storageStatus}
+-Privacy consent: ${privacyConsent ? 'Accepted' : 'Not confirmed'}
+-Privacy consent at: ${privacyConsentAt || 'Not provided'}
+-Privacy policy version: ${privacyPolicyVersion || 'Not provided'}
+-Partner: ${partnerDisplayName || partner || 'BTAI'}
+-Campaign: ${campaign || 'general_intake'}
+-
+-This is a notification-only email. The encrypted intake output is stored in the secure backend record.
+-`;
+-
+-  const emailPayload = {
+-    from: 'The Bridge Team <team@bridgetoai.ca>',
+-    to: recipients,
+-    bcc: bccRecipients,
+-    subject: subject || `New Intake Complete - ${clientName}`,
+-    html: htmlBody,
+-    text: textBody
+-  };
+-
+-  if (includeAttachment) {
+-    emailPayload.attachments = [
+-      {
+-        filename: `${String(clientName).replace(/[^a-zA-Z0-9]/g, '_')}_VENTURE_DNA.md`,
+-        content: Buffer.from(dnaContent).toString('base64'),
+-        content_type: 'text/markdown'
+-      }
+-    ];
+-  }
+-
+-  try {
+-    const emailResponse = await fetch('https://api.resend.com/emails', {
+-      method: 'POST',
+-      headers: {
+-        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+-        'Content-Type': 'application/json'
+-      },
+-      body: JSON.stringify(emailPayload)
+-    });
+-
+-    if (!emailResponse.ok) {
+-      const error = await emailResponse.json();
+-      console.error('Resend error:', error);
+-      return res.status(500).json({ error: 'Email delivery failed', details: error });
+-    }
+-
+-    const result = await emailResponse.json();
+-    return res.status(200).json({ success: true, id: result.id, attachmentIncluded: includeAttachment });
+-  } catch (err) {
+-    console.error('Server error:', err);
+-    return res.status(500).json({ error: 'Server error', message: err.message });
+-  }
+-}
++import { decryptJson } from '../lib/crypto.js';
++import { assertDraftAccess } from '../lib/draft-access.js';
++import { getIntakeSession } from '../lib/supabase-rest.js';
++import { assertRateLimit, assertTrustedOrigin, safeError } from '../lib/security.js';
+ 
++function escapeHtml(value) {
++  return String(value || '')
++    .replace(/&/g, '&amp;')
++    .replace(/</g, '&lt;')
++    .replace(/>/g, '&gt;')
++    .replace(/"/g, '&quot;')
++    .replace(/'/g, '&#39;');
++}
++
++function clean(value, length = 160) {
++  return String(value || '').trim().slice(0, length);
++}
++
++export default async function handler(req, res) {
++  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
++
++  try {
++    assertTrustedOrigin(req);
++    assertRateLimit(req, { key: 'completion-notification', limit: 5, windowMs: 60_000 });
++
++    const recordId = clean(req.body?.recordId, 120);
++    const draftAccessToken = clean(req.body?.draftAccessToken, 4096);
++    if (!recordId) return res.status(400).json({ error: 'Missing recordId' });
++    assertDraftAccess(draftAccessToken, recordId);
++    if (String(process.env.BTAI_ENABLE_COMPLETION_NOTIFICATIONS || '').toLowerCase() !== 'true') {
++      return res.status(503).json({ error: 'Completion notifications are not enabled for this pilot' });
++    }
++
++    const session = await getIntakeSession(recordId);
++    if (!session?.encrypted_payload) return res.status(404).json({ error: 'No secure intake record found' });
++    const payload = decryptJson(session.encrypted_payload);
++    if (!payload?.privacyConsent || !payload?.privacyConsentAt || !payload?.privacyPolicyVersion) {
++      return res.status(409).json({ error: 'Privacy consent must be recorded before notification' });
++    }
++    if (session.status !== 'complete') return res.status(409).json({ error: 'Intake is not complete' });
++
++    if (!process.env.RESEND_API_KEY) return res.status(503).json({ error: 'Email service is not configured' });
++    const recipient = clean(process.env.INTAKE_DIRECT_RECIPIENT, 320);
++    if (!recipient) return res.status(503).json({ error: 'Notification recipient is not configured' });
++
++    const fields = {
++      clientName: clean(payload.clientName, 120) || 'Not provided',
++      clientEmail: clean(payload.clientEmail, 320) || 'Not provided',
++      businessCategory: clean(payload.businessCategory, 160) || 'Not provided',
++      partner: clean(payload.partnerDisplayName || payload.campaignPartner || 'BTAI', 120),
++      campaign: clean(payload.campaignId || 'general_intake', 120),
++      consentAt: clean(payload.privacyConsentAt, 80),
++      policyVersion: clean(payload.privacyPolicyVersion, 80)
++    };
++    const html = `<div style="font-family:Arial,sans-serif;color:#111827"><h1>Bridge To AI — Intake Complete</h1><p>A verified intake is ready for internal review.</p><table><tr><th align="left">Client</th><td>${escapeHtml(fields.clientName)}</td></tr><tr><th align="left">Email</th><td>${escapeHtml(fields.clientEmail)}</td></tr><tr><th align="left">Business type</th><td>${escapeHtml(fields.businessCategory)}</td></tr><tr><th align="left">Partner / campaign</th><td>${escapeHtml(fields.partner)} / ${escapeHtml(fields.campaign)}</td></tr><tr><th align="left">Consent</th><td>Accepted at ${escapeHtml(fields.consentAt)} (policy ${escapeHtml(fields.policyVersion)})</td></tr><tr><th align="left">Record</th><td><code>${escapeHtml(recordId)}</code></td></tr></table><p>This notification contains no report content or attachments.</p></div>`;
++    const text = `BTAI intake complete\nClient: ${fields.clientName}\nEmail: ${fields.clientEmail}\nBusiness type: ${fields.businessCategory}\nPartner/campaign: ${fields.partner} / ${fields.campaign}\nConsent: accepted at ${fields.consentAt} (policy ${fields.policyVersion})\nRecord: ${recordId}\n\nNo report content or attachments are included.`;
++    const response = await fetch('https://api.resend.com/emails', {
++      method: 'POST',
++      headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
++      body: JSON.stringify({ from: 'The Bridge Team <team@bridgetoai.ca>', to: [recipient], subject: 'Bridge To AI intake complete', html, text })
++    });
++    if (!response.ok) {
++      console.error('Resend completion notification failed:', response.status);
++      return res.status(502).json({ error: 'Email delivery failed' });
++    }
++    const result = await response.json();
++    return res.status(200).json({ success: true, id: result.id, notificationOnly: true });
++  } catch (err) {
++    console.error('completion notification error:', err);
++    return safeError(res, err, 'Email service unavailable');
++  }
++}
+diff --git a/docs/GENESIS_TEST_PAGE_BUILD_AND_DEPLOY.md b/docs/GENESIS_TEST_PAGE_BUILD_AND_DEPLOY.md
+new file mode 100644
+index 0000000..b164c32
+--- /dev/null
++++ b/docs/GENESIS_TEST_PAGE_BUILD_AND_DEPLOY.md
+@@ -0,0 +1,115 @@
++# Bridge To AI — Test Page Build and Deployment Brief
++
++## Your role
++
++You are building a small, private test webpage for Bridge To AI. Your job is to make it clear, trustworthy, mobile-friendly, and easy for a few invited people to test.
++
++This is a **test asset**, not a public launch and not a replacement for the existing BTAI Intake product.
++
++## Goal
++
++Build one self-contained test webpage that:
++
++1. Explains in plain language what the tester is being asked to try.
++2. Gives the tester one clear action to start the test.
++3. Makes clear that this is a private early test and that testers should use non-sensitive example information.
++4. Works well on desktop and phone.
++5. Can be deployed as a Vercel **Preview** URL for invited testers.
++
++## Product context
++
++- Product: Bridge To AI Intake.
++- Current public production baseline: v1.72.23.
++- Current private development work: v1.72.24 Secure Pilot Foundation.
++- The existing public site must not be changed or replaced.
++- The project is bootstrapped and must stay on free/Hobby plans wherever possible.
++
++## Design direction
++
++- Use Bridge To AI visual cues: deep teal, warm gold accent, off-white background, readable dark text.
++- Keep the tone calm, practical, and owner-friendly. Avoid AI hype and technical jargon.
++- Make the page feel private and professional, not like a generic software demo.
++- Use short sections and clear headings. Do not use dense walls of text.
++- Accessibility matters: semantic headings, visible focus styles, adequate colour contrast, descriptive buttons, and a usable mobile layout.
++
++## Required page content
++
++### 1. Private-test notice
++
++At the top, state plainly:
++
++> Private early test — please use sample or non-sensitive business information only.
++
++Do not claim legal, security, compliance, or performance guarantees that the product has not earned.
++
++### 2. Clear value statement
++
++Explain that the test helps a business owner identify a practical first AI opportunity from real workflow friction.
++
++Suggested direction:
++
++> Find one practical place where AI could remove repeated work—before you spend money on a big implementation.
++
++### 3. What the tester will do
++
++Show three simple steps:
++
++1. Answer a short set of business questions.
++2. Review the AI Opportunity Snapshot.
++3. Tell us what was useful, confusing, or missing.
++
++### 4. Main call to action
++
++Use one primary button only, such as **Start the private test**.
++
++The button may link to the existing private BTAI Intake Preview when a valid preview URL is supplied. Do not hard-code a production URL unless specifically instructed.
++
++### 5. Feedback section
++
++Include a concise feedback prompt that asks testers to share:
++
++- What made sense right away.
++- What felt unclear or unhelpful.
++- Whether the result felt relevant to their business.
++
++For the initial version, feedback may use a mailto link or a clearly marked placeholder. Do not connect a new form provider, analytics service, database, or email automation without approval.
++
++## Safety and privacy rules
++
++- Do not collect credit-card details, passwords, private financials, recipes, customer lists, supplier contracts, payroll, invoices, or confidential operating data.
++- Do not add tracking pixels, analytics, chat widgets, advertising tags, cookies, or third-party scripts.
++- Do not include API keys, Supabase keys, Resend keys, or any secrets in code or documentation.
++- Do not activate AI calls, database writes, report emails, or any other paid/external automation from this test page.
++- Do not place draft IDs, access tokens, or other private capabilities in page URLs.
++
++## Deployment rules
++
++1. Work on a new clearly named branch, for example `feature/private-test-page`.
++2. Deploy to Vercel **Preview only**.
++3. Do not merge to `main`.
++4. Do not promote the deployment to Production.
++5. Do not change production environment variables, domains, billing, or plan settings.
++6. Use only the repository's existing tools and dependencies unless a new dependency is clearly justified and free.
++
++## Minimum verification before handoff
++
++Verify all of the following:
++
++- The page loads from the Vercel Preview URL.
++- The primary button works and does not point to production by accident.
++- The page is readable on a narrow phone-sized viewport.
++- No console errors occur on initial load.
++- No forms or buttons send email, write data, or call external APIs.
++- No secrets appear in source code, page text, build logs, or the Git history created by this work.
++
++## Handoff format
++
++Report back with only:
++
++1. The branch name.
++2. The Vercel Preview URL.
++3. The files changed.
++4. The tests completed and their results.
++5. Any blocker that requires the owner's decision.
++
++Do not make a production deployment. Stop and ask for approval before any action that sends email, stores tester data, turns on an external service, incurs cost, or changes the public site.
+diff --git a/docs/V1.72.25_PRIVATE_PREVIEW_SIGNOFF.md b/docs/V1.72.25_PRIVATE_PREVIEW_SIGNOFF.md
+new file mode 100644
+index 0000000..0588d3a
+--- /dev/null
++++ b/docs/V1.72.25_PRIVATE_PREVIEW_SIGNOFF.md
+@@ -0,0 +1,45 @@
++# BTAI Intake v1.72.25 — Private Preview Sign-off
++
++## Purpose
++
++v1.72.25 improves private-tester readiness without changing the public production site.
++
++## What is included
++
++- Clearer v1.72.25 Preview label in the tester interface.
++- A more legible five-signal scorecard graphic.
++- Visible saved-draft and restored-draft confirmations.
++- A safety-contract test that checks AI/report feature switches and draft capability boundaries.
++- Free-report continuation links use the configured private base URL when report delivery is approved later.
++
++## Private Preview operating state
++
++- AI generation: enabled only for the approved private Preview branch.
++- Client report email delivery: disabled until separately approved.
++- Completion notification email: disabled until separately approved.
++- Public production deployment: not authorized.
++- Live AI calls for release verification: not run; contract tests use no external AI service.
++
++## Required checks
++
++Run from the repository root:
++
++```powershell
++node scripts/pilot-safety-contract-test.mjs
++node scripts/privacy-gate-context-test.mjs
++```
++
++Expected result from each command: a passing message and exit code `0`.
++
++## Manual tester checks
++
++1. Enter synthetic details and wait for **Your answers are saved. It is safe to refresh this page.**
++2. Refresh and confirm **Your saved answers were restored. You can keep going.**
++3. Attempt to load a saved draft using only its record ID and no capability: expect `403`.
++4. Confirm the scorecard graphic is readable and the five detailed signals are listed only once.
++5. Do not submit a completed intake if it would trigger an AI call unless the tester is authorized to use the configured AI service.
++
++## Release boundary
++
++Do not enable `BTAI_ENABLE_CLIENT_REPORT_PACK` or promote this branch to Production without the owner's explicit approval.
++Do not enable `BTAI_ENABLE_COMPLETION_NOTIFICATIONS` without the owner's explicit approval.
+diff --git a/index.html b/index.html
+index 281fbba..a78b669 100644
+--- a/index.html
++++ b/index.html
+@@ -832,9 +832,8 @@
+   .time-gauge {
+     min-height: 190px;
+     border-radius: 8px;
+-    background:
+-      radial-gradient(circle at 50% 44%, #fff 0 38%, transparent 39%),
+-      conic-gradient(var(--bridge-teal) 0 72%, #e4e2dd 72% 100%);
++    padding: 1.2rem;
++    background: linear-gradient(135deg, #075f53 0%, #0b7665 100%);
+     display: flex;
+     flex-direction: column;
+     align-items: center;
+@@ -846,31 +845,55 @@
+   .time-gauge::after {
+     content: "";
+     position: absolute;
+-    inset: 18px;
++    inset: 12px;
+     border-radius: 50%;
+-    border: 1px solid rgba(13, 110, 94, 0.12);
++    border: 1px solid rgba(255, 255, 255, 0.16);
+     pointer-events: none;
+   }
+ 
++  .gauge-eyebrow {
++    color: #c8f0e7;
++    font-size: 0.64rem;
++    font-weight: 800;
++    letter-spacing: 0.12em;
++    z-index: 1;
++  }
++
+   .gauge-number {
+-    color: var(--bridge-teal);
+-    font-size: 2.65rem;
++    color: #fff;
++    font-size: 3.1rem;
+     font-weight: 800;
+     line-height: 1;
++    margin-top: 0.2rem;
+     z-index: 1;
+   }
+ 
+   .gauge-label {
+-    color: var(--ink-mid);
++    color: #fff;
+     font-size: 0.8rem;
+     font-weight: 700;
+     z-index: 1;
+   }
+ 
++  .gauge-dots {
++    display: flex;
++    gap: 0.38rem;
++    margin: 0.65rem 0 0.35rem;
++    z-index: 1;
++  }
++
++  .gauge-dots span {
++    width: 9px;
++    height: 9px;
++    border-radius: 50%;
++    background: #f0cd69;
++    box-shadow: 0 0 0 3px rgba(240, 205, 105, 0.14);
++  }
++
+   .gauge-sub {
+-    color: var(--ink-soft);
++    color: #d4eee8;
+     font-size: 0.68rem;
+-    margin-top: 0.25rem;
++    text-align: center;
+     z-index: 1;
+   }
+ 
+@@ -1841,6 +1864,34 @@
+     color: #a33a24;
+   }
+ 
++  .draft-save-status {
++    display: none;
++    margin: 1rem 0;
++    padding: 0.85rem 1rem;
++    border: 1px solid #b8ddd7;
++    border-left: 5px solid var(--bridge-teal);
++    border-radius: 8px;
++    background: #f1fbf8;
++    color: #164a43;
++    font-size: 0.9rem;
++    font-weight: 700;
++    line-height: 1.4;
++  }
++
++  .draft-save-status:not(:empty) { display: block; }
++  .draft-save-status.saving {
++    border-color: #c8d5d2;
++    border-left-color: #6a7f7a;
++    background: #f5f8f7;
++    color: #38504b;
++  }
++  .draft-save-status.error {
++    border-color: #efc5bb;
++    border-left-color: #a33a24;
++    background: #fff4f1;
++    color: #81301e;
++  }
++
+   .name-field input.field-invalid {
+     border-color: #c45a42;
+     box-shadow: 0 0 0 3px rgba(196, 90, 66, 0.12);
+@@ -2090,7 +2141,7 @@
+   </div>
+   <div class="header-tag-wrap">
+     <span class="header-tag" id="header-tag">Business Discovery Session</span>
+-      <span class="header-version">v1.72.23</span>
++      <span class="header-version">v1.72.25 Preview</span>
+   </div>
+ </header>
+ 
+@@ -2249,9 +2300,11 @@
+           </div>
+           <div class="payoff-grid">
+             <div class="time-gauge" aria-label="Snapshot Scorecard signal count">
++              <div class="gauge-eyebrow">YOUR PRIVATE SNAPSHOT</div>
+               <div class="gauge-number" id="gauge-number">5</div>
+-              <div class="gauge-label" id="gauge-label">scorecard signals</div>
+-              <div class="gauge-sub" id="gauge-sub">workflow drag, AI fit, readiness, review boundary, first win</div>
++              <div class="gauge-label" id="gauge-label">signals we review</div>
++              <div class="gauge-dots" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
++              <div class="gauge-sub" id="gauge-sub">One clear starting point for AI</div>
+             </div>
+             <div class="payoff-chart" aria-label="Snapshot Scorecard preview">
+               <div class="scorecard-preview">
+@@ -2445,6 +2498,7 @@
+         </div>
+ 
+         <div id="welcome-error" class="error-banner">Please fill in your name, valid email, business name, business type, and privacy consent before continuing.</div>
++        <div class="draft-save-status" id="draft-save-status" aria-live="polite"></div>
+ 
+         <button class="btn-primary" onclick="startInterview(event)" style="width:100%;">
+           Begin my discovery session ->
+@@ -3018,6 +3072,7 @@ let QUESTIONS = FULL_QUESTIONS;
+ // Fixed follow-up shown after every mastery question
+ const MASTERY_FOLLOWUP = 'And if AI quietly handled this area for you, what would that free you up to do, or how would it change things?';
+ const SESSION_KEY = 'bridge-to-ai-intake-session-v1';
++const DRAFT_ACCESS_KEY = 'bridge-to-ai-intake-access-v1';
+ const LEGACY_DRAFT_KEY = 'bridge-to-ai-intake-draft-v1';
+ 
+ // State ------------------------------------------------------------------
+@@ -3064,6 +3119,7 @@ let subStep = 'main';
+ let activeProbe = null;        // { key, domain, sourceQuestionIndex, question } when a probe is showing
+ let draftAutosaveEnabled = true;
+ let clientDraftId = '';
++let draftAccessToken = '';
+ let lastLoggedQuestionKey = '';
+ let loggedSectionStarts = {};
+ let loggedSectionCompletes = {};
+@@ -3078,6 +3134,9 @@ let lastSecureStorage = null;
+ 
+ // -- Screen management ------------------------------------------------------
+ function ensureClientDraftId() {
++  if (!draftAccessToken) {
++    try { draftAccessToken = localStorage.getItem(DRAFT_ACCESS_KEY) || ''; } catch (e) { /* session resume unavailable */ }
++  }
+   if (!clientDraftId) {
+     try { clientDraftId = localStorage.getItem(SESSION_KEY) || ''; } catch (e) { /* ignore */ }
+   }
+@@ -3708,8 +3767,8 @@ function postDraftToServer(payload, useBeacon = false) {
+   if (!payload || !payload.clientDraftId) return Promise.resolve({ saved: false });
+   try { localStorage.setItem(SESSION_KEY, payload.clientDraftId); } catch (e) { /* ignore */ }
+ 
+-  const body = JSON.stringify({ action: 'save', payload });
+-  if (useBeacon && navigator.sendBeacon) {
++  const body = JSON.stringify({ action: 'save', payload, draftAccessToken });
++  if (useBeacon && draftAccessToken && navigator.sendBeacon) {
+     try {
+       const blob = new Blob([body], { type: 'application/json' });
+       if (navigator.sendBeacon('/api/draft', blob)) return Promise.resolve({ saved: true, queued: true });
+@@ -3721,7 +3780,26 @@ function postDraftToServer(payload, useBeacon = false) {
+     headers: { 'Content-Type': 'application/json' },
+     body,
+     keepalive: useBeacon
+-  }).then(resp => resp.ok ? resp.json() : Promise.reject(new Error('Draft save failed')));
++  }).then(async resp => {
++    if (!resp.ok) {
++      const data = await resp.json().catch(() => ({}));
++      throw new Error(data.error || 'Draft save failed');
++    }
++    const data = await resp.json();
++    if (data.draftAccessToken) {
++      draftAccessToken = data.draftAccessToken;
++      try { localStorage.setItem(DRAFT_ACCESS_KEY, draftAccessToken); } catch (e) { /* session resume unavailable */ }
++    }
++    updateDraftSaveStatus('Your answers are saved. It is safe to refresh this page.', 'ok');
++    return data;
++  });
++}
++
++function updateDraftSaveStatus(message = '', state = '') {
++  const status = document.getElementById('draft-save-status');
++  if (!status) return;
++  status.textContent = message;
++  status.className = `draft-save-status${state ? ` ${state}` : ''}`;
+ }
+ 
+ function flushDraftSave(useBeacon = false) {
+@@ -3733,6 +3811,7 @@ function flushDraftSave(useBeacon = false) {
+   pendingDraftPayload = null;
+   if (!payload) return Promise.resolve({ saved: false });
+   return postDraftToServer(payload, useBeacon).catch(err => {
++    updateDraftSaveStatus('We could not save the latest changes. Please do not refresh yet.', 'error');
+     logHermesEvent('autosave_failed', 'failed', { autosaveTarget: 'server_encrypted_supabase', error: err.message || 'Server draft storage unavailable' });
+     return { saved: false, error: err.message };
+   });
+@@ -3743,6 +3822,7 @@ function saveDraft(captureTranscript = true, immediate = false) {
+   try {
+     const payload = buildDraftPayload(captureTranscript);
+     if (!payload) return;
++    updateDraftSaveStatus('Saving your answers…', 'saving');
+     pendingDraftPayload = payload;
+     if (draftSaveTimer) clearTimeout(draftSaveTimer);
+     if (immediate) flushDraftSave(false);
+@@ -3756,13 +3836,16 @@ async function loadDraft(clientDraftIdOverride = '') {
+   else {
+     try { sessionId = localStorage.getItem(SESSION_KEY) || ''; } catch (e) { sessionId = ''; }
+   }
++  if (!draftAccessToken) {
++    try { draftAccessToken = localStorage.getItem(DRAFT_ACCESS_KEY) || ''; } catch (e) { /* session resume unavailable */ }
++  }
+   if (!sessionId) return null;
+ 
+   try {
+     const resp = await fetch('/api/draft', {
+       method: 'POST',
+       headers: { 'Content-Type': 'application/json' },
+-      body: JSON.stringify({ action: 'load', clientDraftId: sessionId })
++      body: JSON.stringify({ action: 'load', clientDraftId: sessionId, draftAccessToken })
+     });
+     if (!resp.ok) return null;
+     const data = await resp.json();
+@@ -3830,6 +3913,7 @@ async function showResumeCardIfNeeded() {
+   departments = Array.isArray(draft.departments) ? draft.departments : [];
+   applyPartnerBranding();
+   applyWelcomeFields();
++  updateDraftSaveStatus('Your saved answers were restored. You can keep going.', 'ok');
+ 
+   if (draft.interviewStarted) {
+     logHermesEvent('resume_prompt_shown', 'success', { autosaveTarget: 'server_encrypted_supabase', resumeUsed: false });
+@@ -3850,8 +3934,8 @@ function applyCampaignCopy() {
+   setText('payoff-title', 'Your free report starts with a Snapshot Scorecard');
+   setText('payoff-note', 'Directional signals based on your answers, not fake ROI math.');
+   setText('gauge-number', '5');
+-  setText('gauge-label', 'scorecard signals');
+-  setText('gauge-sub', 'workflow drag, AI fit, readiness, review boundary, first win');
++  setText('gauge-label', 'signals we review');
++  setText('gauge-sub', 'One clear starting point for AI');
+   setText('outcome-title-1', 'Best first AI win');
+   setText('outcome-copy-1', 'A practical use case tied to real friction, not AI hype.');
+   setText('outcome-title-2', 'Ready vs. cleanup');
+@@ -4009,6 +4093,7 @@ function clearSavedInterview(resetFields = false) {
+   const priorDraftId = clientDraftId;
+   try {
+     localStorage.removeItem(SESSION_KEY);
++    localStorage.removeItem(DRAFT_ACCESS_KEY);
+     localStorage.removeItem(LEGACY_DRAFT_KEY);
+   } catch (e) { /* ignore */ }
+   lastLoadedDraft = null;
+@@ -4016,7 +4101,7 @@ function clearSavedInterview(resetFields = false) {
+     fetch('/api/draft', {
+       method: 'POST',
+       headers: { 'Content-Type': 'application/json' },
+-      body: JSON.stringify({ action: 'delete', clientDraftId: priorDraftId }),
++      body: JSON.stringify({ action: 'delete', clientDraftId: priorDraftId, draftAccessToken }),
+       keepalive: true
+     }).catch(() => {});
+   }
+@@ -4154,6 +4239,7 @@ async function startInterview(evt) {
+   draftAutosaveEnabled = true;
+   clearSavedInterview(false);
+   clientDraftId = '';
++  draftAccessToken = '';
+   ensureClientDraftId();
+   saveDraft(false, true);
+   logHermesEvent('interview_started', 'success', {
+@@ -5171,8 +5257,7 @@ async function submitInterview() {
+     }
+ 
+     logHermesEvent('drive_save_result', 'success', { driveSaved: false, driveReason: 'Secure Supabase storage is primary; plaintext Drive save skipped.' });
+-    await sendEmailWithDNA();
+-    logHermesEvent('email_delivery_result', 'success', { emailDelivered: true, driveSaved: false });
++    logHermesEvent('email_delivery_result', 'skipped', { emailDelivered: false, reason: 'Completion notifications are disabled for this private preview.', driveSaved: false });
+     logHermesEvent('interview_submission_complete', 'success', interviewKpiSummary());
+ 
+     draftAutosaveEnabled = false;
+@@ -5230,7 +5315,7 @@ function animateProcessingSteps() {
+       'Reviewing the full interview for business patterns and constraints.',
+       'Creating the secure business profile. Longer answers can take a little more time.',
+       'Preparing the free-report analysis and proof trail.',
+-      'Saving encrypted records and notifying the Bridge Team.',
++      'Saving encrypted records and preparing your next step.',
+       'Still working. This is normal for a detailed profile, especially after a full interview.'
+     ];
+   const startedAt = Date.now();
+@@ -5554,6 +5639,7 @@ async function generateDNAWithClaude() {
+     body: JSON.stringify({
+       prompt: buildPrompt(),
+       clientDraftId: ensureClientDraftId(),
++      draftAccessToken,
+       sourceMeta: {
+         partner: campaignPartner,
+         campaign: campaignId,
+@@ -5624,23 +5710,8 @@ async function generateDNAWithClaude() {
+ // -- Send email via serverless function ------------------------------------
+ async function sendEmailWithDNA() {
+   const payload = {
+-    to: CONFIG.DARREN_EMAIL,
+-    subject: `New DNA Interview Complete - ${businessName} (${businessCategory})`,
+-    clientName: `${clientName} - ${businessName}`,
+-    clientEmail,
+-    privacyConsent,
+-    privacyConsentAt,
+-    privacyPolicyVersion: PRIVACY_POLICY_VERSION,
+-    partner: campaignPartner,
+-    campaign: campaignId,
+-    partnerDisplayName,
+-    businessCategory,
+-    companySize,
+-    ownerWorkStatus,
+-    departments: departments.join(', '),
+     recordId: ensureClientDraftId(),
+-    secureStorage: lastSecureStorage || { saved: false, reason: 'Secure storage result was not returned to browser' },
+-    date: new Date().toLocaleDateString('en-CA')
++    draftAccessToken
+   };
+ 
+   const response = await fetch(CONFIG.EMAIL_ENDPOINT, {
+@@ -5685,7 +5756,7 @@ function triggerFreeReportDelivery(options = {}) {
+   const payload = {
+     action: 'generate-free-email',
+     clientDraftId: ensureClientDraftId(),
+-    clientEmail
++    draftAccessToken
+   };
+ 
+   fetch(CONFIG.REPORT_PACK_ENDPOINT, {
+diff --git a/lib/draft-access.js b/lib/draft-access.js
+new file mode 100644
+index 0000000..11ed0c8
+--- /dev/null
++++ b/lib/draft-access.js
+@@ -0,0 +1,57 @@
++import crypto from 'crypto';
++
++const TOKEN_VERSION = 1;
++const DEFAULT_TTL_DAYS = 180;
++
++function secret() {
++  const value = String(process.env.BTAI_DRAFT_ACCESS_SECRET || '');
++  if (value.length < 32) {
++    const err = new Error('Draft access is not configured');
++    err.statusCode = 503;
++    throw err;
++  }
++  return value;
++}
++
++function encode(value) {
++  return Buffer.from(JSON.stringify(value)).toString('base64url');
++}
++
++function decode(value) {
++  try {
++    return JSON.parse(Buffer.from(String(value || ''), 'base64url').toString('utf8'));
++  } catch {
++    return null;
++  }
++}
++
++function sign(payload) {
++  return crypto.createHmac('sha256', secret()).update(payload).digest('base64url');
++}
++
++function sameSignature(left, right) {
++  const a = Buffer.from(String(left || ''));
++  const b = Buffer.from(String(right || ''));
++  return a.length === b.length && a.length > 0 && crypto.timingSafeEqual(a, b);
++}
++
++export function issueDraftAccess(clientDraftId, { ttlDays = DEFAULT_TTL_DAYS } = {}) {
++  const id = String(clientDraftId || '').trim();
++  if (!id) throw new Error('Missing clientDraftId');
++  const now = Math.floor(Date.now() / 1000);
++  const payload = encode({ v: TOKEN_VERSION, id, iat: now, exp: now + (ttlDays * 24 * 60 * 60) });
++  return `${payload}.${sign(payload)}`;
++}
++
++export function assertDraftAccess(token, clientDraftId) {
++  const [encoded, signature, ...extra] = String(token || '').split('.');
++  const id = String(clientDraftId || '').trim();
++  const payload = !extra.length && encoded && signature && sameSignature(signature, sign(encoded)) ? decode(encoded) : null;
++  const now = Math.floor(Date.now() / 1000);
++  if (!payload || payload.v !== TOKEN_VERSION || payload.id !== id || !Number.isInteger(payload.exp) || payload.exp <= now) {
++    const err = new Error('Draft access is invalid or expired');
++    err.statusCode = 403;
++    throw err;
++  }
++  return payload;
++}
+diff --git a/scripts/pilot-safety-contract-test.mjs b/scripts/pilot-safety-contract-test.mjs
+new file mode 100644
+index 0000000..e81d343
+--- /dev/null
++++ b/scripts/pilot-safety-contract-test.mjs
+@@ -0,0 +1,68 @@
++#!/usr/bin/env node
++
++import assert from 'node:assert/strict';
++import fs from 'node:fs';
++import path from 'node:path';
++import { fileURLToPath } from 'node:url';
++
++const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
++const read = relativePath => fs.readFileSync(path.join(root, relativePath), 'utf8');
++
++function requireBefore(source, earlier, later, label) {
++  const earlierIndex = source.indexOf(earlier);
++  const laterIndex = source.indexOf(later);
++  assert.ok(earlierIndex >= 0, `${label}: missing ${earlier}`);
++  assert.ok(laterIndex >= 0, `${label}: missing ${later}`);
++  assert.ok(earlierIndex < laterIndex, `${label}: ${earlier} must appear before ${later}`);
++}
++
++const draftApi = read('api/draft.js');
++const aiApi = read('api/generate-dna.js');
++const reportApi = read('api/report-pack.js');
++const notificationApi = read('api/send-email.js');
++const intakePage = read('index.html');
++const draftAccess = await import('../lib/draft-access.js');
++
++assert.match(draftApi, /assertDraftAccess\(draftAccessToken, clientDraftId\)/, 'existing draft saves require a capability');
++assert.match(draftApi, /assertDraftAccess\(draftAccessToken, id\)/, 'draft loads and deletes require a capability');
++assert.match(aiApi, /assertDraftAccess\(draftAccessToken, clientDraftId\)/, 'AI generation requires a capability');
++assert.match(reportApi, /assertDraftAccess\(req\.body\?\.draftAccessToken, clientDraftId\)/, 'free report requests require a capability');
++
++requireBefore(
++  aiApi,
++  "String(process.env.BTAI_ENABLE_AUTOMATED_AI || '').toLowerCase() !== 'true'",
++  'await callClaude(',
++  'AI feature switch'
++);
++requireBefore(
++  reportApi,
++  "String(process.env.BTAI_ENABLE_CLIENT_REPORT_PACK || '').toLowerCase() !== 'true'",
++  'return res.status(200).json(await generateFreeAndEmail(clientDraftId));',
++  'client report feature switch'
++);
++requireBefore(
++  notificationApi,
++  "String(process.env.BTAI_ENABLE_COMPLETION_NOTIFICATIONS || '').toLowerCase() !== 'true'",
++  "fetch('https://api.resend.com/emails'",
++  'completion notification feature switch'
++);
++assert.doesNotMatch(intakePage, /await sendEmailWithDNA\(\)/, 'interview completion cannot send an email automatically');
++
++const savedSecret = process.env.BTAI_DRAFT_ACCESS_SECRET;
++process.env.BTAI_DRAFT_ACCESS_SECRET = 'v1.72.25-contract-test-secret-with-32-plus-characters';
++const token = draftAccess.issueDraftAccess('synthetic-record-a', 1);
++assert.doesNotThrow(() => draftAccess.assertDraftAccess(token, 'synthetic-record-a'));
++assert.throws(
++  () => draftAccess.assertDraftAccess(token, 'synthetic-record-b'),
++  error => error?.statusCode === 403,
++  'a capability cannot be reused for a different draft'
++);
++assert.throws(
++  () => draftAccess.assertDraftAccess('', 'synthetic-record-a'),
++  error => error?.statusCode === 403,
++  'a draft ID alone cannot grant access'
++);
++if (savedSecret === undefined) delete process.env.BTAI_DRAFT_ACCESS_SECRET;
++else process.env.BTAI_DRAFT_ACCESS_SECRET = savedSecret;
++
++console.log('pilot safety contract tests passed');
