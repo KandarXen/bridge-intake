@@ -10,7 +10,7 @@
 
 ### Reviewer instruction
 
-Read the complete packet. It contains the reviewer brief, exact diff, full current sources needed to inspect stale references, and captured test results. Do not ask Darren to run commands or collect more source files unless this packet has a concrete evidence omission.
+Run `BTAI REVIEW CURRENT` as specified in `COMMAND_PROTOCOL.md`. Read the complete packet. It contains the reviewer brief, exact diff, full current sources needed to inspect stale references, and captured test results. Do not ask Darren to run commands or collect more source files unless this packet has a concrete evidence omission.
 
 ### Completion rule
 

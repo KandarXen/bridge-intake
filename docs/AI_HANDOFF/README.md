@@ -6,9 +6,11 @@ This folder is the single source of truth for collaboration among Codex, Claude,
 
 Before starting work, each AI must read, in order:
 
-1. `CURRENT_STATUS.md`
-2. `MODEL_ROLES.md`
-3. `REVIEW_QUEUE.md`
+1. `00_ACTIVE_RELEASE.md`
+2. `CURRENT_STATUS.md`
+3. `MODEL_ROLES.md`
+4. `COMMAND_PROTOCOL.md`
+5. `REVIEW_QUEUE.md`
 
 Then read only the linked versioned evidence package needed for its task.
 
@@ -31,7 +33,10 @@ Do not send minor wording, formatting, or preference differences back and forth 
 ## Folder map
 
 - `CURRENT_STATUS.md` — current build, environment, safety posture, and active work.
+- `00_ACTIVE_RELEASE.md` — the fixed entry point for the current candidate and its evidence.
+- `COMMAND_PROTOCOL.md` — the exact short commands used between Claude and Codex.
 - `MODEL_ROLES.md` — firm boundaries and handoff rules.
 - `REVIEW_QUEUE.md` — the one active independent review and its complete evidence packet.
+- `INBOX/CLAUDE/` — Claude’s structured review reports for Codex to read.
 - `../review-packages/` — versioned, self-contained reviewer evidence.
 - `../releases/` — concise release notes by version.
