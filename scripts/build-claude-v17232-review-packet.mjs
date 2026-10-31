@@ -30,6 +30,7 @@ const tests = [
 const outputPath = path.join(root, 'docs', 'review-packages', 'v1.72.32-claude-test', 'CLAUDE_V1.72.32_COMPLETE_REVIEW_PACKET.md');
 const git = args => execFileSync('git', args, { cwd: root, encoding: 'utf8' });
 const fence = file => file.endsWith('.html') ? 'html' : file.endsWith('.js') || file.endsWith('.mjs') ? 'javascript' : 'markdown';
+const candidateHash = git(['rev-parse', candidate]).trim();
 
 function runTest(file) {
   try {
@@ -48,7 +49,7 @@ const parts = [
   '# BTAI Intake v1.72.32 — Complete independent Claude QA packet', '',
   '> This is a self-contained evidence packet. Review this packet only. Do not use connectors, repository access, a live URL, or external systems. Do not change code, deploy, alter settings, send email, submit an intake, or make an AI call.', '',
   '## Review target', '',
-  `- Baseline: \`${baseline}\``, `- Candidate: \`${candidate}\``,
+  `- Baseline: \`${baseline}\``, `- Candidate: \`${candidateHash}\``,
   '- Branch: `release/v1.72.24-secure-intake`',
   '- Private Preview: Vercel-protected; no live-browser observation is required for this code review.',
   '- Production: unchanged at v1.72.23 on `main`.',
