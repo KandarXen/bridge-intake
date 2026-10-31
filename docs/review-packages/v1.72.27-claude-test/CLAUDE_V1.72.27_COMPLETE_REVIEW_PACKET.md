@@ -1,0 +1,7255 @@
+# BTAI Intake v1.72.27 — Complete independent Claude re-review packet
+
+> This is a self-contained evidence packet. Review this packet only; do not use connectors, change code, deploy, alter settings, send email, submit an intake, or make an AI call.
+
+## Review target
+
+- Baseline: `c81e2fe5cd88af1c459d96c9eaf54fe992ea3eea`
+- Candidate: `fa4ed1888a3c2006ba978b1ae0cc3a971b1f8158`
+- Branch: `release/v1.72.24-secure-intake`
+- Private Preview: `https://bridge-intake-f8jaqws1s-bridgetoai-projects.vercel.app/snapshot`
+- Scope: remediate Claude review-001 findings for the one-field business description, without weakening safety or changing Production.
+
+## Required review response
+
+Return exactly these sections: **Release posture**, **What was verified**, **Blockers**, **Important before broader tester use**, **Non-blocking observations**, **Safety regression result**, **Evidence gap, if any**, and **One recommendation**.
+
+Use file and line citations. Do not call a missing live-browser observation a blocker: the Preview is Vercel-protected. Do not infer unspecified behavior.
+
+## Exact candidate diff
+
+```diff
+diff --git a/api/interview-ai.js b/api/interview-ai.js
+index 2a67796..59b23ed 100644
+--- a/api/interview-ai.js
++++ b/api/interview-ai.js
+@@ -88,6 +88,10 @@ function fallbackContext({ businessCategory, websiteUrl }) {
+   };
+ }
+ 
++function businessDescription({ businessCategory, businessNiche } = {}) {
++  return String(businessNiche || businessCategory || '').trim();
++}
++
+ async function callClaude(prompt, { maxTokens = 600, explicitIdentifiers = {} } = {}) {
+   const privacy = anonymizeText(prompt, explicitIdentifiers);
+   const response = await fetch('https://api.anthropic.com/v1/messages', {
+@@ -111,7 +115,8 @@ async function callClaude(prompt, { maxTokens = 600, explicitIdentifiers = {} }
+ 
+ async function researchBusiness(body) {
+   const { businessName, businessCategory, businessNiche, shareComfort, websiteUrl, companySize, departments } = body || {};
+-  if (!businessCategory && !websiteUrl) return { context: fallbackContext({ businessCategory, websiteUrl }) };
++  const description = businessDescription({ businessCategory, businessNiche });
++  if (!description && !websiteUrl) return { context: fallbackContext({ businessCategory, websiteUrl }) };
+ 
+   try {
+     const normalizedWebsiteUrl = normalizeUrl(websiteUrl);
+@@ -120,8 +125,7 @@ async function researchBusiness(body) {
+ 
+ Client-provided information:
+ - Business name: ${businessName || '(not provided)'}
+-- Business description: ${businessCategory || '(not provided)'}
+-- Specific niche: ${businessNiche || '(not provided)'}
++- Business description: ${description || '(not provided)'}
+ - Detail-sharing comfort: ${shareComfort || '(not provided)'}
+ - Website URL: ${normalizedWebsiteUrl || '(not provided)'}
+ - Company size: ${companySize || '(not provided)'}
+@@ -166,15 +170,16 @@ Rules:
+ }
+ 
+ async function scenario(body) {
+-  const { businessCategory, businessContext } = body || {};
++  const { businessCategory, businessNiche, businessContext } = body || {};
++  const description = businessDescription({ businessCategory, businessNiche }) || 'small business';
+   const contextBlock = businessContext ? `\n\nInternal context for tailoring only:\n${JSON.stringify(businessContext).slice(0, 3000)}\n\nUse this to choose a more relevant situation, but do not reveal or imply background research.` : '';
+-  const prompt = `Write ONE short, realistic customer-interaction scenario for a "${businessCategory || 'small business'}".
++  const prompt = `Write ONE short, realistic customer-interaction scenario for a "${description}".
+ 
+ The scenario should be a moment where the customer is mildly unhappy or has a real need - something where HOW the business owner responds reveals their standards, tone, and values. It must be specific enough to feel real for this type of business, but open enough that any owner could respond in their own way.
+ 
+ Rules:
+ - 1-2 sentences, written in plain language, addressed to the owner ("A customer...").
+-- Make it specific to a ${businessCategory || 'small business'} using believable industry patterns.
++- Make it specific to a ${description} using believable industry patterns.
+ - If internal context is available, fit the scenario to likely workflows without saying "your website", "I noticed", "we saw", or anything that reveals background research.
+ - Do NOT suggest how to respond. Just set up the situation.
+ - Output ONLY the scenario text. No preamble, no quotes, no label.${contextBlock}`;
+@@ -193,9 +198,10 @@ function soloOrNoStaff(companySize, ownerWorkStatus, departments) {
+ async function probe(body) {
+   const { domain, qa, businessCategory, businessNiche, shareComfort, companySize, ownerWorkStatus, departments = [], businessContext, sourceQuestion, sourceQuestionType, answerQualityBucket, priorityWeight, weakAnswerReason } = body || {};
+   if (!qa) return { status: 400, body: { error: 'Missing qa' } };
++  const description = businessDescription({ businessCategory, businessNiche }) || 'small business';
+   const contextBlock = businessContext ? `\n\nInternal context for sharper judgment only:\n${JSON.stringify(businessContext).slice(0, 3000)}\n\nUse this to understand likely workflows and industry patterns. Do not reveal background research.` : '';
+-  const orgContext = `Specific niche: ${businessNiche || 'not specified'}. Detail-sharing comfort: ${shareComfort || 'directional only'}. Company size: ${companySize || 'not specified'} people. Owner status/capacity: ${ownerWorkStatus || 'not specified'}. Departments/functions selected: ${Array.isArray(departments) && departments.length ? departments.join(', ') : 'not specified'}.`;
+-  const prompt = `You are conducting a business discovery interview for a ${businessCategory || 'small business'}.
++  const orgContext = `Business description: ${description}. Detail-sharing comfort: ${shareComfort || 'directional only'}. Company size: ${companySize || 'not specified'} people. Owner status/capacity: ${ownerWorkStatus || 'not specified'}. Departments/functions selected: ${Array.isArray(departments) && departments.length ? departments.join(', ') : 'not specified'}.`;
++  const prompt = `You are conducting a business discovery interview for a ${description}.
+ 
+ Organization context:
+ ${orgContext}
+@@ -255,11 +261,12 @@ If no follow-up is needed, return:
+ }
+ 
+ async function masteryFollowup(body) {
+-  const { area, answer, businessCategory, companySize, ownerWorkStatus, departments = [], businessContext } = body || {};
++  const { area, answer, businessCategory, businessNiche, companySize, ownerWorkStatus, departments = [], businessContext } = body || {};
++  const description = businessDescription({ businessCategory, businessNiche }) || 'small business';
+   if (!answer) return { status: 400, body: { error: 'Missing answer' } };
+   const contextBlock = businessContext ? `\n\nInternal context for tailoring only:\n${JSON.stringify(businessContext).slice(0, 2500)}\n\nDo not reveal or imply background research happened.` : '';
+   const orgContext = `Company size: ${companySize || 'not specified'} people. Owner status/capacity: ${ownerWorkStatus || 'not specified'}. Departments/functions selected: ${Array.isArray(departments) && departments.length ? departments.join(', ') : 'not specified'}.`;
+-  const prompt = `You are conducting a warm, professional business discovery interview for a ${businessCategory || 'small business'} owner.
++  const prompt = `You are conducting a warm, professional business discovery interview for a ${description} owner.
+ 
+ Organization context:
+ ${orgContext}
+diff --git a/api/recover-dna.js b/api/recover-dna.js
+index 99c0ce1..826874f 100644
+--- a/api/recover-dna.js
++++ b/api/recover-dna.js
+@@ -50,11 +50,14 @@ function replaceAllLiteral(text, value, placeholder) {
+   return text.replace(new RegExp(escapeRegExp(value), 'g'), placeholder);
+ }
+ 
+-function anonymizePrompt(prompt) {
++export function anonymizePrompt(prompt) {
+   const mapping = {};
+   addMapping(mapping, '[OWNER_NAME]', extractField(prompt, 'Owner Name'));
+   addMapping(mapping, '[BUSINESS_NAME]', extractField(prompt, 'Business Name'));
+-  addMapping(mapping, '[BUSINESS_CATEGORY]', extractField(prompt, 'Business Category'));
++  // Newer intakes use the plain-language "Business Description" label. Keep
++  // the older label as a fallback so an admin recovery remains safe for both
++  // saved record shapes.
++  addMapping(mapping, '[BUSINESS_DESCRIPTION]', extractField(prompt, 'Business Description') || extractField(prompt, 'Business Category'));
+   addMapping(mapping, '[WEBSITE_URL]', extractField(prompt, 'Website URL'));
+ 
+   let anonymized = prompt;
+@@ -177,8 +180,7 @@ CLIENT INFORMATION:
+ Owner Name: ${safeText(payload.clientName)}
+ Owner Email: ${safeText(payload.clientEmail)}
+ Business Name: ${safeText(payload.businessName)}
+-Business Description: ${safeText(payload.businessCategory)}
+-Specific Niche: ${safeText(payload.businessNiche)}
++Business Description: ${safeText(payload.businessNiche || payload.businessCategory)}
+ Website URL: ${safeText(payload.websiteUrl)}
+ Company Size: ${safeText(payload.companySize)}
+ Owner Work Status: ${safeText(payload.ownerWorkStatus)}
+diff --git a/docs/AI_HANDOFF/INBOX/CLAUDE/v1.72.26-review-001.md b/docs/AI_HANDOFF/INBOX/CLAUDE/v1.72.26-review-001.md
+new file mode 100644
+index 0000000..ffc66d3
+--- /dev/null
++++ b/docs/AI_HANDOFF/INBOX/CLAUDE/v1.72.26-review-001.md
+@@ -0,0 +1,22 @@
++# Claude independent review — v1.72.26 (review-001)
++
++## Received
++
++2026-10-31, supplied by Darren as a pasted Claude review.
++
++## Codex disposition
++
++Accepted for remediation. The review identified one privacy regression plus two compatibility/tailoring gaps. The review's lower-cost usability observations were also accepted where they preserve the intended one-field intake design.
++
++## Required corrective work
++
++1. Update admin recovery anonymization to recognize `Business Description` as well as the former `Business Category` label.
++2. Preserve recognized legacy category metadata when a resumed draft has separate legacy category and business-description values.
++3. Add a generic manufacturing pack, remove generic manufacturing aliases from the food pack, and add the `bookkeeping` professional-services alias.
++4. Remove duplicated business-description/niche context in model prompts.
++5. Style welcome-field helper text and avoid repeating the welcome description in Snapshot question one.
++6. Add focused regression coverage and package complete evidence for re-review.
++
++## Handoff status
++
++Codex is implementing this work as v1.72.27. A new self-contained review packet will supersede the v1.72.26 candidate after verification.
+diff --git a/docs/releases/v1.72.27/README.md b/docs/releases/v1.72.27/README.md
+new file mode 100644
+index 0000000..3f3c2ce
+--- /dev/null
++++ b/docs/releases/v1.72.27/README.md
+@@ -0,0 +1,25 @@
++# BTAI Intake v1.72.27 — Claude review remediation
++
++## Purpose
++
++This private-Preview-only build addresses the concrete findings from Claude's v1.72.26 independent review. It does not authorize a Production deployment, email delivery change, or service-configuration change.
++
++## Fixed
++
++- Admin recovery now anonymizes both the current `Business Description` label and the legacy `Business Category` label before model analysis.
++- A resumed legacy draft retains its recognized category metadata, so its established tailoring pack does not silently change after a save.
++- Generic manufacturing receives a non-food manufacturing/operations pack; food-specific manufacturing remains food-specific.
++- `bookkeeping` now matches the professional-services pack.
++- The first Snapshot question no longer repeats the welcome question, and the optional field-help copy is visibly styled.
++- AI context uses one business-description line instead of duplicating the same text as a separate niche.
++
++## Verification required
++
++- Run the focused business-description and recovery-anonymization tests.
++- Run the existing privacy and pilot-safety contract tests.
++- Independently review the exact diff and current source before broader tester use.
++
++## Environment boundary
++
++- Public Production remains v1.72.23 on `main`.
++- This release is limited to the private Preview branch.
+diff --git a/index.html b/index.html
+index 4f77e91..25ea84f 100644
+--- a/index.html
++++ b/index.html
+@@ -1288,6 +1288,13 @@
+   .name-field input:focus,
+   .name-field select:focus { border-color: var(--bridge-teal); }
+ 
++  .field-help {
++    margin-top: 0.4rem;
++    font-size: 0.75rem;
++    line-height: 1.4;
++    color: var(--ink-soft);
++  }
++
+   .consent-box {
+     margin: 1.25rem 0 1.5rem;
+     padding: 1rem;
+@@ -2141,7 +2148,7 @@
+   </div>
+   <div class="header-tag-wrap">
+     <span class="header-tag" id="header-tag">Business Discovery Session</span>
+-      <span class="header-version">v1.72.26 Preview</span>
++      <span class="header-version">v1.72.27 Preview</span>
+   </div>
+ </header>
+ 
+@@ -2719,7 +2726,7 @@ const INDUSTRY_PACKS = {
+     id: 'food_processing_manufacturing_distribution',
+     label: 'Food Processing / Manufacturing / Distribution',
+     shortLabel: 'food, manufacturing, or distribution business',
+-    aliases: ['food processor', 'food processing', 'copacker', 'co-packer', 'contract manufacturer', 'cpg', 'food brand', 'manufacturer', 'manufacturing', 'distributor', 'wholesaler', 'importer', 'commissary', 'beverage', 'bakery', 'meat', 'seafood', 'dairy', 'produce', 'prepared foods'],
++    aliases: ['food processor', 'food processing', 'copacker', 'co-packer', 'contract manufacturer', 'cpg', 'food brand', 'food manufacturer', 'food manufacturing', 'distributor', 'wholesaler', 'importer', 'commissary', 'beverage', 'bakery', 'meat', 'seafood', 'dairy', 'produce', 'prepared foods'],
+     subtypes: ['Food processor / manufacturer', 'Copacker / contract manufacturer', 'Food brand / CPG company', 'Distributor / wholesaler / importer', 'Foodservice production / commissary', 'Value-added agriculture', 'Other food or beverage business'],
+     productAreas: ['Bakery / baked goods', 'Beverage / bottling', 'Meat / seafood / protein', 'Dairy / cheese', 'Produce / value-added farm product', 'Prepared foods / ready-to-eat', 'Sauces / condiments / preserves', 'Snacks / shelf-stable packaged goods', 'Other'],
+     opportunities: ['order intake', 'production planning', 'batch/SKU coordination', 'QA records', 'label or spec-sheet updates', 'inventory visibility', 'buyer follow-up', 'supplier updates', 'shipping exceptions', 'SOP capture', 'training templates'],
+@@ -2728,11 +2735,23 @@ const INDUSTRY_PACKS = {
+     riskBoundaries: ['recipes', 'confidential formulas', 'supplier contracts', 'customer lists', 'private financials', 'payroll', 'invoices', 'food safety decisions without review', 'regulated compliance decisions'],
+     reportFraming: 'Look at repeated admin around orders, production, QA/compliance-adjacent records, buyer follow-up, document control, and planning.'
+   },
++  manufacturing_operations: {
++    id: 'manufacturing_operations',
++    label: 'Manufacturing / Operations Business',
++    shortLabel: 'manufacturing or operations business',
++    aliases: ['manufacturer', 'manufacturing', 'fabrication', 'fabricator', 'machine shop', 'assembly', 'industrial', 'production shop'],
++    subtypes: ['Fabrication / machine shop', 'Assembly / production', 'Industrial supplier', 'Custom manufacturer', 'Other manufacturing operation'],
++    opportunities: ['quote requests', 'job intake', 'production planning', 'work-order coordination', 'quality records', 'inventory visibility', 'supplier updates', 'shipping exceptions', 'SOP capture', 'training templates'],
++    customerTypes: ['commercial accounts', 'industrial buyers', 'contract customers', 'distributors', 'repeat customers', 'project clients'],
++    workflowExamples: ['quote request to work order', 'work order to production plan', 'quality note to corrective action', 'supplier update to internal record', 'shipment update to customer follow-up'],
++    riskBoundaries: ['proprietary designs', 'customer specifications', 'supplier contracts', 'private financials', 'payroll', 'invoices', 'safety decisions without review', 'regulated compliance decisions'],
++    reportFraming: 'Look at repeated admin around quotes, work orders, production coordination, quality records, customer updates, and planning.'
++  },
+   professional_services_advisory: {
+     id: 'professional_services_advisory',
+     label: 'Professional Services / Advisory Businesses',
+     shortLabel: 'professional services or advisory business',
+-    aliases: ['business coach', 'coach', 'consultant', 'advisor', 'bookkeeper', 'accountant', 'insurance broker', 'real estate', 'hr consultant', 'trainer', 'facilitator', 'agency', 'professional services'],
++    aliases: ['business coach', 'coach', 'consultant', 'advisor', 'bookkeeper', 'bookkeeping', 'accountant', 'insurance broker', 'real estate', 'hr consultant', 'trainer', 'facilitator', 'agency', 'professional services'],
+     subtypes: ['Business coach / consultant', 'Bookkeeping / accounting', 'Broker / advisor', 'Training / facilitation', 'Agency / marketing services', 'Other professional service'],
+     opportunities: ['client intake', 'discovery notes', 'proposal drafting', 'scope control', 'session summaries', 'follow-up emails', 'progress tracking', 'reporting', 'resource reuse', 'workshop preparation'],
+     customerTypes: ['retainer clients', 'project clients', 'referral partners', 'workshop participants', 'business owners', 'professional buyers'],
+@@ -2762,7 +2781,7 @@ const LEGACY_CATEGORY_PACK_MAP = {
+   'Prepared Foods': 'food_processing_manufacturing_distribution',
+   'Distribution / Wholesale': 'food_processing_manufacturing_distribution',
+   'Retail / Food Service': 'food_processing_manufacturing_distribution',
+-  'Manufacturing': 'food_processing_manufacturing_distribution',
++  'Manufacturing': 'manufacturing_operations',
+   'Professional Services': 'professional_services_advisory',
+   'Trades / Field Services': 'trade_field_services',
+   'Other': 'general_business'
+@@ -3013,7 +3032,7 @@ const AFPA_DECEMBER_AI_COURSE_QUESTIONS = [
+ 
+ const SNAPSHOT_QUESTIONS = [
+   { section: 'business', domain: 'Business Model & Direction', type: 'Business Snapshot',
+-    text: 'What does your business do, who do you serve, and what kind of work or orders matter most right now?',
++    text: 'Who do you serve, and what work, product, or service matters most right now?',
+     hint: 'A simple overview is enough: what you sell or deliver, who buys it, and where the business is trying to grow or stabilize.' },
+   { section: 'business', domain: 'AI Opportunity', type: 'Top Bottleneck',
+     text: 'What is the most frustrating repeated task or process in the business right now?',
+@@ -3673,9 +3692,11 @@ function readWelcomeFields() {
+   btaiFollowupInterest = document.querySelector('input[name="btai-followup"]:checked')?.value || btaiFollowupInterest || 'maybe';
+   businessName = document.getElementById('business-name').value.trim();
+   businessNiche = document.getElementById('business-niche').value.trim();
+-  // Preserve the existing storage/API shape while using this one plain-language
+-  // description as the source for tailoring questions and report context.
+-  businessCategory = businessNiche;
++  // New intakes use one plain-language description. A legacy draft can still
++  // carry a separate old category; retain it so its established industry pack
++  // does not silently change when the user resumes and saves.
++  const legacyCategory = LEGACY_CATEGORY_PACK_MAP[businessCategory] ? businessCategory : '';
++  if (!legacyCategory) businessCategory = businessNiche;
+   shareComfort = document.getElementById('share-comfort').value.trim() || 'Directional only';
+   websiteUrl = document.getElementById('website-url').value.trim();
+   companySize = document.getElementById('company-size').value.trim();
+@@ -5363,8 +5384,7 @@ function buildPrivacyScanText() {
+   const lines = [
+     'PARTICIPANT-PROVIDED INTAKE DATA',
+     `Business Name: ${businessName || ''}`,
+-    `Business Description: ${businessCategory || ''}`,
+-    `Specific Niche: ${businessNiche || ''}`,
++    `Business Description: ${businessNiche || businessCategory || ''}`,
+     `Detail-Sharing Comfort: ${shareComfort || ''}`,
+     `Website URL: ${websiteUrl || ''}`,
+     `Company Size: ${companySize || ''}`,
+@@ -5489,8 +5509,7 @@ CLIENT INFORMATION:
+ Owner Name: ${clientName}
+ Owner Email: ${clientEmail || '(not provided)'}
+ Business Name: ${businessName}
+-Business Description: ${businessCategory}
+-Specific Niche: ${businessNiche || '(not specified)'}
++Business Description: ${businessNiche || businessCategory || '(not specified)'}
+ Detail-Sharing Comfort: ${shareComfort || '(not specified)'}
+ Website URL: ${websiteUrl || '(not provided)'}
+ Company Size: ${companySize ? companySize + ' people' : '(not specified)'}
+diff --git a/scripts/intake-business-description-contract-test.mjs b/scripts/intake-business-description-contract-test.mjs
+index 2520e57..c1df322 100644
+--- a/scripts/intake-business-description-contract-test.mjs
++++ b/scripts/intake-business-description-contract-test.mjs
+@@ -11,8 +11,12 @@ const intakePage = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+ assert.doesNotMatch(intakePage, /id="business-category"/, 'the retired category selector is not rendered');
+ assert.match(intakePage, /<label for="business-niche">What does your business do\?<\/label>/, 'the business-description field is clearly labelled');
+ assert.match(intakePage, /maxlength="160"/, 'the business description has a bounded saved value');
+-assert.match(intakePage, /businessCategory = businessNiche;/, 'the one description remains compatible with existing storage and API fields');
++assert.match(intakePage, /businessCategory = businessNiche;/, 'new intakes keep the established API field compatible with the one description');
++assert.match(intakePage, /const legacyCategory = LEGACY_CATEGORY_PACK_MAP\[businessCategory\]/, 'a legacy category is retained while a resumed draft is saved');
+ assert.match(intakePage, /!businessNiche \|\| !privacyConsent/, 'the business description is required before an interview starts');
+ assert.match(intakePage, /businessCategory, businessNiche, businessName, websiteUrl/, 'industry matching uses the business description');
++assert.match(intakePage, /manufacturing_operations/, 'generic manufacturing has its own non-food tailoring pack');
++assert.match(intakePage, /'bookkeeping'/, 'bookkeeping descriptions match the professional-services pack');
++assert.match(intakePage, /Business Description: \$\{businessNiche \|\| businessCategory \|\| ''\}/, 'prompt context does not duplicate the same business description as a niche');
+ 
+ console.log('business-description intake contract tests passed');
+diff --git a/scripts/recover-dna-anonymization-test.mjs b/scripts/recover-dna-anonymization-test.mjs
+new file mode 100644
+index 0000000..cb823e2
+--- /dev/null
++++ b/scripts/recover-dna-anonymization-test.mjs
+@@ -0,0 +1,19 @@
++#!/usr/bin/env node
++
++import assert from 'node:assert/strict';
++import { anonymizePrompt } from '../api/recover-dna.js';
++
++const current = anonymizePrompt([
++  'Owner Name: Test Owner',
++  'Business Name: Test Business',
++  'Business Description: bookkeeping practice',
++  'Website URL: https://example.test'
++].join('\n'));
++
++assert.equal(current.mapping['[BUSINESS_DESCRIPTION]'], 'bookkeeping practice', 'the current business-description label is tokenized');
++assert.doesNotMatch(current.anonymizedPrompt, /bookkeeping practice/i, 'the current description is removed from the anonymized prompt');
++
++const legacy = anonymizePrompt('Business Category: Bakery / Grains');
++assert.equal(legacy.mapping['[BUSINESS_DESCRIPTION]'], 'Bakery / Grains', 'the legacy business-category label remains tokenized');
++
++console.log('recover-dna anonymization tests passed');
+```
+
+## Captured local test results
+
+### scripts/intake-business-description-contract-test.mjs
+
+```text
+Exit code: 0
+business-description intake contract tests passed
+```
+
+### scripts/recover-dna-anonymization-test.mjs
+
+```text
+Exit code: 0
+recover-dna anonymization tests passed
+```
+
+### scripts/pilot-safety-contract-test.mjs
+
+```text
+Exit code: 0
+pilot safety contract tests passed
+```
+
+### scripts/privacy-gate-context-test.mjs
+
+```text
+Exit code: 0
+privacy gate context tests passed
+```
+
+## Full candidate source evidence
+
+### index.html
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bridge To AI - Business Discovery Session</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #182028;
+    --ink-mid: #4a4a4a;
+    --ink-soft: #8a8a8a;
+    --surface: #fafaf8;
+    --surface-raised: #ffffff;
+    --border: #e4e2dd;
+    --bridge-teal: #075f55;
+    --bridge-teal-deep: #043c33;
+    --bridge-teal-light: #e8f4f1;
+    --bridge-teal-mid: #1a9880;
+    --accent: #c09840;
+    --accent-bright: #f0cd69;
+    --danger: #c0392b;
+    --radius: 10px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.07);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--surface);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* -- Header -- */
+  .header {
+    padding: 1.15rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background:
+      linear-gradient(135deg, rgba(255,255,255,0.9), rgba(250,250,248,0.92)),
+      linear-gradient(90deg, rgba(7,95,85,0.08), rgba(192,152,64,0.1));
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-decoration: none;
+  }
+
+  .logo-mark {
+    width: 54px;
+    height: 54px;
+    background: #fffdf7;
+    border: 1px solid rgba(192,152,64,0.55);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 16px rgba(7, 95, 85, 0.12);
+    overflow: hidden;
+  }
+
+  .logo-mark img {
+    width: 50px;
+    height: 50px;
+    object-fit: contain;
+    display: block;
+  }
+
+  .logo-text {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.25rem;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+
+  .logo-text span { color: var(--bridge-teal); }
+
+  .partner-header-logo {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    margin-left: 1rem;
+    border-left: 1px solid rgba(15, 23, 42, 0.12);
+    padding-left: 1rem;
+  }
+
+  .partner-header-logo.active { display: flex; }
+
+  .partner-header-logo span {
+    color: var(--ink-soft);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .partner-header-logo img {
+    width: 158px;
+    max-width: 22vw;
+    max-height: 46px;
+    object-fit: contain;
+    display: block;
+    padding: 7px 9px;
+    border-radius: 8px;
+    background: #151515;
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14);
+  }
+
+  .header-tag {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--bridge-teal);
+  }
+
+  .header-tag-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+  }
+
+  .header-version {
+    font-size: 0.6rem;
+    color: var(--ink-soft);
+    opacity: 0.5;
+    letter-spacing: 0.04em;
+  }
+
+  .brand-proof {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: fit-content;
+    border: 1px solid rgba(192,152,64,0.42);
+    background: #fffaf0;
+    color: var(--bridge-teal-deep);
+    border-radius: 999px;
+    padding: 0.34rem 0.72rem 0.34rem 0.42rem;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    box-shadow: 0 10px 24px rgba(192,152,64,0.1);
+    margin-bottom: 0.9rem;
+  }
+
+  .brand-proof img {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+    border-radius: 50%;
+  }
+
+  .hero-sil-card {
+    display: grid;
+    grid-template-columns: 86px minmax(0, 1fr);
+    gap: 1rem;
+    align-items: center;
+    max-width: 610px;
+    margin: 0 0 1rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid rgba(192,152,64,0.42);
+    border-radius: 10px;
+    background:
+      linear-gradient(135deg, rgba(255,253,247,0.96), rgba(239,250,247,0.96));
+    box-shadow: 0 18px 42px rgba(7, 95, 85, 0.09);
+  }
+
+  .hero-sil-card img {
+    width: 82px;
+    height: 82px;
+    object-fit: contain;
+    filter: drop-shadow(0 8px 15px rgba(7, 95, 85, 0.16));
+  }
+
+  .hero-sil-card strong {
+    display: block;
+    color: var(--bridge-teal-deep);
+    font-size: 0.82rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    margin-bottom: 0.28rem;
+  }
+
+  .hero-sil-card span {
+    display: block;
+    color: var(--ink-mid);
+    font-size: 0.88rem;
+    line-height: 1.48;
+  }
+
+  .brand-trust-panel {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.9rem;
+    align-items: center;
+    border: 1px solid rgba(192,152,64,0.42);
+    background:
+      linear-gradient(135deg, #fffdf7 0%, #f2fbf8 100%);
+    border-radius: var(--radius);
+    padding: 0.9rem 1rem;
+    margin: 0 0 1rem;
+    box-shadow: 0 12px 28px rgba(7, 95, 85, 0.08);
+  }
+
+  .brand-trust-panel img {
+    width: 76px;
+    height: 76px;
+    object-fit: contain;
+  }
+
+  .brand-trust-panel strong {
+    display: block;
+    color: var(--bridge-teal-deep);
+    font-size: 0.84rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 0.22rem;
+  }
+
+  .brand-trust-panel span {
+    display: block;
+    color: var(--ink-mid);
+    font-size: 0.84rem;
+    line-height: 1.42;
+  }
+
+  /* -- Main layout -- */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 3rem 1.5rem 4rem;
+  }
+
+  /* -- Screens -- */
+  .screen { display: none; width: 100%; max-width: 640px; }
+  .screen.active { display: flex; flex-direction: column; }
+
+  /* -- Welcome screen -- */
+  #screen-welcome {
+    max-width: 1120px;
+  }
+
+  .welcome-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(360px, 430px);
+    gap: 1.6rem;
+    align-items: start;
+  }
+
+  .welcome-copy-panel,
+  .welcome-form-panel {
+    min-width: 0;
+  }
+
+  .welcome-form-panel {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    box-shadow: var(--shadow);
+  }
+
+  .welcome-form-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--bridge-teal);
+    margin-bottom: 1rem;
+  }
+
+  .welcome-eyebrow {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--bridge-teal);
+    margin-bottom: 1rem;
+  }
+
+  .welcome-headline {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2.4rem;
+    line-height: 1.15;
+    color: var(--ink);
+    margin-bottom: 1.25rem;
+    letter-spacing: -0.02em;
+  }
+
+  .welcome-headline em {
+    font-style: italic;
+    color: var(--bridge-teal);
+  }
+
+  .welcome-body {
+    font-size: 1rem;
+    line-height: 1.75;
+    color: var(--ink-mid);
+    margin-bottom: 1.25rem;
+  }
+
+  .snapshot-splash {
+    display: none;
+    min-height: 620px;
+    grid-template-columns: minmax(0, 0.95fr) minmax(380px, 1.05fr);
+    gap: 1.6rem;
+    align-items: stretch;
+  }
+
+  .snapshot-splash.active {
+    display: grid;
+  }
+
+  .afpa-course-front {
+    display: none;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 0.72fr);
+    gap: 1.35rem;
+    align-items: stretch;
+    margin-bottom: 1.4rem;
+  }
+
+  .afpa-course-front.active {
+    display: grid;
+  }
+
+  .afpa-hero-panel,
+  .afpa-insight-panel {
+    border: 1px solid rgba(7,95,85,0.16);
+    border-radius: 16px;
+    background: #fffdf8;
+    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
+    padding: 1.35rem;
+  }
+
+  .afpa-hero-panel {
+    display: grid;
+    align-content: end;
+    min-height: 430px;
+    background:
+      linear-gradient(135deg, rgba(255,255,255,0.92), rgba(255,250,240,0.92)),
+      linear-gradient(135deg, rgba(7,95,85,0.14), rgba(192,152,64,0.16));
+  }
+
+  .afpa-front-eyebrow {
+    width: fit-content;
+    border-radius: 999px;
+    border: 1px solid #c8e5dd;
+    background: #effaf7;
+    color: var(--bridge-teal);
+    padding: 0.42rem 0.72rem;
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 0.9rem;
+  }
+
+  .afpa-course-front h1 {
+    max-width: 760px;
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(2.35rem, 5vw, 4.2rem);
+    line-height: 0.98;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+
+  .afpa-course-front h1 em {
+    color: var(--bridge-teal);
+    font-style: italic;
+  }
+
+  .afpa-front-lead {
+    max-width: 740px;
+    color: var(--ink-mid);
+    font-size: 1.02rem;
+    line-height: 1.6;
+    margin: 1rem 0 0;
+  }
+
+  .afpa-front-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+    margin-top: 1.35rem;
+  }
+
+  .afpa-resume-status {
+    display: none;
+    width: fit-content;
+    max-width: 100%;
+    margin-top: 0.85rem;
+    border: 1px solid #f2c4b5;
+    border-radius: 10px;
+    background: #fff7f3;
+    color: #8d2b14;
+    padding: 0.65rem 0.8rem;
+    font-size: 0.86rem;
+    font-weight: 800;
+    line-height: 1.35;
+  }
+
+  .afpa-resume-status.active { display: block; }
+
+  .afpa-front-trust {
+    display: grid;
+    grid-template-columns: 58px minmax(0, 1fr);
+    gap: 0.8rem;
+    align-items: center;
+    margin-top: 1rem;
+    border: 1px solid rgba(192,152,64,0.32);
+    border-radius: 12px;
+    background: rgba(255,255,255,0.82);
+    padding: 0.75rem;
+    color: var(--ink-mid);
+    line-height: 1.45;
+  }
+
+  .afpa-front-trust img {
+    width: 58px;
+    height: 58px;
+    object-fit: contain;
+  }
+
+  .afpa-insight-panel {
+    display: grid;
+    gap: 0.8rem;
+    align-content: start;
+  }
+
+  .afpa-insight-panel h2 {
+    margin: 0;
+    color: var(--ink);
+    font-size: 1.15rem;
+  }
+
+  .afpa-insight-card {
+    border: 1px solid #dfece8;
+    border-radius: 12px;
+    background: #f8fcfa;
+    padding: 0.9rem;
+  }
+
+  .afpa-insight-card strong {
+    display: block;
+    color: var(--ink);
+    margin-bottom: 0.28rem;
+  }
+
+  .afpa-insight-card span {
+    color: var(--ink-mid);
+    line-height: 1.42;
+  }
+
+  body.campaign-afpa-course .ai-payoff-dashboard,
+  body.campaign-afpa-course .snapshot-outcomes,
+  body.campaign-afpa-course .snapshot-result-panel {
+    display: none;
+  }
+
+  .welcome-layout.is-hidden {
+    display: none;
+  }
+
+  .splash-copy {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0.6rem 0;
+  }
+
+  .splash-kicker {
+    display: inline-flex;
+    width: fit-content;
+    border: 1px solid #b8ddd7;
+    border-radius: 999px;
+    background: #effaf7;
+    color: var(--bridge-teal);
+    padding: 0.42rem 0.7rem;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 1.1rem;
+  }
+
+  .splash-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(2.25rem, 5vw, 4.25rem);
+    line-height: 1.02;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    margin-bottom: 1.1rem;
+  }
+
+  .splash-title em {
+    color: var(--bridge-teal);
+    font-style: italic;
+  }
+
+  .splash-lead {
+    max-width: 620px;
+    color: var(--ink-mid);
+    font-size: 1.06rem;
+    line-height: 1.68;
+    margin-bottom: 1.35rem;
+  }
+
+  .splash-actions {
+    display: flex;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+
+  .splash-actions .btn-primary,
+  .splash-actions .btn-secondary {
+    min-height: 48px;
+    font-size: 0.94rem;
+  }
+
+  .splash-trust-line {
+    color: var(--ink-soft);
+    font-size: 0.82rem;
+    line-height: 1.45;
+    max-width: 620px;
+  }
+
+  .splash-visual {
+    position: relative;
+    min-height: 570px;
+    border-radius: 12px;
+    overflow: hidden;
+    background:
+      linear-gradient(135deg, rgba(255,255,255,0.16) 0 10%, transparent 10% 20%, rgba(255,255,255,0.1) 20% 30%, transparent 30%),
+      linear-gradient(145deg, #0d6e5e 0%, #188875 48%, #f2d184 100%);
+    box-shadow: 0 24px 60px rgba(13, 110, 94, 0.22);
+    border: 1px solid rgba(13, 110, 94, 0.22);
+    padding: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .splash-visual::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px),
+      linear-gradient(0deg, rgba(255,255,255,0.07) 1px, transparent 1px);
+    background-size: 34px 34px;
+    opacity: 0.35;
+  }
+
+  .splash-visual::after {
+    display: none;
+  }
+
+  .visual-card {
+    position: relative;
+    z-index: 1;
+    background: rgba(255,255,255,0.94);
+    border: 1px solid rgba(255,255,255,0.7);
+    border-radius: 10px;
+    padding: 1rem;
+    box-shadow: 0 18px 40px rgba(13, 47, 41, 0.16);
+  }
+
+  .visual-card.dark {
+    background: rgba(16, 63, 56, 0.92);
+    color: #fff;
+    border-color: rgba(255,255,255,0.2);
+  }
+
+  .visual-card.branded-report {
+    min-height: 214px;
+    justify-content: space-between;
+    overflow: hidden;
+  }
+
+  .branded-report::after {
+    content: "";
+    position: absolute;
+    inset: -28px -50px auto auto;
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    background: rgba(240,205,105,0.18);
+  }
+
+  .report-seal {
+    position: absolute;
+    right: 0.95rem;
+    top: 0.9rem;
+    width: 78px;
+    height: 78px;
+    object-fit: contain;
+    filter: drop-shadow(0 10px 18px rgba(0,0,0,0.18));
+    z-index: 1;
+  }
+
+  .report-preview-title {
+    position: relative;
+    z-index: 2;
+    max-width: 62%;
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  .report-preview-line {
+    position: relative;
+    z-index: 2;
+    margin-top: auto;
+    display: grid;
+    gap: 0.45rem;
+  }
+
+  .report-preview-line span {
+    display: block;
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.18);
+  }
+
+  .report-preview-line span:nth-child(1) {
+    width: 82%;
+    background: rgba(240,205,105,0.72);
+  }
+
+  .report-preview-line span:nth-child(2) { width: 68%; }
+  .report-preview-line span:nth-child(3) { width: 76%; }
+
+  .visual-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.8rem;
+  }
+
+  .big-metric {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-height: 150px;
+    justify-content: center;
+  }
+
+  .metric-number {
+    font-size: 3rem;
+    line-height: 1;
+    font-weight: 900;
+    color: #ffffff;
+  }
+
+  .metric-label {
+    color: #f8fff9;
+    font-weight: 800;
+    font-size: 0.88rem;
+  }
+
+  .metric-note {
+    color: rgba(255,255,255,0.78);
+    font-size: 0.74rem;
+    line-height: 1.35;
+  }
+
+  .scorecard-preview {
+    display: grid;
+    gap: 0.52rem;
+  }
+
+  .score-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.7rem;
+    align-items: center;
+    padding: 0.56rem 0.66rem;
+    background: #f7fbf9;
+    border: 1px solid #dfece8;
+    border-radius: 8px;
+    color: var(--ink-mid);
+    font-size: 0.78rem;
+    font-weight: 800;
+  }
+
+  .score-pill {
+    color: #0b6f5f;
+    background: #dff4ee;
+    border: 1px solid #c3e8df;
+    border-radius: 999px;
+    padding: 0.22rem 0.52rem;
+    font-size: 0.68rem;
+    font-weight: 900;
+    white-space: nowrap;
+  }
+
+  .report-strip {
+    display: grid;
+    gap: 0.58rem;
+    margin-top: 0.75rem;
+  }
+
+  .report-strip span {
+    display: block;
+    color: var(--ink-mid);
+    font-size: 0.78rem;
+    line-height: 1.35;
+    padding-left: 0.7rem;
+    border-left: 3px solid #0d6e5e;
+  }
+
+  .sparkline {
+    height: 86px;
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    margin-top: 0.7rem;
+  }
+
+  .spark-bar {
+    flex: 1;
+    min-width: 12px;
+    border-radius: 999px 999px 4px 4px;
+    background: linear-gradient(180deg, #f2d184, #ffffff);
+  }
+
+  .friction-list {
+    display: grid;
+    gap: 0.62rem;
+  }
+
+  .friction-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.8rem;
+    align-items: center;
+    color: var(--ink-mid);
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+
+  .friction-pill {
+    color: var(--bridge-teal);
+    background: #e8f4f1;
+    border-radius: 999px;
+    padding: 0.22rem 0.52rem;
+    font-size: 0.7rem;
+    font-weight: 900;
+  }
+
+  .visual-path {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.8rem;
+  }
+
+  .mini-step {
+    min-height: 116px;
+  }
+
+  .mini-step strong {
+    color: var(--ink);
+    display: block;
+    font-size: 0.84rem;
+    margin-bottom: 0.38rem;
+  }
+
+  .mini-step span {
+    color: var(--ink-mid);
+    display: block;
+    font-size: 0.76rem;
+    line-height: 1.38;
+  }
+
+  .ai-payoff-dashboard {
+    border: 1px solid #d8d2c7;
+    background: #fff;
+    border-radius: var(--radius);
+    padding: 1rem;
+    margin-bottom: 1.1rem;
+    box-shadow: 0 10px 24px rgba(15, 15, 15, 0.06);
+  }
+
+  .payoff-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.95rem;
+  }
+
+  .payoff-title {
+    color: var(--ink);
+    font-size: 0.95rem;
+    font-weight: 800;
+  }
+
+  .payoff-note {
+    color: var(--ink-soft);
+    font-size: 0.72rem;
+    text-align: right;
+  }
+
+  .payoff-grid {
+    display: grid;
+    grid-template-columns: 0.82fr 1.18fr;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .time-gauge {
+    min-height: 190px;
+    border-radius: 8px;
+    padding: 1.2rem;
+    background: linear-gradient(135deg, #075f53 0%, #0b7665 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .time-gauge::after {
+    content: "";
+    position: absolute;
+    inset: 12px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    pointer-events: none;
+  }
+
+  .gauge-eyebrow {
+    color: #c8f0e7;
+    font-size: 0.64rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    z-index: 1;
+  }
+
+  .gauge-number {
+    color: #fff;
+    font-size: 3.1rem;
+    font-weight: 800;
+    line-height: 1;
+    margin-top: 0.2rem;
+    z-index: 1;
+  }
+
+  .gauge-label {
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    z-index: 1;
+  }
+
+  .gauge-dots {
+    display: flex;
+    gap: 0.38rem;
+    margin: 0.65rem 0 0.35rem;
+    z-index: 1;
+  }
+
+  .gauge-dots span {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #f0cd69;
+    box-shadow: 0 0 0 3px rgba(240, 205, 105, 0.14);
+  }
+
+  .gauge-sub {
+    color: #d4eee8;
+    font-size: 0.68rem;
+    text-align: center;
+    z-index: 1;
+  }
+
+  .payoff-chart {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .chart-row {
+    display: grid;
+    grid-template-columns: 92px minmax(0, 1fr) 38px;
+    gap: 0.55rem;
+    align-items: center;
+  }
+
+  .chart-label {
+    color: var(--ink-mid);
+    font-size: 0.76rem;
+    font-weight: 700;
+  }
+
+  .chart-track {
+    height: 11px;
+    border-radius: 999px;
+    background: #ece9e1;
+    overflow: hidden;
+  }
+
+  .chart-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--bridge-teal), var(--bridge-teal-mid));
+  }
+
+  .chart-value {
+    color: var(--bridge-teal);
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-align: right;
+  }
+
+  .payoff-path {
+    margin-top: 0.95rem;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.6rem;
+  }
+
+  .path-step {
+    border: 1px solid #e4e2dd;
+    border-radius: 8px;
+    padding: 0.68rem;
+    background: #fafaf8;
+    min-height: 78px;
+  }
+
+  .path-step strong {
+    display: block;
+    color: var(--ink);
+    font-size: 0.78rem;
+    margin-bottom: 0.24rem;
+  }
+
+  .path-step span {
+    color: var(--ink-mid);
+    display: block;
+    font-size: 0.72rem;
+    line-height: 1.35;
+  }
+
+  .snapshot-outcomes {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.65rem;
+    margin-bottom: 1.1rem;
+  }
+
+  .outcome-chip {
+    border: 1px solid #d8d2c7;
+    background: #fffdf7;
+    border-radius: 8px;
+    padding: 0.72rem 0.78rem;
+    min-height: 78px;
+  }
+
+  .outcome-chip strong {
+    display: block;
+    color: var(--ink);
+    font-size: 0.82rem;
+    margin-bottom: 0.28rem;
+  }
+
+  .outcome-chip span {
+    display: block;
+    color: var(--ink-mid);
+    font-size: 0.78rem;
+    line-height: 1.35;
+  }
+
+  .snapshot-result-panel {
+    border: 1px solid #b8ddd7;
+    background: #f2faf8;
+    border-radius: var(--radius);
+    padding: 1.05rem 1.15rem;
+    margin-bottom: 1.15rem;
+  }
+
+  .snapshot-result-title {
+    color: var(--bridge-teal);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+  }
+
+  .snapshot-result-list {
+    list-style: none;
+    display: grid;
+    gap: 0.55rem;
+  }
+
+  .snapshot-result-list li {
+    display: flex;
+    gap: 0.55rem;
+    align-items: flex-start;
+    color: var(--ink-mid);
+    line-height: 1.45;
+    font-size: 0.9rem;
+  }
+
+  .result-check {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--bridge-teal);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.68rem;
+    font-weight: 800;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .evidence-first-box {
+    background: #103f38;
+    border: 1px solid #0b312b;
+    border-left: 5px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 1.15rem 1.25rem;
+    margin-bottom: 1.75rem;
+    box-shadow: 0 16px 38px rgba(13, 110, 94, 0.18);
+  }
+
+  .evidence-first-box p {
+    margin: 0;
+    color: #f4fbf8;
+    line-height: 1.6;
+    font-size: 0.94rem;
+    font-weight: 500;
+  }
+
+  .evidence-first-box strong {
+    display: block;
+    color: #fff;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.5rem;
+  }
+
+  .white-label-note {
+    display: block;
+    border: 1px solid #d8d2c7;
+    background: #fffdf7;
+    border-radius: var(--radius);
+    padding: 0.9rem 1rem;
+    margin: -0.55rem 0 1.75rem;
+    color: var(--ink-mid);
+    font-size: 0.9rem;
+    line-height: 1.55;
+  }
+
+  .white-label-note strong {
+    color: var(--bridge-teal);
+    font-weight: 700;
+  }
+
+  .white-label-note.hidden {
+    display: none;
+  }
+
+  .powered-by-badge-row {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    border: 1px solid rgba(7,95,85,0.14);
+    background: #ffffff;
+    border-radius: var(--radius);
+    padding: 0.75rem 0.9rem;
+    margin: -0.9rem 0 1.75rem;
+    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
+  }
+
+  .powered-by-badge-row img {
+    width: 86px;
+    height: 86px;
+    object-fit: contain;
+    flex: 0 0 auto;
+  }
+
+  .powered-by-badge-row span {
+    color: var(--ink-mid);
+    font-size: 0.86rem;
+    line-height: 1.45;
+  }
+
+  .powered-by-badge-row strong {
+    display: block;
+    color: var(--bridge-teal-deep);
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 0.18rem;
+  }
+
+  .partner-banner {
+    display: none;
+    border: 1px solid #b8ddd7;
+    background: #eef8f5;
+    color: var(--bridge-teal);
+    border-radius: var(--radius);
+    padding: 0.95rem 1.1rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    line-height: 1.55;
+  }
+
+  .partner-banner.active { display: block; }
+
+  .partner-banner-inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .partner-logo-card {
+    display: none;
+    border-radius: 12px;
+    background: #151515;
+    padding: 0.7rem 0.85rem;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+  }
+
+  .partner-logo-card.active { display: block; }
+
+  .partner-logo-card img {
+    width: 190px;
+    max-width: 28vw;
+    height: auto;
+    display: block;
+  }
+
+  @media (max-width: 760px) {
+    .partner-header-logo { display: none !important; }
+    .partner-banner-inner { grid-template-columns: 1fr; }
+    .partner-logo-card { width: fit-content; }
+    .partner-logo-card img {
+      width: 170px;
+      max-width: 72vw;
+    }
+    .afpa-course-front { grid-template-columns: 1fr; }
+    .afpa-hero-panel { min-height: auto; }
+  }
+
+  .partner-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bridge-teal);
+    color: #fff;
+    border-radius: 999px;
+    padding: 0.32rem 0.7rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 0.6rem;
+  }
+
+  .welcome-steps {
+    background: var(--bridge-teal-light);
+    border: 1px solid #b8ddd7;
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 0;
+  }
+
+  .welcome-steps p {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--bridge-teal);
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .resume-card {
+    display: none;
+    background: var(--surface-raised);
+    border: 1px solid #b8ddd7;
+    border-radius: var(--radius);
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .resume-title {
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 0.35rem;
+  }
+
+  .resume-body {
+    color: var(--ink-mid);
+    font-size: 0.88rem;
+    line-height: 1.5;
+    margin-bottom: 0.9rem;
+  }
+
+  .resume-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .step-list { list-style: none; }
+
+  .step-list li {
+    font-size: 0.92rem;
+    color: var(--ink-mid);
+    padding: 0.35rem 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    line-height: 1.5;
+  }
+
+  .step-num {
+    width: 20px;
+    height: 20px;
+    background: var(--bridge-teal);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .name-field {
+    margin-bottom: 1.5rem;
+  }
+
+  .name-field label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--ink-mid);
+    margin-bottom: 0.5rem;
+  }
+
+  .name-field input,
+  .name-field select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    color: var(--ink);
+    background: var(--surface-raised);
+    transition: border-color 0.15s;
+    outline: none;
+  }
+
+  .name-field input:focus,
+  .name-field select:focus { border-color: var(--bridge-teal); }
+
+  .field-help {
+    margin-top: 0.4rem;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--ink-soft);
+  }
+
+  .consent-box {
+    margin: 1.25rem 0 1.5rem;
+    padding: 1rem;
+    border: 1px solid rgba(192,152,64,0.38);
+    border-radius: var(--radius);
+    background: #fffdf7;
+    box-shadow: inset 4px 0 0 rgba(192,152,64,0.72);
+  }
+
+  .consent-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 0.86rem;
+    line-height: 1.55;
+    color: var(--ink-mid);
+    cursor: pointer;
+  }
+
+  .consent-label input {
+    margin-top: 0.22rem;
+    width: 16px;
+    height: 16px;
+    flex: 0 0 auto;
+    accent-color: var(--bridge-teal);
+  }
+
+  .consent-label a {
+    color: var(--bridge-teal);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .consent-label a:hover { text-decoration: underline; }
+
+  .partner-consent-note {
+    display: none;
+    margin-top: 0.65rem;
+    padding-top: 0.65rem;
+    border-top: 1px solid var(--border);
+    color: var(--ink-soft);
+    font-size: 0.82rem;
+    line-height: 1.5;
+  }
+
+  .partner-consent-note.active { display: block; }
+
+  .followup-options {
+    display: grid;
+    gap: 0.6rem;
+  }
+
+  .followup-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 0.88rem;
+    line-height: 1.45;
+    color: var(--ink-mid);
+    background: #fff;
+  }
+
+  .followup-option input {
+    margin-top: 0.2rem;
+    accent-color: var(--bridge-teal);
+  }
+
+  .dept-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .dept-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0.5rem 0.85rem;
+    border: 1.5px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface-raised);
+    font-size: 0.85rem;
+    color: var(--ink-mid);
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+
+  .dept-pill:hover { border-color: var(--bridge-teal-mid); }
+
+  .dept-pill input { accent-color: var(--bridge-teal); cursor: pointer; margin: 0; }
+
+  .dept-pill:has(input:checked) {
+    border-color: var(--bridge-teal);
+    background: var(--bridge-teal-light);
+    color: var(--bridge-teal);
+    font-weight: 500;
+  }
+
+  /* -- Buttons -- */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.85rem 2rem;
+    background: var(--bridge-teal);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .btn-primary:hover { background: var(--bridge-teal-mid); }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-primary:disabled { background: #9ab8b3; cursor: not-allowed; }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.7rem 1.5rem;
+    background: transparent;
+    color: var(--ink-mid);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+
+  .btn-secondary:hover { border-color: var(--ink-mid); color: var(--ink); }
+
+  /* -- Progress -- */
+  .progress-wrap {
+    margin-bottom: 2rem;
+  }
+
+  .progress-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+
+  .progress-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--bridge-teal);
+  }
+
+  .progress-count {
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+  }
+
+  .progress-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--bridge-teal);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+
+  /* -- Question card -- */
+  .question-domain {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.6rem;
+  }
+
+  .question-text {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.6rem;
+    line-height: 1.3;
+    color: var(--ink);
+    margin-bottom: 0.6rem;
+    letter-spacing: -0.01em;
+  }
+
+  .question-hint {
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+  }
+
+  /* -- Voice input area -- */
+  .input-area {
+    background: var(--surface-raised);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 1rem;
+    box-shadow: var(--shadow);
+    transition: border-color 0.15s;
+  }
+
+  .input-area:focus-within { border-color: var(--bridge-teal); }
+
+  .transcript-box {
+    min-height: 140px;
+    padding: 1rem 1.25rem;
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: var(--ink);
+    outline: none;
+    border: none;
+    width: 100%;
+    resize: vertical;
+    font-family: 'Inter', sans-serif;
+    background: transparent;
+  }
+
+  .transcript-box:empty::before {
+    content: attr(data-placeholder);
+    color: var(--ink-soft);
+    pointer-events: none;
+  }
+
+  .input-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 1rem;
+    border-top: 1px solid var(--border);
+    background: #f7f6f3;
+  }
+
+  .voice-btn {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0.45rem 0.9rem;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    background: white;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--ink-mid);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .voice-btn:hover { border-color: var(--bridge-teal); color: var(--bridge-teal); }
+
+  .voice-btn.recording {
+    border-color: var(--danger);
+    color: var(--danger);
+    background: #fdf2f2;
+    animation: pulse-border 1.2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-border {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(192,57,43,0.3); }
+    50% { box-shadow: 0 0 0 4px rgba(192,57,43,0); }
+  }
+
+  .mic-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .voice-btn.recording .mic-dot {
+    animation: blink 0.8s ease-in-out infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
+
+  .char-count {
+    font-size: 0.75rem;
+    color: var(--ink-soft);
+  }
+
+  /* -- Navigation -- */
+  .nav-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.5rem;
+    gap: 1rem;
+  }
+
+  .nav-reassure {
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    text-align: center;
+    flex: 1;
+  }
+
+  @media (max-width: 600px) {
+    .nav-reassure { display: none; }
+  }
+
+  /* -- Processing screen -- */
+  .processing-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 3rem 1rem;
+    gap: 0.85rem;
+  }
+
+  .spinner {
+    width: 52px;
+    height: 52px;
+    border: 3px solid var(--border);
+    border-top-color: var(--bridge-teal);
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+    margin-bottom: 0.75rem;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .processing-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.5rem;
+    color: var(--ink);
+    margin-bottom: 0;
+  }
+
+  .processing-body {
+    font-size: 0.92rem;
+    color: var(--ink-mid);
+    line-height: 1.55;
+    max-width: 500px;
+    margin: 0;
+  }
+
+  .processing-timer {
+    font-size: 0.86rem;
+    color: var(--ink-soft);
+    line-height: 1.45;
+    max-width: 500px;
+    margin: 0;
+  }
+
+  .processing-steps {
+    margin-top: 1.45rem;
+    text-align: left;
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .p-step {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0.6rem 0;
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .p-step:last-child { border-bottom: none; }
+  .p-step.done { color: var(--bridge-teal); }
+  .p-step.active { color: var(--ink); font-weight: 500; }
+
+  .p-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1.5px solid currentColor;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 0.65rem;
+  }
+
+  .p-step.done .p-icon { background: var(--bridge-teal); border-color: var(--bridge-teal); color: white; }
+  .p-step.active .p-icon { border-color: var(--bridge-teal); }
+
+  /* -- Completion screen -- */
+  .complete-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 2rem 1rem 3rem;
+  }
+
+  .complete-icon {
+    width: 72px;
+    height: 72px;
+    background: var(--bridge-teal-light);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .complete-icon svg { width: 36px; height: 36px; stroke: var(--bridge-teal); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .complete-headline {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2rem;
+    color: var(--ink);
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.02em;
+  }
+
+  .complete-sub {
+    font-size: 1rem;
+    color: var(--ink-mid);
+    line-height: 1.7;
+    max-width: 620px;
+    margin-bottom: 2rem;
+  }
+
+  .completion-layout {
+    width: min(100%, 980px);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.85rem;
+    align-items: start;
+    text-align: left;
+  }
+
+  .completion-layout.snapshot-simple {
+    width: min(100%, 720px);
+    grid-template-columns: minmax(0, 1fr);
+    justify-content: center;
+  }
+
+  .completion-column {
+    min-width: 0;
+  }
+
+  .completion-column.is-hidden {
+    display: none;
+  }
+
+  .completion-column .next-steps {
+    max-width: none;
+  }
+
+  .completion-swimlanes {
+    display: grid;
+    gap: 0.85rem;
+  }
+
+  .completion-lane {
+    display: grid;
+    grid-template-columns: 72px minmax(0, 1fr) auto;
+    gap: 1rem;
+    align-items: center;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface-raised);
+    padding: 1rem;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+  }
+
+  .completion-lane-icon {
+    width: 52px;
+    height: 52px;
+    display: grid;
+    place-items: center;
+    border-radius: 14px;
+    background: var(--bridge-teal-light);
+    color: var(--bridge-teal);
+    font-size: 1.35rem;
+    font-weight: 900;
+  }
+
+  .completion-lane h3 {
+    margin: 0 0 0.25rem;
+    color: var(--ink);
+    font-size: 1rem;
+  }
+
+  .completion-lane p {
+    margin: 0;
+    color: var(--ink-mid);
+    font-size: 0.9rem;
+    line-height: 1.45;
+  }
+
+  .completion-lane-action {
+    display: grid;
+    justify-items: end;
+    gap: 0.4rem;
+    min-width: 220px;
+  }
+
+  .email-confirm-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    width: min(100%, 420px);
+    border: 1px solid #c8e5dd;
+    border-radius: 999px;
+    background: #effaf7;
+    color: var(--bridge-teal);
+    padding: 0.3rem 0.45rem 0.3rem 0.72rem;
+    font-size: 0.76rem;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  .email-confirm-pill:focus-within {
+    border-color: var(--bridge-teal);
+    box-shadow: 0 0 0 3px rgba(0, 112, 96, 0.12);
+  }
+
+  .email-confirm-pill span {
+    flex: 0 0 auto;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .email-confirm-pill input {
+    min-width: 0;
+    width: 100%;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: 0.82rem;
+    text-align: left;
+  }
+
+  .email-confirm-pill input::placeholder {
+    color: var(--ink-soft);
+  }
+
+  .field-status {
+    min-height: 1.1rem;
+    margin-top: 0.3rem;
+    color: var(--ink-soft);
+    font-size: 0.78rem;
+    line-height: 1.35;
+  }
+
+  .field-status.ok {
+    color: var(--bridge-teal);
+  }
+
+  .field-status.error {
+    color: #a33a24;
+  }
+
+  .draft-save-status {
+    display: none;
+    margin: 1rem 0;
+    padding: 0.85rem 1rem;
+    border: 1px solid #b8ddd7;
+    border-left: 5px solid var(--bridge-teal);
+    border-radius: 8px;
+    background: #f1fbf8;
+    color: #164a43;
+    font-size: 0.9rem;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+
+  .draft-save-status:not(:empty) { display: block; }
+  .draft-save-status.saving {
+    border-color: #c8d5d2;
+    border-left-color: #6a7f7a;
+    background: #f5f8f7;
+    color: #38504b;
+  }
+  .draft-save-status.error {
+    border-color: #efc5bb;
+    border-left-color: #a33a24;
+    background: #fff4f1;
+    color: #81301e;
+  }
+
+  .name-field input.field-invalid {
+    border-color: #c45a42;
+    box-shadow: 0 0 0 3px rgba(196, 90, 66, 0.12);
+  }
+
+  .completion-note {
+    color: var(--ink-soft);
+    font-size: 0.82rem;
+    line-height: 1.45;
+  }
+
+  .completion-send-box {
+    width: 100%;
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface-raised);
+  }
+
+  .completion-send-box .name-field {
+    margin-bottom: 0;
+  }
+
+  .completion-send-copy {
+    margin: -0.25rem 0 0.85rem;
+    color: var(--ink-mid);
+    font-size: 0.88rem;
+    line-height: 1.55;
+  }
+
+  .deepen-interview-box {
+    display: none;
+    width: 100%;
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px solid #bddbd4;
+    border-left: 5px solid var(--bridge-teal);
+    border-radius: var(--radius);
+    background: #f2faf8;
+  }
+
+  .deepen-interview-box.active {
+    display: block;
+  }
+
+  .deepen-interview-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 0.35rem;
+  }
+
+  .deepen-interview-copy {
+    color: var(--ink-mid);
+    font-size: 0.88rem;
+    line-height: 1.55;
+    margin-bottom: 0.85rem;
+  }
+
+  .completion-action-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-top: 0.85rem;
+  }
+
+  .next-steps {
+    width: 100%;
+    max-width: 480px;
+    text-align: left;
+  }
+
+  .next-steps-title {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: 1rem;
+  }
+
+  .next-step-card {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .next-step-num {
+    width: 28px;
+    height: 28px;
+    background: var(--bridge-teal);
+    border-radius: 50%;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.78rem;
+    font-weight: 600;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .next-step-content { flex: 1; }
+  .next-step-title { font-size: 0.92rem; font-weight: 600; color: var(--ink); margin-bottom: 3px; }
+  .next-step-desc { font-size: 0.85rem; color: var(--ink-mid); line-height: 1.5; }
+
+  .complete-footer {
+    margin-top: 2rem;
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+    line-height: 1.6;
+  }
+
+  .complete-footer a { color: var(--bridge-teal); text-decoration: none; }
+
+  @media (max-width: 760px) {
+    .completion-lane {
+      grid-template-columns: 1fr;
+    }
+    .completion-lane-action {
+      justify-items: stretch;
+      min-width: 0;
+    }
+    .email-confirm-pill {
+      max-width: 100%;
+    }
+  }
+
+  /* -- Error banner -- */
+  .error-banner {
+    background: #fdf2f2;
+    border: 1px solid #f5c6c6;
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
+    font-size: 0.88rem;
+    color: var(--danger);
+    margin-bottom: 1rem;
+    display: none;
+  }
+
+  /* -- Footer -- */
+  .footer {
+    padding: 1.25rem 2rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .footer-copy {
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+  }
+
+  .footer-privacy {
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .footer-privacy a { color: var(--bridge-teal); text-decoration: none; }
+  .footer-privacy a:hover { text-decoration: underline; }
+
+  .lock-icon {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+  }
+
+  @media (max-width: 600px) {
+    .welcome-headline { font-size: 1.8rem; }
+    .question-text { font-size: 1.3rem; }
+    .main { padding: 2rem 1rem 3rem; }
+    .header { padding: 1rem 1.25rem; }
+    .snapshot-outcomes { grid-template-columns: 1fr; }
+    .payoff-grid,
+    .payoff-path {
+      grid-template-columns: 1fr;
+    }
+    .payoff-top {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+    .payoff-note {
+      text-align: left;
+    }
+    .chart-row {
+      grid-template-columns: 82px minmax(0, 1fr) 34px;
+    }
+  }
+
+  @media (max-width: 900px) {
+    .completion-layout {
+      grid-template-columns: 1fr;
+    }
+
+    #screen-welcome {
+      max-width: 640px;
+    }
+
+    .welcome-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .snapshot-splash {
+      grid-template-columns: 1fr;
+      min-height: auto;
+    }
+
+    .splash-visual {
+      min-height: 520px;
+    }
+
+    .visual-path {
+      grid-template-columns: 1fr;
+    }
+
+    .welcome-form-panel {
+      padding: 0;
+      border: 0;
+      box-shadow: none;
+      background: transparent;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo">
+    <div class="logo-mark">
+      <img src="/assets/brand/sil-trust-seal.png" alt="" aria-hidden="true">
+    </div>
+    <span class="logo-text">Bridge <span>To AI</span></span>
+    <div class="partner-header-logo" id="partner-header-logo">
+      <span>For</span>
+      <img id="partner-header-logo-img" alt="">
+    </div>
+  </div>
+  <div class="header-tag-wrap">
+    <span class="header-tag" id="header-tag">Business Discovery Session</span>
+      <span class="header-version">v1.72.27 Preview</span>
+  </div>
+</header>
+
+<main class="main">
+
+  <!-- -- Screen 1: Welcome -- -->
+  <div class="screen active" id="screen-welcome">
+    <div class="partner-banner" id="partner-banner">
+      <div class="partner-banner-inner">
+        <div>
+          <div class="partner-pill" id="partner-pill">AFPA Member Program</div>
+          <div id="partner-banner-text">This intake helps shape practical AI education and support for participating members.</div>
+        </div>
+        <div class="partner-logo-card" id="partner-logo-card">
+          <img id="partner-logo-img" alt="">
+        </div>
+      </div>
+    </div>
+
+    <div class="afpa-course-front" id="afpa-course-front">
+      <section class="afpa-hero-panel" aria-labelledby="afpa-front-title">
+        <div>
+          <div class="afpa-front-eyebrow">AFPA member AI training needs intake</div>
+          <h1 id="afpa-front-title">Help shape practical AI training for <em>Alberta food processors</em>.</h1>
+          <p class="afpa-front-lead">
+            This private Bridge To AI interview helps identify what AFPA members need most from upcoming AI education: practical examples, safe first uses, workflow bottlenecks, readiness gaps, and the training formats members can actually use.
+          </p>
+          <div class="afpa-front-actions">
+            <button class="btn-primary" type="button" onclick="openAfpaCourseStart()">Continue to interview</button>
+            <button class="btn-secondary" type="button" onclick="openAfpaCourseResume()">Resume previous session</button>
+          </div>
+          <div class="afpa-resume-status" id="afpa-resume-status" role="status"></div>
+          <div class="afpa-front-trust">
+            <img src="/assets/brand/sil-trust-seal.png" alt="Bridge To AI Secure Intelligence Layer">
+            <span><strong>Privacy-first processing.</strong> Your raw answers are used for your private report. AFPA receives anonymized aggregate themes for education planning, not individual interview files.</span>
+          </div>
+        </div>
+      </section>
+
+      <aside class="afpa-insight-panel" aria-label="What this AFPA intake helps identify">
+        <h2>What this helps AFPA understand</h2>
+        <div class="afpa-insight-card">
+          <strong>Training topics</strong>
+          <span>Where members most need practical AI help: admin, sales, production, QA, compliance, reporting, customer service, or planning.</span>
+        </div>
+        <div class="afpa-insight-card">
+          <strong>Common workflow drag</strong>
+          <span>The repeated work, handoffs, data gaps, and review points that make AI training immediately useful.</span>
+        </div>
+        <div class="afpa-insight-card">
+          <strong>Safe adoption boundaries</strong>
+          <span>What members are comfortable trying first, and what should stay human-reviewed because privacy, safety, accuracy, or trust matters.</span>
+        </div>
+        <div class="afpa-insight-card">
+          <strong>Course design signals</strong>
+          <span>Whether members need workshops, templates, examples, checklists, office hours, or done-with-you support.</span>
+        </div>
+      </aside>
+    </div>
+
+    <div class="snapshot-splash" id="snapshot-splash">
+      <section class="splash-copy" aria-labelledby="splash-title">
+        <div class="brand-proof">
+          <img src="/assets/brand/sil-trust-seal.png" alt="" aria-hidden="true">
+          Secure Intelligence Layer
+        </div>
+        <div class="splash-kicker">Free AI Opportunity Snapshot</div>
+        <h1 class="splash-title" id="splash-title">Where is AI hiding <em>time back</em> in your business?</h1>
+        <p class="splash-lead">
+          Take 8-12 minutes and Bridge To AI will look for the repeated work, delays, handoffs, and review points that could become your safest first AI win.
+        </p>
+        <div class="splash-actions">
+          <button class="btn-primary" type="button" onclick="openSnapshotStart()">Start the snapshot interview</button>
+          <button class="btn-secondary" type="button" onclick="openSnapshotResume()">Resume previous session</button>
+        </div>
+        <div class="hero-sil-card" aria-label="Bridge To AI Secure Intelligence Layer">
+          <img src="/assets/brand/sil-trust-seal.png" alt="">
+          <span><strong>Protected by Bridge To AI's Secure Intelligence Layer</strong> Encrypted intake, privacy-first AI processing, controlled use, and private report delivery.</span>
+        </div>
+        <p class="splash-trust-line">
+          You get a private first-pass report with a likely first use case, readiness signals, what not to automate yet, and one useful next move. No private financials, recipes, customer lists, supplier contracts, payroll details, invoices, or confidential formulas.
+        </p>
+      </section>
+
+      <section class="splash-visual" aria-label="Illustrative AI opportunity visual">
+        <div class="visual-row">
+          <div class="visual-card dark big-metric branded-report">
+            <img class="report-seal" src="/assets/brand/sil-trust-seal.png" alt="">
+            <div class="report-preview-title">Private Snapshot Report</div>
+            <div>
+              <div class="metric-number">5</div>
+              <div class="metric-label">signals in your Snapshot Scorecard</div>
+              <div class="metric-note">Directional, evidence-based, and grounded in what you actually say.</div>
+            </div>
+            <div class="report-preview-line" aria-hidden="true">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          </div>
+          <div class="visual-card">
+            <strong style="display:block;color:var(--ink);font-size:0.86rem;margin-bottom:0.55rem;">Snapshot Scorecard preview</strong>
+            <div class="scorecard-preview">
+              <div class="score-row"><span>Workflow Drag</span><span class="score-pill">High friction</span></div>
+              <div class="score-row"><span>AI Fit</span><span class="score-pill">Good first test</span></div>
+              <div class="score-row"><span>Information Readiness</span><span class="score-pill">Cleanup first</span></div>
+              <div class="score-row"><span>Human Review Boundary</span><span class="score-pill">Keep in loop</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="visual-card">
+          <strong style="display:block;color:var(--ink);font-size:0.86rem;">What the free report tries to answer</strong>
+          <div class="report-strip">
+            <span>Where is the repeated work creating drag?</span>
+            <span>What is the safest useful AI task to test first?</span>
+            <span>What should wait until the deeper interview confirms more detail?</span>
+          </div>
+        </div>
+
+        <div class="visual-path">
+          <div class="visual-card mini-step">
+            <strong>Evidence</strong>
+            <span>Your answers describe the workflow, delays, handoffs, and boundaries.</span>
+          </div>
+          <div class="visual-card mini-step">
+            <strong>Scorecard</strong>
+            <span>Bridge To AI turns those answers into five practical directional signals.</span>
+          </div>
+          <div class="visual-card mini-step">
+            <strong>First move</strong>
+            <span>You get one safe prompt or next step before anyone talks about a build.</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="welcome-layout" id="welcome-detail">
+      <div class="welcome-copy-panel">
+        <div class="welcome-eyebrow" id="welcome-eyebrow">Confidential - for your eyes only</div>
+        <h1 class="welcome-headline" id="welcome-headline">Let's understand your business <em>before</em> we talk about AI.</h1>
+        <p class="welcome-body" id="welcome-body">
+          This session usually takes about 20-30 minutes. There are no right or wrong answers.
+          General ranges and directional examples are enough for this first report; please do not
+          enter private financials, recipes, customer lists, supplier contracts, payroll details,
+          invoices, or confidential operating data. The interview includes core questions and may
+          add short follow-up questions when an answer needs more context. More detailed answers
+          usually help us move faster and reduce the need for follow-ups. Your answers are
+          encrypted, stored securely, and used only to prepare your private AI opportunity report.
+        </p>
+
+        <div class="ai-payoff-dashboard" aria-label="Illustrative AI payoff dashboard">
+          <div class="payoff-top">
+            <div class="payoff-title" id="payoff-title">What AI usually starts with: time leaks</div>
+            <div class="payoff-note" id="payoff-note">Illustrative signals. Your snapshot uses your answers.</div>
+          </div>
+          <div class="payoff-grid">
+            <div class="time-gauge" aria-label="Snapshot Scorecard signal count">
+              <div class="gauge-eyebrow">YOUR PRIVATE SNAPSHOT</div>
+              <div class="gauge-number" id="gauge-number">5</div>
+              <div class="gauge-label" id="gauge-label">signals we review</div>
+              <div class="gauge-dots" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+              <div class="gauge-sub" id="gauge-sub">One clear starting point for AI</div>
+            </div>
+            <div class="payoff-chart" aria-label="Snapshot Scorecard preview">
+              <div class="scorecard-preview">
+                <div class="score-row"><span>Workflow Drag</span><span class="score-pill">High friction</span></div>
+                <div class="score-row"><span>AI Fit</span><span class="score-pill">Good AI fit</span></div>
+                <div class="score-row"><span>Information Readiness</span><span class="score-pill">Cleanup first</span></div>
+                <div class="score-row"><span>Human Review Boundary</span><span class="score-pill">Human review</span></div>
+                <div class="score-row"><span>First Useful Win</span><span class="score-pill">Ready to test</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="payoff-path">
+            <div class="path-step">
+              <strong id="path-title-1">Messy workflow</strong>
+              <span id="path-copy-1">Where work repeats, waits, or depends on memory.</span>
+            </div>
+            <div class="path-step">
+              <strong id="path-title-2">AI-fit signal</strong>
+              <span id="path-copy-2">What can be drafted, organized, checked, or summarized.</span>
+            </div>
+            <div class="path-step">
+              <strong id="path-title-3">First useful win</strong>
+              <span id="path-copy-3">One safe place to test AI without overbuilding.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="snapshot-outcomes" aria-label="Snapshot outcomes">
+          <div class="outcome-chip">
+            <strong id="outcome-title-1">Best first use case</strong>
+            <span id="outcome-copy-1">Find the workflow where AI is most likely to help first.</span>
+          </div>
+          <div class="outcome-chip">
+            <strong id="outcome-title-2">Readiness signals</strong>
+            <span id="outcome-copy-2">See whether you are ready now or need cleanup first.</span>
+          </div>
+          <div class="outcome-chip">
+            <strong id="outcome-title-3">A practical next move</strong>
+            <span id="outcome-copy-3">Get one useful step you can try without buying anything.</span>
+          </div>
+        </div>
+
+        <div class="snapshot-result-panel">
+          <div class="snapshot-result-title" id="snapshot-result-title">What your free snapshot can show you</div>
+          <ul class="snapshot-result-list">
+            <li><span class="result-check">✓</span><span id="result-item-1">Where repeated work is costing time, consistency, or follow-up.</span></li>
+            <li><span class="result-check">✓</span><span id="result-item-2">Which AI help looks safe to try first, and what should stay human-reviewed.</span></li>
+            <li><span class="result-check">✓</span><span id="result-item-3">Whether your templates, forms, emails, SOPs, or spreadsheets are enough to start from.</span></li>
+            <li><span class="result-check">✓</span><span id="result-item-4">What a deeper interview would need before anyone promises a build plan.</span></li>
+          </ul>
+        </div>
+
+        <div class="evidence-first-box">
+          <strong id="evidence-title">Evidence-first, privacy-aware, built for useful answers</strong>
+          <p id="evidence-copy">
+            We have programmed the analysis to work from what you actually tell us. If the answers are vague, the snapshot will say so. If you are honest about what is messy, slow, repeated, or unclear, the report can point to a more useful first AI win, the cleanup needed first, and the work that should stay human-reviewed.
+          </p>
+        </div>
+
+        <div class="white-label-note" id="white-label-note">
+          <strong>For associations, training groups, and business communities:</strong>
+          this intake can be adapted to help you teach practical AI based on what your members actually need.
+        </div>
+
+        <div class="powered-by-badge-row">
+          <img src="/assets/brand/sil-trust-seal.png" alt="Bridge To AI Secure Intelligence Layer">
+          <span><strong>Protected by the BTAI Secure Intelligence Layer</strong> Bridge To AI can power intake campaigns while keeping individual answers private and partner reporting aggregate-only.</span>
+        </div>
+
+        <div class="welcome-steps">
+          <p>How this works</p>
+          <ul class="step-list">
+            <li><span class="step-num">1</span> <span id="step-one-text">You'll start with a quick scenario, then move through 8 areas of your business and a short reflection on you as the owner.</span></li>
+            <li><span class="step-num">2</span> Speak your answer using the microphone, or type it directly.</li>
+            <li><span class="step-num">3</span> Review what was captured, edit if needed, then hit Continue.</li>
+            <li><span class="step-num">4</span> <span id="step-four-text">A few answers may trigger a quick follow-up so we can understand the real issue instead of guessing. Your progress is saved securely as you go, and your first report is based on directional business signals rather than confidential operating details.</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="welcome-form-panel">
+        <div class="brand-trust-panel">
+          <img src="/assets/brand/sil-trust-seal.png" alt="Bridge To AI Secure Intelligence Layer">
+          <div>
+            <strong>Privacy-first AI processing</strong>
+            <span>Encrypted intake, controlled use, and private report delivery before any partner aggregate insight is considered.</span>
+          </div>
+        </div>
+        <div class="welcome-form-title">Start here</div>
+
+        <div class="resume-card" id="resume-card">
+          <div class="resume-title">Resume your previous session?</div>
+          <div class="resume-body" id="resume-summary">We found saved progress from this browser.</div>
+          <div class="resume-actions">
+            <button class="btn-primary" type="button" onclick="resumeSavedInterview()">Resume session</button>
+            <button class="btn-secondary" type="button" onclick="clearSavedInterview(true)">Start over</button>
+          </div>
+        </div>
+
+        <div class="name-field">
+          <label for="client-name">Your name</label>
+          <input type="text" id="client-name" placeholder="e.g. Jane Smith" autocomplete="off" />
+        </div>
+
+        <div class="name-field">
+          <label for="client-email">Email for your report link</label>
+          <input type="email" id="client-email" placeholder="e.g. jane@yourbusiness.ca" autocomplete="email" />
+          <div class="field-status" id="client-email-status" aria-live="polite"></div>
+        </div>
+
+        <div class="name-field">
+          <label for="business-name">Your business name</label>
+          <input type="text" id="business-name" placeholder="e.g. Acme Plumbing Ltd." autocomplete="off" />
+        </div>
+
+        <div class="name-field">
+          <label for="business-niche">What does your business do?</label>
+          <input type="text" id="business-niche" maxlength="160" placeholder="e.g. plumbing contractor, bookkeeping practice, online retailer, local manufacturer..." autocomplete="off" />
+          <div class="field-help">A simple description is enough. We use this to make the questions more relevant.</div>
+        </div>
+
+        <div class="name-field">
+          <label for="share-comfort">For this first intake, how much detail are you comfortable sharing?</label>
+          <select id="share-comfort">
+            <option value="Directional only">Directional only</option>
+            <option value="General ranges are okay">General ranges are okay</option>
+            <option value="I may share more in a private scoping session">I may share more in a private scoping session</option>
+            <option value="Not sure yet">Not sure yet</option>
+          </select>
+        </div>
+
+        <div class="name-field">
+          <label for="website-url">Business website <span style="font-weight:400;color:var(--ink-soft);">(optional)</span></label>
+          <input type="url" id="website-url" placeholder="e.g. https://yourbusiness.ca" autocomplete="off" />
+        </div>
+
+        <div class="name-field">
+          <label for="company-size">Roughly how many people work in your business?</label>
+          <input type="text" id="company-size" placeholder="e.g. 1, 8, 45..." autocomplete="off" inputmode="numeric" />
+        </div>
+
+        <div class="name-field">
+          <label for="owner-work-status">How are you involved in the business right now? <span style="font-weight:400;color:var(--ink-soft);">(optional, but helps tailor the questions)</span></label>
+          <input type="text" id="owner-work-status" placeholder="e.g. full-time owner, semi-retired, side business, managing a team..." autocomplete="off" />
+        </div>
+
+        <div class="name-field">
+          <label>Which departments or functions does your business have? <span style="font-weight:400;color:var(--ink-soft);">(tap all that apply)</span></label>
+          <div class="dept-grid">
+            <label class="dept-pill"><input type="checkbox" value="Sales"><span>Sales</span></label>
+            <label class="dept-pill"><input type="checkbox" value="Marketing"><span>Marketing</span></label>
+            <label class="dept-pill"><input type="checkbox" value="Operations"><span>Operations</span></label>
+            <label class="dept-pill"><input type="checkbox" value="Finance / Accounting"><span>Finance / Accounting</span></label>
+            <label class="dept-pill"><input type="checkbox" value="Customer Service"><span>Customer Service</span></label>
+            <label class="dept-pill"><input type="checkbox" value="Production / Fulfillment"><span>Production / Fulfillment</span></label>
+            <label class="dept-pill"><input type="checkbox" value="HR / People"><span>HR / People</span></label>
+            <label class="dept-pill"><input type="checkbox" value="IT / Tech"><span>IT / Tech</span></label>
+            <label class="dept-pill"><input type="checkbox" value="Admin"><span>Admin</span></label>
+            <label class="dept-pill"><input type="checkbox" value="It's mostly just me"><span>It's mostly just me</span></label>
+          </div>
+        </div>
+
+        <div class="consent-box">
+          <label class="consent-label" for="privacy-consent">
+            <input type="checkbox" id="privacy-consent" />
+            <span>
+              I agree to the <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>
+              and consent to Bridge To AI securely processing my interview responses to prepare my private AI opportunity report and related service materials.
+              <span class="partner-consent-note" id="partner-consent-note">
+                I understand that anonymized, aggregated insights from participating members may be shared with the partner organization for education, course planning, and member-support strategy. Raw interview records and individual answers are not shared with the partner.
+              </span>
+            </span>
+          </label>
+        </div>
+
+        <div id="welcome-error" class="error-banner">Please fill in your name, valid email, business name, what your business does, and privacy consent before continuing.</div>
+        <div class="draft-save-status" id="draft-save-status" aria-live="polite"></div>
+
+        <button class="btn-primary" onclick="startInterview(event)" style="width:100%;">
+          Begin my discovery session ->
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- -- Screen 2: Interview -- -->
+  <div class="screen" id="screen-interview">
+    <div class="progress-wrap">
+      <div class="progress-meta">
+        <span class="progress-label" id="progress-label">Domain 1 of 8</span>
+        <span class="progress-count" id="progress-count">Question 1</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill" style="width: 9%"></div>
+      </div>
+    </div>
+
+    <div class="question-domain" id="q-domain">Business Model & Direction</div>
+    <div class="question-text" id="q-text">How does your business make money today?</div>
+    <div class="question-hint" id="q-hint">Your core products or services, who pays for them, and whether the money is one-time, recurring, or project-based.</div>
+
+    <div id="answer-error" class="error-banner">Please share your thoughts before continuing - there are no wrong answers.</div>
+
+    <div class="input-area">
+      <div
+        class="transcript-box"
+        id="transcript"
+        contenteditable="true"
+        data-placeholder="Tap the mic and speak your answer. To fix or change anything, pause the mic first, then type - turn it back on to keep talking."
+      ></div>
+      <div class="input-toolbar">
+        <button class="voice-btn" id="voice-btn" onclick="toggleRecording()">
+          <span class="mic-dot"></span>
+          <span id="voice-label">Click to speak</span>
+        </button>
+        <span class="char-count" id="char-count">0 words</span>
+      </div>
+    </div>
+
+    <div class="nav-row">
+      <button type="button" class="btn-secondary" id="btn-back" onclick="prevQuestion()"><- Back</button>
+      <span class="nav-reassure">You can go back anytime to review or change an answer</span>
+      <button type="button" class="btn-primary" id="btn-next" onclick="nextQuestion()">Continue -></button>
+    </div>
+  </div>
+
+  <!-- -- Screen 3: Processing -- -->
+  <div class="screen" id="screen-processing">
+    <div class="processing-wrap">
+      <div class="spinner"></div>
+      <div class="processing-title" id="processing-title">Creating your private business profile...</div>
+      <p class="processing-body" id="processing-body">
+        Your answers are being turned into a secure business profile. The free report is prepared after your secure record is saved, and deeper reports are generated only when requested.
+      </p>
+      <p class="processing-timer" id="processing-timer">
+        Working for 0:00. Please keep this tab open until you see the confirmation screen.
+      </p>
+      <div class="processing-steps">
+        <div class="p-step active" id="pstep-1">
+          <div class="p-icon">1</div>
+          <span id="pstep-1-label">Reviewing the full interview</span>
+        </div>
+        <div class="p-step" id="pstep-2">
+          <div class="p-icon">2</div>
+          <span id="pstep-2-label">Creating the secure business profile</span>
+        </div>
+        <div class="p-step" id="pstep-3">
+          <div class="p-icon">3</div>
+          <span id="pstep-3-label">Preparing report-ready insights</span>
+        </div>
+        <div class="p-step" id="pstep-4">
+          <div class="p-icon">4</div>
+          <span id="pstep-4-label">Saving encrypted records securely</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- -- Screen 4: Complete -- -->
+  <div class="screen" id="screen-complete">
+    <div class="complete-wrap">
+      <div class="complete-icon">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+      </div>
+      <h2 class="complete-headline">You're all done.</h2>
+      <p class="complete-sub" id="complete-message">
+        Thank you. Your business profile has been encrypted and sent to the Bridge Team securely.
+        They'll review it before your next conversation and use it to build
+        something that actually fits how your business works.
+      </p>
+
+      <div class="completion-layout">
+        <section class="completion-column" aria-labelledby="free-report-title">
+          <div class="completion-swimlanes">
+            <article class="completion-lane">
+              <div class="completion-lane-icon">1</div>
+              <div>
+                <h3 id="free-report-title">Your free report is prepared by email</h3>
+                <p id="next-desc-1">Bridge To AI sends your private AI Opportunity Snapshot to the email address you provided at the start.</p>
+              </div>
+              <div class="completion-lane-action">
+                <label class="email-confirm-pill" for="completion-email-input">
+                  <span>Send to</span>
+                  <input type="email" id="completion-email-input" autocomplete="email" inputmode="email" placeholder="your email" />
+                </label>
+                <button type="button" class="btn-primary" id="report-delivery-btn" onclick="handleReportDeliveryButton()">Email my free report</button>
+                <span id="followup-save-status" class="completion-note"></span>
+              </div>
+            </article>
+
+            <article class="completion-lane">
+              <div class="completion-lane-icon">2</div>
+              <div>
+                <h3 id="next-title-2">Your email includes the next options</h3>
+                <p id="next-desc-2">The report email will include links for the Detailed AI Opportunity Report, Preliminary AI Action Plan, and implementation/workbench support if you want to go further.</p>
+              </div>
+              <div class="completion-lane-action">
+                <span class="completion-note">No decision needed on this page.</span>
+              </div>
+            </article>
+
+            <article class="completion-lane">
+              <div class="completion-lane-icon">3</div>
+              <div>
+                <h3 id="next-title-3">AFPA receives aggregate themes only</h3>
+                <p id="next-desc-3">Your individual answers and raw interview record are not shared with AFPA. AFPA may receive anonymized themes to help shape member AI education.</p>
+              </div>
+              <div class="completion-lane-action">
+                <span class="completion-note">Privacy-first partner reporting.</span>
+              </div>
+            </article>
+
+            <article class="completion-lane">
+              <div class="completion-lane-icon">4</div>
+              <div>
+                <h3>Questions or delivery trouble?</h3>
+                <p>Reach the Bridge Team at <a href="mailto:team@bridgetoai.ca">team@bridgetoai.ca</a>. If report delivery does not confirm, we can recover the report from the secure record.</p>
+              </div>
+              <div class="completion-lane-action">
+                <span class="completion-note">Your answers remain private.</span>
+              </div>
+            </article>
+          </div>
+
+          <div class="deepen-interview-box" id="deepen-interview-box">
+            <div class="deepen-interview-title">Want a more complete diagnostic while the context is fresh?</div>
+            <p class="deepen-interview-copy">
+              Your free snapshot is already handled. If you want to keep going, we can ask the remaining deeper questions in this same secure session so Bridge To AI has a fuller brief to work from.
+            </p>
+            <button type="button" class="btn-secondary" id="continue-deep-btn" onclick="continueIntoDeepDiagnostic()">Continue deeper interview</button>
+          </div>
+        </section>
+      </div>
+
+      <p class="complete-footer">
+        Protected by Bridge To AI's Secure Intelligence Layer.
+      </p>
+    </div>
+  </div>
+
+</main>
+
+<footer class="footer">
+  <span class="footer-copy">(c) 2026 Bridge To AI</span>
+  <span class="footer-privacy">
+    <img class="lock-icon" src="/assets/brand/sil-lock-mark.png" alt="" aria-hidden="true">
+    Your answers are private and encrypted · <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>
+  </span>
+</footer>
+
+<script>
+// -- Configuration ----------------------------------------------------------
+// IMPORTANT: Replace these with your actual values before deploying
+const CONFIG = {
+  EMAIL_ENDPOINT: '/api/send-email',              // Vercel serverless function endpoint
+  REPORT_PACK_ENDPOINT: '/api/report-pack',
+  DARREN_EMAIL: 'team@bridgetoai.ca',               // Intake delivery address; forwards to Darren via Resend/email routing
+  DEFAULT_PARTNER: 'BTAI',
+  DEFAULT_CAMPAIGN: 'general_intake'
+};
+const PRIVACY_POLICY_VERSION = '2026-07-25-v1.56.1';
+
+const PARTNER_PROFILES = {
+  AFPA: {
+    displayName: 'Alberta Food Processors Association',
+    shortName: 'AFPA',
+    logoSrc: '/assets/partners/afpa-logo.png',
+    logoAlt: 'Alberta Food Processors Association',
+    headerTag: 'AFPA Member AI Readiness Intake',
+    pill: 'AFPA Member Program',
+    eyebrow: 'Confidential AFPA member intake',
+    headline: 'Help shape practical AI training for Alberta food processors.',
+    body: 'This session usually takes about 15-25 minutes. Your answers help prepare your private AI opportunity report and help AFPA understand, in anonymized aggregate form, what members need most from upcoming AI education. General ranges and directional examples are enough; please avoid private financials, recipes, customer lists, supplier contracts, payroll details, invoices, or confidential operating data. The 20-question interview focuses on practical training needs, repeated work, niche-specific examples, information readiness, comfort boundaries, and safe first AI uses. Your answers are encrypted and stored securely.',
+    banner: 'This co-branded intake is provided for AFPA members and powered by Bridge To AI. AFPA receives anonymized aggregate insights for education and program planning, not raw member interview files.',
+    stepOne: 'You will move through practical questions that help identify what AI training, examples, templates, workflow support, and safer implementation guidance may help AFPA members most.',
+    stepFour: 'A few answers may trigger a quick follow-up when more context is needed. Your progress is saved securely as you go, and you can resume if you need to come back later.',
+    completion: 'Your AFPA member AI readiness intake has been encrypted and securely saved. Bridge To AI will use it to prepare your private AI opportunity report. AFPA may receive anonymized aggregate insights to help shape member education, but your raw interview record is not shared with AFPA.',
+    nextSteps: [
+      ['Bridge To AI prepares your free snapshot', 'Your answers will be used to prepare a private AI Opportunity Snapshot focused on practical next steps for your business.'],
+      ['AFPA receives anonymized member insights', 'AFPA may receive aggregate themes to help shape the December AI course and future member support. Individual answers and raw records are not shared.'],
+      ['You choose whether to go deeper', 'If you ask for follow-up, Bridge To AI can discuss deeper reports, implementation planning, or custom AI workbench support.']
+    ]
+  }
+};
+
+const INDUSTRY_PACKS = {
+  trade_field_services: {
+    id: 'trade_field_services',
+    label: 'Trade Services / Field Services',
+    shortLabel: 'trade or field service business',
+    aliases: ['home builder', 'builder', 'contractor', 'renovation', 'electrician', 'plumber', 'hvac', 'roofer', 'landscaper', 'arborist', 'tree service', 'restoration', 'field service', 'trades'],
+    subtypes: ['Builder / renovation contractor', 'Electrical / plumbing / HVAC', 'Roofing / exterior work', 'Landscaping / tree service', 'Restoration / emergency service', 'Other trade or field service'],
+    opportunities: ['lead intake', 'quote requests', 'site visits', 'job photos', 'crew scheduling', 'dispatch handoffs', 'materials coordination', 'change requests', 'customer updates', 'invoice follow-up', 'warranty/service history'],
+    customerTypes: ['homeowners', 'property managers', 'commercial accounts', 'repeat service customers', 'larger project clients', 'maintenance customers', 'referral partners'],
+    workflowExamples: ['lead to quote', 'site visit to estimate', 'scheduled job to crew handoff', 'field notes to invoice', 'customer update to follow-up'],
+    riskBoundaries: ['safety decisions', 'code or inspection decisions', 'legal disputes', 'insurance claims', 'customer private addresses beyond what is needed', 'payment details', 'employee personal information'],
+    reportFraming: 'Look first at the handoff from inquiry to quote, scheduled job, field notes, customer update, and invoice/follow-up.'
+  },
+  healthcare_care_services_non_clinical: {
+    id: 'healthcare_care_services_non_clinical',
+    label: 'Healthcare & Care Services: Non-Clinical Operations',
+    shortLabel: 'non-clinical healthcare or care-services business',
+    aliases: ['doctor', 'clinic', 'medical office', 'nurse practitioner', 'dentist', 'dental', 'home care', 'physio', 'physiotherapy', 'chiropractor', 'allied health', 'wellness clinic', 'care service', 'senior care'],
+    subtypes: ['Medical clinic / doctor office', 'Dental office', 'Home care agency', 'Allied health / therapy clinic', 'Wellness or care-services office', 'Other non-clinical care operation'],
+    opportunities: ['appointment requests', 'intake forms', 'reminders', 'cancellations', 'referral tracking', 'phone messages', 'document routing', 'staff handoffs', 'billing admin', 'policy/SOP updates', 'supply ordering'],
+    customerTypes: ['patients or clients', 'care recipients', 'families/caregivers', 'referring offices', 'staff teams', 'administrative leads'],
+    workflowExamples: ['appointment request to booking', 'form intake to admin review', 'referral received to follow-up', 'phone message to staff handoff', 'policy update to staff checklist'],
+    riskBoundaries: ['diagnosis', 'treatment advice', 'care planning', 'medication decisions', 'clinical triage', 'patient chart details', 'health card numbers', 'lab results', 'identifiable patient/client information'],
+    reportFraming: 'Keep recommendations limited to non-clinical operations: scheduling, forms, reminders, routing, internal SOPs, and administrative handoffs.'
+  },
+  food_processing_manufacturing_distribution: {
+    id: 'food_processing_manufacturing_distribution',
+    label: 'Food Processing / Manufacturing / Distribution',
+    shortLabel: 'food, manufacturing, or distribution business',
+    aliases: ['food processor', 'food processing', 'copacker', 'co-packer', 'contract manufacturer', 'cpg', 'food brand', 'food manufacturer', 'food manufacturing', 'distributor', 'wholesaler', 'importer', 'commissary', 'beverage', 'bakery', 'meat', 'seafood', 'dairy', 'produce', 'prepared foods'],
+    subtypes: ['Food processor / manufacturer', 'Copacker / contract manufacturer', 'Food brand / CPG company', 'Distributor / wholesaler / importer', 'Foodservice production / commissary', 'Value-added agriculture', 'Other food or beverage business'],
+    productAreas: ['Bakery / baked goods', 'Beverage / bottling', 'Meat / seafood / protein', 'Dairy / cheese', 'Produce / value-added farm product', 'Prepared foods / ready-to-eat', 'Sauces / condiments / preserves', 'Snacks / shelf-stable packaged goods', 'Other'],
+    opportunities: ['order intake', 'production planning', 'batch/SKU coordination', 'QA records', 'label or spec-sheet updates', 'inventory visibility', 'buyer follow-up', 'supplier updates', 'shipping exceptions', 'SOP capture', 'training templates'],
+    customerTypes: ['retail buyers', 'foodservice accounts', 'distributors', 'brokers', 'private-label customers', 'direct customers', 'regional accounts'],
+    workflowExamples: ['order to production run', 'buyer request to spec sheet', 'QA note to corrective action', 'supplier document to internal record', 'shipment update to customer follow-up'],
+    riskBoundaries: ['recipes', 'confidential formulas', 'supplier contracts', 'customer lists', 'private financials', 'payroll', 'invoices', 'food safety decisions without review', 'regulated compliance decisions'],
+    reportFraming: 'Look at repeated admin around orders, production, QA/compliance-adjacent records, buyer follow-up, document control, and planning.'
+  },
+  manufacturing_operations: {
+    id: 'manufacturing_operations',
+    label: 'Manufacturing / Operations Business',
+    shortLabel: 'manufacturing or operations business',
+    aliases: ['manufacturer', 'manufacturing', 'fabrication', 'fabricator', 'machine shop', 'assembly', 'industrial', 'production shop'],
+    subtypes: ['Fabrication / machine shop', 'Assembly / production', 'Industrial supplier', 'Custom manufacturer', 'Other manufacturing operation'],
+    opportunities: ['quote requests', 'job intake', 'production planning', 'work-order coordination', 'quality records', 'inventory visibility', 'supplier updates', 'shipping exceptions', 'SOP capture', 'training templates'],
+    customerTypes: ['commercial accounts', 'industrial buyers', 'contract customers', 'distributors', 'repeat customers', 'project clients'],
+    workflowExamples: ['quote request to work order', 'work order to production plan', 'quality note to corrective action', 'supplier update to internal record', 'shipment update to customer follow-up'],
+    riskBoundaries: ['proprietary designs', 'customer specifications', 'supplier contracts', 'private financials', 'payroll', 'invoices', 'safety decisions without review', 'regulated compliance decisions'],
+    reportFraming: 'Look at repeated admin around quotes, work orders, production coordination, quality records, customer updates, and planning.'
+  },
+  professional_services_advisory: {
+    id: 'professional_services_advisory',
+    label: 'Professional Services / Advisory Businesses',
+    shortLabel: 'professional services or advisory business',
+    aliases: ['business coach', 'coach', 'consultant', 'advisor', 'bookkeeper', 'bookkeeping', 'accountant', 'insurance broker', 'real estate', 'hr consultant', 'trainer', 'facilitator', 'agency', 'professional services'],
+    subtypes: ['Business coach / consultant', 'Bookkeeping / accounting', 'Broker / advisor', 'Training / facilitation', 'Agency / marketing services', 'Other professional service'],
+    opportunities: ['client intake', 'discovery notes', 'proposal drafting', 'scope control', 'session summaries', 'follow-up emails', 'progress tracking', 'reporting', 'resource reuse', 'workshop preparation'],
+    customerTypes: ['retainer clients', 'project clients', 'referral partners', 'workshop participants', 'business owners', 'professional buyers'],
+    workflowExamples: ['lead to discovery call', 'session notes to action items', 'proposal request to scope draft', 'client check-in to follow-up', 'repeat advice to reusable resource'],
+    riskBoundaries: ['confidential client strategy', 'legal advice', 'regulated financial advice', 'HR records', 'therapy-like disclosures', 'private customer data', 'contracts', 'payment details'],
+    reportFraming: 'Look first at client intake, notes, proposals, follow-up, repeated advice, reporting, and reusable knowledge.'
+  },
+  general_business: {
+    id: 'general_business',
+    label: 'General Business Operations',
+    shortLabel: 'business',
+    aliases: [],
+    subtypes: ['Product business', 'Service business', 'Local business', 'Online business', 'Association / training organization', 'Other'],
+    opportunities: ['customer follow-up', 'admin work', 'reporting', 'sales support', 'operations checklists', 'training material', 'marketing content', 'decision support'],
+    customerTypes: ['repeat customers', 'larger accounts', 'online/direct customers', 'referral partners', 'strategic partnerships', 'new markets'],
+    workflowExamples: ['lead to follow-up', 'task to handoff', 'notes to report', 'request to response', 'workaround to repeatable process'],
+    riskBoundaries: ['private financials', 'customer names', 'supplier contracts', 'payroll', 'invoices', 'regulated data', 'confidential formulas', 'passwords or keys'],
+    reportFraming: 'Look for repeated work, unclear handoffs, scattered information, and low-risk first AI support.'
+  }
+};
+
+const LEGACY_CATEGORY_PACK_MAP = {
+  'Bakery / Grains': 'food_processing_manufacturing_distribution',
+  'Beverages': 'food_processing_manufacturing_distribution',
+  'Meat / Protein': 'food_processing_manufacturing_distribution',
+  'Produce / Fresh Pack': 'food_processing_manufacturing_distribution',
+  'Prepared Foods': 'food_processing_manufacturing_distribution',
+  'Distribution / Wholesale': 'food_processing_manufacturing_distribution',
+  'Retail / Food Service': 'food_processing_manufacturing_distribution',
+  'Manufacturing': 'manufacturing_operations',
+  'Professional Services': 'professional_services_advisory',
+  'Trades / Field Services': 'trade_field_services',
+  'Other': 'general_business'
+};
+const SENSITIVE_DETAIL_WARNING = 'For this first intake, general ranges and directional examples are enough. Please avoid private financials, recipes, customer names, supplier contracts, payroll details, invoices, or confidential formulas.';
+const FULL_MAX_ADAPTIVE_PROBES = 5;
+const SNAPSHOT_MAX_ADAPTIVE_PROBES = 2;
+const AFPA_MAX_ADAPTIVE_PROBES = 5;
+const QUESTION_PRIORITY_WEIGHTS = {
+  'Member Profile|Business Context': 5,
+  'Repeated Work|Top Repeated Task': 5,
+  'Workflow Friction|Current Process': 5,
+  'Workflow Friction|Bottleneck': 5,
+  'Information Readiness|Information Sources': 5,
+  'Risk & Adoption|Human Review Boundary': 5,
+  'Revenue Engine|First Useful Win': 5,
+  'AI Opportunity|Practical Leverage': 5,
+  'Repeated Work|Time & Frequency': 4,
+  'Information Readiness|Readiness Assets': 4,
+  'AI Opportunity|Comfort Boundary': 4,
+  'Member Profile|Team & Role': 3
+};
+const APPROVED_PROBE_TYPES = ['clarify', 'prioritize', 'range', 'severity', 'frequency', 'blocker', 'owner/readiness', 'risk', 'low-risk pilot', 'voice/tone'];
+const FORBIDDEN_PROBE_PATTERNS = [
+  /\bexact\b/i,
+  /\brevenue\b.*\bamount\b/i,
+  /\bprofit\b|\bmargin\b|\bpayroll\b|\bbank\b|\btax\b|\blegal record\b/i,
+  /\bcustomer names?\b|\bname your customers?\b|\bnamed customers?\b/i,
+  /\bsupplier names?\b|\bname your suppliers?\b|\bnamed suppliers?\b/i,
+  /\bemployee personal\b|\bstaff personal\b/i,
+  /\brecipe\b|\bformula\b|\bconfidential formula\b/i,
+  /\bcontract\b|\binvoice\b|\bpurchase order\b|\bPOs?\b/i,
+  /\bpassword\b|\bapi key\b|\bsecret key\b/i,
+  /\bhealth\b|\bmedical\b/i
+];
+
+// -- Questions --------------------------------------------------------------
+// section: 'business' = 8-domain questions (eligible for AI probing at domain end)
+// section: 'mastery'  = owner self-assessment (fixed AI-future follow-up, no probing)
+const FULL_QUESTIONS = [
+  // ==== DOMAIN 1: Business Model & Direction ====
+  { section: 'business', domain: 'Business Model & Direction', type: 'Current Reality',
+    text: 'How does your business make money today?',
+    hint: 'Your core products or services, who pays for them, and whether the money is one-time, recurring, or project-based.' },
+  { section: 'business', domain: 'Business Model & Direction', type: 'Pain & Cost',
+    text: 'Where is growth stuck, unpredictable, or slower than you want?',
+    hint: 'What priorities keep getting ignored because there isn\'t enough time, money, or bandwidth?' },
+  { section: 'business', domain: 'Business Model & Direction', type: 'Desired Future',
+    text: 'What does success look like 12 months from now?',
+    hint: 'Revenue, customers, reach, product mix - paint the picture of where you want to be.' },
+  { section: 'business', domain: 'Business Model & Direction', type: 'AI Fit',
+    text: 'Which parts of your business run on manual knowledge work that eats your time?',
+    hint: 'Reporting, forecasting, writing proposals, research - the thinking-and-typing work behind the scenes.' },
+
+  // ==== DOMAIN 2: Customer Reality ====
+  { section: 'business', domain: 'Customer Reality', type: 'Current Reality',
+    text: 'Describe your best customers - who are they and why do they choose you?',
+    hint: 'Think of 2 or 3 clients you love working with. What do they have in common?' },
+  { section: 'business', domain: 'Customer Reality', type: 'Pain & Cost',
+    text: 'What do customers complain about most, and where do relationships break down?',
+    hint: 'Where do accounts churn, go quiet, or get frustrated?' },
+  { section: 'business', domain: 'Customer Reality', type: 'Desired Future',
+    text: 'What would a best-in-class customer experience look like for your business?',
+    hint: 'What would make clients stay longer, spend more, and refer you without being asked?' },
+  { section: 'business', domain: 'Customer Reality', type: 'AI Fit',
+    text: 'Which customer touchpoints are slow, repetitive, or inconsistent?',
+    hint: 'Responses, follow-ups, updates, onboarding - where could faster or more personal help win loyalty?' },
+
+  // ==== DOMAIN 3: Revenue Engine ====
+  { section: 'business', domain: 'Revenue Engine', type: 'Current Reality',
+    text: 'Walk through what happens from first contact to signed deal.',
+    hint: 'How leads arrive, the first conversation, the proposal, how pricing is set and communicated.' },
+  { section: 'business', domain: 'Revenue Engine', type: 'Revenue Opportunity',
+    text: 'When you think about new revenue, which type of opportunity would matter most right now, and how would you describe its value without sharing exact numbers?',
+    hint: 'Examples: more small repeat customers, larger accounts, online or direct orders, catering or special orders, repeat purchases, higher-value contracts, partnerships, or a new market. For value, use language like small but steady, meaningful weekly revenue, meaningful monthly revenue, capacity-changing, hiring/system-justifying, not sure, or better discussed privately later.' },
+  { section: 'business', domain: 'Revenue Engine', type: 'Pain & Cost',
+    text: 'Where do deals stall, leak, or fall through the cracks?',
+    hint: 'What follow-up gets dropped? Where does the sales process lose people?' },
+  { section: 'business', domain: 'Revenue Engine', type: 'Desired Future',
+    text: 'What would a more predictable, consistent sales process look like?',
+    hint: 'If leads and follow-up just happened reliably, what would change?' },
+  { section: 'business', domain: 'Revenue Engine', type: 'AI Fit',
+    text: 'Which parts of selling are information-heavy and repeatable?',
+    hint: 'Proposals, prospect research, objection responses, CRM updates, follow-up sequences.' },
+
+  // ==== DOMAIN 4: Operations & Delivery ====
+  { section: 'business', domain: 'Operations & Delivery', type: 'Current Reality',
+    text: 'After a client says yes, how does the work actually get done?',
+    hint: 'Step by step - who does what, in what order, and where the handoffs are.' },
+  { section: 'business', domain: 'Operations & Delivery', type: 'Pain & Cost',
+    text: 'Where does delivery slow down, require rework, or blow past budget or timeline?',
+    hint: 'What recurring tasks eat the most time? Where do things most often go wrong?' },
+  { section: 'business', domain: 'Operations & Delivery', type: 'Desired Future',
+    text: 'What would smoother, faster, more consistent delivery look like?',
+    hint: 'If the same quality came out in half the time, what would have to be true?' },
+  { section: 'business', domain: 'Operations & Delivery', type: 'AI Fit',
+    text: 'Which delivery tasks involve gathering info, writing documents, or checking for errors?',
+    hint: 'The coordinating, drafting, and double-checking work that happens on every job.' },
+
+  // ==== DOMAIN 5: People & Decision-Making ====
+  { section: 'business', domain: 'People & Decision-Making', type: 'Current Reality',
+    text: 'Who are your key people, and what would break if one of them left?',
+    hint: 'What knowledge or decisions live in one person\'s head - including yours?' },
+  { section: 'business', domain: 'People & Decision-Making', type: 'Pain & Cost',
+    text: 'Where do decisions bottleneck or wait on you?',
+    hint: 'What can\'t move forward until you personally approve it or figure it out?' },
+  { section: 'business', domain: 'People & Decision-Making', type: 'Desired Future',
+    text: 'What would it look like if the team could operate more independently?',
+    hint: 'Where could documented systems replace knowledge that\'s stuck in people\'s heads?' },
+  { section: 'business', domain: 'People & Decision-Making', type: 'AI Fit',
+    text: 'Which decisions or communications depend on one person\'s knowledge that tools could support?',
+    hint: 'The judgment calls and replies that only happen when a specific person is available.' },
+
+  // ==== DOMAIN 6: Information, Data & Systems ====
+  { section: 'business', domain: 'Information & Systems', type: 'Current Reality',
+    text: 'Where does the important information in your business actually live?',
+    hint: 'Client details, job history, finances, communications - across which tools, files, and people.' },
+  { section: 'business', domain: 'Information & Systems', type: 'Pain & Cost',
+    text: 'Where is data incomplete, duplicated, or hard to find when you need it?',
+    hint: 'Where are you confident, where are you working from rough ranges, and where are you mostly guessing?' },
+  { section: 'business', domain: 'Information & Systems', type: 'Desired Future',
+    text: 'What would "one source of truth" look like for your business?',
+    hint: 'If you opened one dashboard tomorrow, what would you want to see on it?' },
+  { section: 'business', domain: 'Information & Systems', type: 'AI Fit',
+    text: 'Which reports, summaries, or updates require manual pulling and formatting today?',
+    hint: 'The status updates and recaps someone has to assemble by hand every week.' },
+
+  // ==== DOMAIN 7: AI Opportunity & Readiness ====
+  { section: 'business', domain: 'AI Opportunity', type: 'Current Reality',
+    text: 'What tasks get done over and over, often from scratch?',
+    hint: 'Where does the most time go on low-value, repetitive work each week?' },
+  { section: 'business', domain: 'AI Opportunity', type: 'Pain & Cost',
+    text: 'Which repetitive tasks create the most frustration or delay?',
+    hint: 'What would 10 hours a week of saved time actually make possible for you?' },
+  { section: 'business', domain: 'AI Opportunity', type: 'Desired Future',
+    text: 'If AI handled the most repetitive 20% of work perfectly, what would you focus on instead?',
+    hint: 'The higher-value work you never get to because the busywork crowds it out.' },
+  { section: 'business', domain: 'AI Opportunity', type: 'Commercial Objective',
+    text: 'Is the primary goal of this AI project to reduce operational workload, expand capacity for new revenue, or both?',
+    hint: 'This helps separate personal time savings, admin efficiency, and growth capacity without asking for confidential financial detail.' },
+  { section: 'business', domain: 'AI Opportunity', type: 'Execution Reality',
+    text: 'Let\'s get specific: if we freed up 10-15 hours per week, walk me through exactly what you\'d do with that time. What specific revenue-generating or high-value activities?',
+    hint: 'Be concrete without sharing private figures: which channel, customer type, workflow, or growth activity would get your attention first?' },
+  { section: 'business', domain: 'AI Opportunity', type: 'Execution Reality',
+    text: 'When you commit to new work or goals for your business, what typically happens? Do they get done, get delayed, or get dropped?',
+    hint: 'Look back at the last 3-4 goals you set. Did you complete them, or did other things take priority?' },
+  { section: 'business', domain: 'AI Opportunity', type: 'AI Fit',
+    text: 'Which tasks involve reading, writing, summarizing, or researching - done many times a week?',
+    hint: 'The language-and-information work that repeats constantly.' },
+
+  // ==== DOMAIN 8: Risk, Constraints & Adoption ====
+  { section: 'business', domain: 'Risk & Adoption', type: 'Current Reality',
+    text: 'What privacy, compliance, or confidentiality constraints apply to your business?',
+    hint: 'Client data, regulated information, industry rules - and how comfortable your team is with new tech.' },
+  { section: 'business', domain: 'Risk & Adoption', type: 'Pain & Cost',
+    text: 'What has blocked new technology from sticking in the past?',
+    hint: 'Where does fear of error, cost, or disruption create hesitation?' },
+  { section: 'business', domain: 'Risk & Adoption', type: 'Desired Future',
+    text: 'What would a successful AI rollout look and feel like for your team?',
+    hint: 'What would change, and how would the people around you feel about it?' },
+  { section: 'business', domain: 'Risk & Adoption', type: 'AI Fit',
+    text: 'Which low-risk, reversible AI uses could you try first to build confidence?',
+    hint: 'Something easy to pilot and easy to undo, with no sensitive data exposed.' },
+
+  // ==== SECTION 9: OWNER MASTERY (6 categories, two-part) ====
+  { section: 'mastery', domain: 'Personal Productivity & Mastery',
+    text: 'Where are you right now with personal productivity and mastery?',
+    hint: 'This might mean focus, energy, how you structure your days, the systems you rely on, how on-top-of-things you feel - or whatever it means to you.' },
+  { section: 'mastery', domain: 'Strategy & Decision-Making',
+    text: 'Where are you right now with strategy and decision-making?',
+    hint: 'This might mean clarity of direction, how confidently you choose, how often you second-guess, how you weigh options - interpret it your own way.' },
+  { section: 'mastery', domain: 'Time & Leverage',
+    text: 'Where are you right now with time and leverage?',
+    hint: 'Leverage could mean leveraging your time, your money, your people, your tools, your reputation - wherever a little effort creates a lot of output for you.' },
+  { section: 'mastery', domain: 'Sales & Influence',
+    text: 'Where are you right now with sales and influence?',
+    hint: 'This might mean closing deals, persuading a room, building trust, negotiating, or simply getting people to say yes - whatever influence means in your world.' },
+  { section: 'mastery', domain: 'Marketing & Messaging',
+    text: 'Where are you right now with marketing and messaging?',
+    hint: 'This might mean how clearly you explain what you do, your visibility, your brand, your content, how well people "get it" - your call on what counts.' },
+  { section: 'mastery', domain: 'Operations & Efficiency',
+    text: 'Where are you right now with operations and efficiency?',
+    hint: 'Efficiency might be about operations, or it might be about time, money, or energy somewhere else entirely. Take it wherever it fits for you.' }
+];
+
+const AFPA_DECEMBER_AI_COURSE_QUESTIONS = [
+  { section: 'business', domain: 'Member Profile', type: 'Business Context',
+    text: 'What does your food or beverage business do, and what kind of products, services, or customers matter most right now?',
+    hint: 'Keep this general. Product categories, channels, customer types, and current priorities are useful. Do not share private recipes, formulas, customer lists, contracts, or confidential financial details.' },
+  { section: 'business', domain: 'Member Profile', type: 'Team & Role',
+    text: 'Who on your team would most likely use AI first, and what role do they play in the business?',
+    hint: 'Use roles, not names: owner, admin, sales, production, QA, marketing, finance, operations, manager, or another role.' },
+  { section: 'business', domain: 'Repeated Work', type: 'Top Repeated Task',
+    text: 'What repeated admin, sales, production, compliance, customer, or reporting task would be most useful to make easier?',
+    hint: 'Think about the work that comes back every week or every month and takes attention away from higher-value work.' },
+  { section: 'business', domain: 'Repeated Work', type: 'Time & Frequency',
+    text: 'How often does that work happen, and roughly how much time or frustration does it create?',
+    hint: 'Daily, weekly, monthly, seasonal, or only when something goes wrong. General ranges are enough.' },
+  { section: 'business', domain: 'Workflow Friction', type: 'Current Process',
+    text: 'How is that work handled today from start to finish?',
+    hint: 'Who starts it, what information they need, where it lives, and where the handoffs or delays happen.' },
+  { section: 'business', domain: 'Workflow Friction', type: 'Bottleneck',
+    text: 'Where does the work usually slow down, get repeated, need retyping, need checking, or wait for someone?',
+    hint: 'This helps AFPA understand what practical examples would make AI training feel useful instead of theoretical.' },
+  { section: 'business', domain: 'Information Readiness', type: 'Information Sources',
+    text: 'Where does the information for this work usually live?',
+    hint: 'Examples: email, spreadsheets, accounting software, ERP, shared folders, labels, spec sheets, SOPs, paper forms, supplier documents, photos, or people\'s memory.' },
+  { section: 'business', domain: 'Information Readiness', type: 'Useful Materials',
+    text: 'Do you already have examples, templates, checklists, forms, SOPs, spreadsheets, or emails that show how this work should be done?',
+    hint: 'A yes, no, or partial answer is fine. This helps identify whether members need AI training, document cleanup, or both.' },
+  { section: 'business', domain: 'AI Training Needs', type: 'Most Useful Training',
+    text: 'What kind of AI training would be most useful to your team in the next 90 days?',
+    hint: 'Examples: prompting basics, safe data handling, admin automation, spreadsheet/report help, customer replies, sales follow-up, production planning, quality/compliance support, marketing, or workflow mapping.' },
+  { section: 'business', domain: 'AI Training Needs', type: 'Business Area',
+    text: 'Which business area would you most want practical AI examples for?',
+    hint: 'Choose the area that would make training immediately useful: admin, sales, marketing, production, QA/compliance, customer service, HR/training, purchasing, finance/reporting, planning, or another area.' },
+  { section: 'business', domain: 'AI Training Needs', type: 'Training Format',
+    text: 'What training format would be easiest for your business to act on?',
+    hint: 'Examples: live workshop, short videos, templates, checklists, industry examples, one-on-one help, done-with-you setup, peer examples, or office-hours support.' },
+  { section: 'business', domain: 'Risk & Boundaries', type: 'Comfort Boundary',
+    text: 'What would your team be comfortable letting AI help with first?',
+    hint: 'Drafting, organizing, summarizing, checking, reminding, searching, reporting, comparing options, or creating first drafts for human review.' },
+  { section: 'business', domain: 'Risk & Boundaries', type: 'Do Not Automate',
+    text: 'What should AI not touch or decide without a person reviewing it?',
+    hint: 'Think customer promises, food safety, compliance, pricing, payroll, confidential formulas, recipes, contracts, private financials, regulated data, or anything high-risk.' },
+  { section: 'business', domain: 'Risk & Boundaries', type: 'Training Concerns',
+    text: 'What would make your team nervous about using AI in the business?',
+    hint: 'Accuracy, privacy, staff adoption, cost, security, misinformation, losing control, confusing tools, regulatory concerns, or not knowing where to start.' },
+  { section: 'business', domain: 'Readiness & Adoption', type: 'Current AI Use',
+    text: 'How is your business using AI today, if at all?',
+    hint: 'Not using it yet, experimenting personally, using it in one department, using it inconsistently, or already using it in regular workflows.' },
+  { section: 'business', domain: 'Readiness & Adoption', type: 'What Would Help',
+    text: 'What would make AI feel safe, practical, and worth using for your team?',
+    hint: 'Examples: approved examples, clear privacy rules, templates, checklists, human review steps, starter workflows, training for staff, or help choosing tools.' },
+  { section: 'business', domain: 'First Useful Win', type: 'Member Value',
+    text: 'If one AI-supported workflow worked well for your business, what would improve first?',
+    hint: 'Time saved, fewer errors, faster follow-up, better documentation, clearer planning, improved customer response, more consistent training, or reduced stress.' },
+  { section: 'business', domain: 'AFPA Course Design', type: 'Success Signal',
+    text: 'What would make an AFPA AI training session feel like a real win for your business?',
+    hint: 'Tell us what you would want to leave with: a working template, a mapped workflow, a better prompt, a privacy checklist, a draft automation idea, a safer AI policy, or a clear first step.' },
+  { section: 'business', domain: 'Niche Fit', type: 'Industry Example',
+    text: 'What is one common problem, customer question, or internal task that is specific to your niche?',
+    hint: 'Examples might involve shelf life, labeling, cold chain, buyer follow-up, quality records, production planning, distributor updates, or another issue common in your part of food processing. Keep it general.' },
+  { section: 'business', domain: 'Niche Fit', type: 'Useful Template',
+    text: 'If AFPA provided one AI-ready template or example for businesses like yours, what would you want it to help with first?',
+    hint: 'Think about a checklist, email draft, SOP helper, reporting template, training guide, buyer follow-up, production-planning prompt, quality-note summary, or another practical tool.' }
+];
+
+const SNAPSHOT_QUESTIONS = [
+  { section: 'business', domain: 'Business Model & Direction', type: 'Business Snapshot',
+    text: 'Who do you serve, and what work, product, or service matters most right now?',
+    hint: 'A simple overview is enough: what you sell or deliver, who buys it, and where the business is trying to grow or stabilize.' },
+  { section: 'business', domain: 'AI Opportunity', type: 'Top Bottleneck',
+    text: 'What is the most frustrating repeated task or process in the business right now?',
+    hint: 'The thing that keeps coming back, slows people down, causes stress, or gets handled manually too often.' },
+  { section: 'business', domain: 'AI Opportunity', type: 'Frequency',
+    text: 'How often does this come up: daily, weekly, monthly, seasonal, or mostly when things go wrong?',
+    hint: 'Frequency helps separate a nice-to-have automation from something that could create real operational relief.' },
+  { section: 'business', domain: 'Operations & Delivery', type: 'Current Workaround',
+    text: 'How do you handle that work today?',
+    hint: 'Who starts it, what tools or notes they use, and what workaround keeps it moving.' },
+  { section: 'business', domain: 'Operations & Delivery', type: 'Handoff & Delay Point',
+    text: 'Where does it usually slow down, get repeated, or need clarification?',
+    hint: 'Look for waiting, retyping, rechecking, missing information, unclear ownership, or repeated back-and-forth.' },
+  { section: 'business', domain: 'People & Decision-Making', type: 'Who Is Involved',
+    text: 'Who usually touches this work before it is finished?',
+    hint: 'Use roles, not names: owner, admin, sales, production, bookkeeper, manager, customer, supplier, or outside partner.' },
+  { section: 'business', domain: 'Information & Systems', type: 'Information Location',
+    text: 'Where does the information needed for this work usually live?',
+    hint: 'Examples: memory, email, spreadsheets, software, paper forms, shared folders, phone photos, notes, or a mix of places.' },
+  { section: 'business', domain: 'Information & Systems', type: 'Readiness Assets',
+    text: 'Do you already have examples, templates, checklists, emails, forms, SOPs, or spreadsheets that show how this work should be done?',
+    hint: 'A yes, no, or partial answer is fine. This helps us know whether AI could learn from existing material or whether cleanup comes first.' },
+  { section: 'business', domain: 'AI Opportunity', type: 'Comfort Boundary',
+    text: 'What would you be comfortable letting AI help with first?',
+    hint: 'Drafting, organizing, summarizing, checking, reminding, analyzing, recommending, searching, reporting, or something else.' },
+  { section: 'business', domain: 'Risk & Adoption', type: 'Human Review Boundary',
+    text: 'What should AI absolutely not touch or decide without a person reviewing it?',
+    hint: 'Think approvals, customer promises, pricing, private data, compliance, safety, payroll, formulas, contracts, or anything sensitive.' },
+  { section: 'business', domain: 'Revenue Engine', type: 'First Useful Win',
+    text: 'If this got 20 percent easier, what would improve first?',
+    hint: 'Time, consistency, customer response, sales follow-up, fewer mistakes, less stress, faster decisions, or capacity for better work.' },
+  { section: 'business', domain: 'AI Opportunity', type: 'Practical Leverage',
+    text: 'If AI took one frustrating or repetitive thing off your plate, what would you spend more time or attention on instead?',
+    hint: 'Keep it practical: serving customers, sales, production, planning, training, quality, marketing, family time, or getting control back.' }
+];
+const SNAPSHOT_QUESTION_KEYS = new Set(SNAPSHOT_QUESTIONS.map(questionKey));
+let QUESTIONS = FULL_QUESTIONS;
+
+// Fixed follow-up shown after every mastery question
+const MASTERY_FOLLOWUP = 'And if AI quietly handled this area for you, what would that free you up to do, or how would it change things?';
+const SESSION_KEY = 'bridge-to-ai-intake-session-v1';
+const DRAFT_ACCESS_KEY = 'bridge-to-ai-intake-access-v1';
+const LEGACY_DRAFT_KEY = 'bridge-to-ai-intake-draft-v1';
+
+// State ------------------------------------------------------------------
+let currentQ = 0;
+let answers = [];              // base answer per question index
+let masteryFollowups = [];     // mastery follow-up answer per question index (only mastery uses it)
+let masteryFollowupQ = [];     // the follow-up QUESTION shown for each mastery item (smart or generic)
+let domainProbes = {};         // { probeKey: { domain, sourceQuestionIndex, question, answer } }
+let snapshotAnswersArchive = []; // preserved Snapshot First answers if the user continues deeper
+// Voice & Standards scenario (near the start, tailored to business category)
+let scenarioText = '';         // the AI-generated scenario the client reacts to
+let scenarioGood = '';         // their "best/proud" reply
+let scenarioBad = '';          // their "bad/off-brand" reply
+let scenarioStage = null;      // null | 'good' | 'bad' - which beat is showing
+let scenarioDone = false;      // true once both beats are captured
+let clientName = '';
+let clientEmail = '';
+let privacyConsent = false;
+let privacyConsentAt = '';
+let btaiFollowupInterest = 'maybe';
+let btaiFollowupInterestAt = '';
+let freeReportDeliveryStarted = false;
+let freeReportDeliverySucceeded = false;
+let completionTestMode = false;
+let businessName = '';
+let businessCategory = '';
+let businessNiche = '';
+let shareComfort = 'Directional only';
+let websiteUrl = '';
+let companySize = '';
+let ownerWorkStatus = '';
+let departments = [];
+let businessContext = null;
+let campaignPartner = CONFIG.DEFAULT_PARTNER;
+let campaignId = CONFIG.DEFAULT_CAMPAIGN;
+let partnerDisplayName = '';
+let intakeVariant = 'full_diagnostic';
+let recognition = null;
+let isRecording = false;
+let recognitionSessionId = 0;
+
+// Sub-step within a question: 'main' = base question, 'followup' = mastery AI-future Q, 'probe' = AI probe
+let subStep = 'main';
+let activeProbe = null;        // { key, domain, sourceQuestionIndex, question } when a probe is showing
+let draftAutosaveEnabled = true;
+let clientDraftId = '';
+let draftAccessToken = '';
+let lastLoggedQuestionKey = '';
+let loggedSectionStarts = {};
+let loggedSectionCompletes = {};
+let sectionStartTimes = {};
+let interviewStartedAtMs = null;
+let interviewSubmitted = false;
+let lastAbandonmentLogAt = 0;
+let pendingDraftPayload = null;
+let draftSaveTimer = null;
+let lastLoadedDraft = null;
+let lastSecureStorage = null;
+
+// -- Screen management ------------------------------------------------------
+function ensureClientDraftId() {
+  if (!draftAccessToken) {
+    try { draftAccessToken = localStorage.getItem(DRAFT_ACCESS_KEY) || ''; } catch (e) { /* session resume unavailable */ }
+  }
+  if (!clientDraftId) {
+    try { clientDraftId = localStorage.getItem(SESSION_KEY) || ''; } catch (e) { /* ignore */ }
+  }
+  if (!clientDraftId) {
+    clientDraftId = (crypto && crypto.randomUUID) ? crypto.randomUUID() : `draft_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  }
+  try { localStorage.setItem(SESSION_KEY, clientDraftId); } catch (e) { /* session resume unavailable */ }
+  return clientDraftId;
+}
+
+function countWords(text) {
+  const cleaned = String(text || '').trim();
+  return cleaned ? cleaned.split(/\s+/).filter(Boolean).length : 0;
+}
+
+function safeMetricLabel(value, fallback = '') {
+  return String(value || fallback)
+    .replace(/[^a-zA-Z0-9_-]+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 80);
+}
+
+function initCampaignContext() {
+  const params = new URLSearchParams(window.location.search);
+  const path = String(window.location.pathname || '').toLowerCase().replace(/\/+$/, '');
+  const pathCampaign =
+    path === '/snapshot' || path === '/snapshot-first' ? 'snapshot_first' :
+    path === '/afpa' ? 'afpa_member_intake' :
+    path === '/full' ? 'full_diagnostic' :
+    '';
+  campaignPartner = safeMetricLabel(params.get('partner'), path === '/afpa' ? 'AFPA' : CONFIG.DEFAULT_PARTNER) || CONFIG.DEFAULT_PARTNER;
+  const partnerDefaultCampaign = String(campaignPartner || '').toUpperCase() === 'AFPA' ? 'afpa_member_intake' : CONFIG.DEFAULT_CAMPAIGN;
+  campaignId = safeMetricLabel(params.get('campaign'), pathCampaign || partnerDefaultCampaign) || CONFIG.DEFAULT_CAMPAIGN;
+  partnerDisplayName = activePartnerProfile()?.displayName || '';
+  intakeVariant = activeIntakeVariant();
+  applyCampaignQuestionSet();
+  applyPartnerBranding();
+}
+
+function activePartnerProfile() {
+  return PARTNER_PROFILES[String(campaignPartner || '').toUpperCase()] || null;
+}
+
+function activeIntakeVariant() {
+  const normalizedCampaign = String(campaignId || '').toLowerCase();
+  const path = String(window.location.pathname || '').toLowerCase().replace(/\/+$/, '');
+  if (
+    path === '/snapshot' ||
+    path === '/snapshot-first' ||
+    normalizedCampaign === 'snapshot_first' ||
+    normalizedCampaign === 'snapshot-first' ||
+    normalizedCampaign === 'afpa_snapshot' ||
+    normalizedCampaign === 'afpa_snapshot_first' ||
+    normalizedCampaign === 'member_snapshot'
+  ) {
+    return 'snapshot_first';
+  }
+  if (
+    path === '/afpa' ||
+    normalizedCampaign === 'afpa' ||
+    normalizedCampaign === 'afpa_member_intake' ||
+    normalizedCampaign === 'afpa_december_ai_course_2026'
+  ) {
+    return 'afpa_member_intake';
+  }
+  return 'full_diagnostic';
+}
+
+function isSnapshotFirstCampaign() {
+  return intakeVariant === 'snapshot_first';
+}
+
+function isAfpaMemberIntake() {
+  return intakeVariant === 'afpa_member_intake';
+}
+
+function isAfpaDecemberAiCourseCampaign() {
+  return (
+    String(campaignPartner || '').toUpperCase() === 'AFPA' &&
+    String(campaignId || '').toLowerCase() === 'afpa_december_ai_course_2026' &&
+    isAfpaMemberIntake()
+  );
+}
+
+function isContinuedDeepDiagnostic() {
+  return intakeVariant === 'full_diagnostic_continued';
+}
+
+function activeScenarioStepCount() {
+  return intakeVariant === 'full_diagnostic' ? 2 : 0;
+}
+
+function activeQuestionSetName() {
+  if (isSnapshotFirstCampaign()) return 'snapshot_first_short_set';
+  if (isAfpaMemberIntake()) return 'afpa_member_20_question_set';
+  return 'full_diagnostic_set';
+}
+
+function questionKey(q) {
+  return `${q.section || ''}|${q.domain || ''}|${q.type || ''}`;
+}
+
+function applyCampaignQuestionSet() {
+  QUESTIONS = isSnapshotFirstCampaign()
+    ? SNAPSHOT_QUESTIONS
+    : isAfpaMemberIntake()
+      ? AFPA_DECEMBER_AI_COURSE_QUESTIONS
+      : FULL_QUESTIONS;
+  if (Number.isInteger(currentQ)) currentQ = clampQuestionIndex(currentQ);
+}
+
+function firstUnansweredFullQuestionIndex(nextAnswers) {
+  const index = FULL_QUESTIONS.findIndex((q, i) => {
+    if (SNAPSHOT_QUESTION_KEYS.has(questionKey(q))) return false;
+    return !String(nextAnswers[i] || '').trim();
+  });
+  return index === -1 ? FULL_QUESTIONS.length - 1 : index;
+}
+
+function mapCurrentAnswersToFullQuestionSet() {
+  const snapshotQuestions = Array.isArray(QUESTIONS) ? QUESTIONS : [];
+  snapshotAnswersArchive = snapshotQuestions.map((q, index) => ({
+    domain: q.domain || '',
+    type: q.type || '',
+    question: q.text || '',
+    answer: answers[index] || ''
+  })).filter(item => String(item.answer || '').trim());
+  const answerBuckets = new Map();
+  const followupBuckets = new Map();
+  const followupQuestionBuckets = new Map();
+
+  snapshotQuestions.forEach((q, index) => {
+    const key = questionKey(q);
+    if (!answerBuckets.has(key)) {
+      answerBuckets.set(key, []);
+      followupBuckets.set(key, []);
+      followupQuestionBuckets.set(key, []);
+    }
+    answerBuckets.get(key).push(answers[index] || '');
+    followupBuckets.get(key).push(masteryFollowups[index] || '');
+    followupQuestionBuckets.get(key).push(masteryFollowupQ[index] || '');
+  });
+
+  const nextAnswers = new Array(FULL_QUESTIONS.length).fill('');
+  const nextMasteryFollowups = new Array(FULL_QUESTIONS.length).fill('');
+  const nextMasteryFollowupQ = new Array(FULL_QUESTIONS.length).fill('');
+
+  FULL_QUESTIONS.forEach((q, index) => {
+    const key = questionKey(q);
+    nextAnswers[index] = (answerBuckets.get(key) || []).shift() || '';
+    nextMasteryFollowups[index] = (followupBuckets.get(key) || []).shift() || '';
+    nextMasteryFollowupQ[index] = (followupQuestionBuckets.get(key) || []).shift() || '';
+  });
+
+  answers = nextAnswers;
+  masteryFollowups = nextMasteryFollowups;
+  masteryFollowupQ = nextMasteryFollowupQ;
+}
+
+function activeMaxAdaptiveProbes() {
+  if (isAfpaMemberIntake()) return AFPA_MAX_ADAPTIVE_PROBES;
+  return isSnapshotFirstCampaign() ? SNAPSHOT_MAX_ADAPTIVE_PROBES : FULL_MAX_ADAPTIVE_PROBES;
+}
+
+function setText(id, value) {
+  const el = document.getElementById(id);
+  if (el && value) el.textContent = value;
+}
+
+function setHtml(id, value) {
+  const el = document.getElementById(id);
+  if (el && value) el.innerHTML = value;
+}
+
+function applyPartnerBranding() {
+  const profile = activePartnerProfile();
+  const banner = document.getElementById('partner-banner');
+  const partnerLogoCard = document.getElementById('partner-logo-card');
+  const partnerLogoImg = document.getElementById('partner-logo-img');
+  const partnerHeaderLogo = document.getElementById('partner-header-logo');
+  const partnerHeaderLogoImg = document.getElementById('partner-header-logo-img');
+  const partnerConsent = document.getElementById('partner-consent-note');
+  const whiteLabelNote = document.getElementById('white-label-note');
+  document.body.classList.toggle('campaign-afpa-course', isAfpaDecemberAiCourseCampaign());
+  if (!profile) {
+    if (banner) banner.classList.remove('active');
+    if (partnerLogoCard) partnerLogoCard.classList.remove('active');
+    if (partnerHeaderLogo) partnerHeaderLogo.classList.remove('active');
+    if (partnerConsent) partnerConsent.classList.remove('active');
+    if (whiteLabelNote) whiteLabelNote.classList.remove('hidden');
+    setText('header-tag', 'Business Discovery Session');
+    applyCampaignCopy();
+    return;
+  }
+
+  setText('header-tag', profile.headerTag);
+  setText('partner-pill', profile.pill);
+  setText('partner-banner-text', profile.banner);
+  setText('welcome-eyebrow', profile.eyebrow);
+  setHtml('welcome-headline', profile.headline);
+  setText('welcome-body', profile.body);
+  setText('step-one-text', profile.stepOne);
+  setText('step-four-text', profile.stepFour);
+  if (profile.logoSrc) {
+    if (partnerLogoImg) {
+      partnerLogoImg.src = profile.logoSrc;
+      partnerLogoImg.alt = profile.logoAlt || profile.displayName || '';
+    }
+    if (partnerHeaderLogoImg) {
+      partnerHeaderLogoImg.src = profile.logoSrc;
+      partnerHeaderLogoImg.alt = profile.logoAlt || profile.displayName || '';
+    }
+    if (partnerLogoCard) partnerLogoCard.classList.add('active');
+    if (partnerHeaderLogo) partnerHeaderLogo.classList.add('active');
+  } else {
+    if (partnerLogoCard) partnerLogoCard.classList.remove('active');
+    if (partnerHeaderLogo) partnerHeaderLogo.classList.remove('active');
+  }
+  if (Array.isArray(profile.nextSteps)) {
+    profile.nextSteps.forEach((step, index) => {
+      setText(`next-title-${index + 1}`, step[0]);
+      setText(`next-desc-${index + 1}`, step[1]);
+    });
+  }
+  if (banner) banner.classList.add('active');
+  if (partnerConsent) partnerConsent.classList.add('active');
+  if (whiteLabelNote) whiteLabelNote.classList.add('hidden');
+  configureAfpaCourseFrontDoor();
+}
+
+function answerQuality(text) {
+  const wordCount = countWords(text);
+  let bucket = 'empty';
+  if (wordCount >= 60) bucket = 'rich';
+  else if (wordCount >= 25) bucket = 'useful';
+  else if (wordCount >= 12) bucket = 'light';
+  else if (wordCount >= 6) bucket = 'short';
+  else if (wordCount > 0) bucket = 'minimal';
+
+  return {
+    wordCount,
+    bucket,
+    isShortAnswer: wordCount > 0 && wordCount < 12,
+    hasNumber: /\d/.test(String(text || '')),
+    hasExampleLanguage: /\b(example|for instance|usually|often|when|because|customer|client|order|job|week|month|hours?)\b/i.test(String(text || ''))
+  };
+}
+
+function allAnswerTexts() {
+  const probeAnswers = Object.values(domainProbes || {}).map(probe => probe?.answer || '');
+  return [
+    scenarioGood,
+    scenarioBad,
+    ...answers,
+    ...masteryFollowups,
+    ...probeAnswers
+  ].filter(text => String(text || '').trim());
+}
+
+function questionProbeKey(qIndex = currentQ) {
+  const q = QUESTIONS[qIndex] || {};
+  return `${q.domain || 'Question'}|${q.type || 'Question'}|${qIndex}`;
+}
+
+function probeEntriesForDomain(domainName) {
+  return Object.values(domainProbes || {}).filter(probe => probe && probe.domain === domainName);
+}
+
+function probeEntriesForQuestion(qIndex) {
+  return Object.values(domainProbes || {}).filter(probe => probe && probe.sourceQuestionIndex === qIndex);
+}
+
+function questionPriorityWeight(q = {}) {
+  const explicit = QUESTION_PRIORITY_WEIGHTS[`${q.domain || ''}|${q.type || ''}`];
+  if (Number.isFinite(explicit)) return explicit;
+  if (/risk|boundary|do not|privacy|compliance/i.test(`${q.domain || ''} ${q.type || ''} ${q.text || ''}`)) return 5;
+  if (/process|bottleneck|repeated|frequency|source|readiness|first useful|leverage/i.test(`${q.domain || ''} ${q.type || ''} ${q.text || ''}`)) return 4;
+  if (q.section === 'business') return 3;
+  return 2;
+}
+
+function adaptiveRedirectDecision(q = {}, answer = '') {
+  const priorityWeight = questionPriorityWeight(q);
+  const quality = answerQuality(answer);
+  const hasEnoughShape = quality.hasExampleLanguage || quality.hasNumber;
+  let needsRedirect = false;
+  let reason = '';
+
+  if (quality.wordCount > 0 && quality.wordCount < 6) {
+    needsRedirect = true;
+    reason = 'minimal_answer';
+  } else if (priorityWeight >= 5 && quality.wordCount < 18) {
+    needsRedirect = true;
+    reason = 'high_priority_thin_answer';
+  } else if (priorityWeight >= 4 && quality.wordCount < 14) {
+    needsRedirect = true;
+    reason = 'important_thin_answer';
+  } else if (priorityWeight >= 4 && quality.wordCount < 30 && !hasEnoughShape) {
+    needsRedirect = true;
+    reason = 'missing_example_or_range';
+  } else if (priorityWeight >= 3 && quality.wordCount < 10) {
+    needsRedirect = true;
+    reason = 'short_answer';
+  }
+
+  return { needsRedirect, reason, priorityWeight, quality };
+}
+
+function answeredCoreQuestionCount() {
+  let completed = answers.filter(answer => String(answer || '').trim()).length;
+  if (activeScenarioStepCount() > 0) {
+    if (scenarioGood && scenarioGood.trim()) completed += 1;
+    if (scenarioBad && scenarioBad.trim()) completed += 1;
+  }
+  return completed;
+}
+
+function totalCoreQuestionCount() {
+  return QUESTIONS.length + activeScenarioStepCount();
+}
+
+function progressMetrics(extra = {}) {
+  const totalPromptCount = totalCoreQuestionCount();
+  const completedPromptCount = answeredCoreQuestionCount();
+  return {
+    totalPromptCount,
+    completedPromptCount,
+    completionFraction: totalPromptCount ? Number((completedPromptCount / totalPromptCount).toFixed(3)) : 0,
+    completionPercent: totalPromptCount ? Math.round((completedPromptCount / totalPromptCount) * 100) : 0,
+    currentPromptNumber: scenarioStage === 'good' ? 1 : scenarioStage === 'bad' ? 2 : currentQ + 1 + activeScenarioStepCount(),
+    lastCompletedQuestionIndex: Math.max(-1, answers.reduce((last, answer, index) => String(answer || '').trim() ? index : last, -1)),
+    lastCompletedQuestionNumber: Math.max(0, answers.reduce((last, answer, index) => String(answer || '').trim() ? index + 1 : last, 0)),
+    generatedProbeCount: generatedProbeCount(),
+    answeredProbeCount: Object.values(domainProbes || {}).filter(probe => probe?.answer && countWords(probe.answer) > 0).length,
+    ...extra
+  };
+}
+function interviewKpiSummary() {
+  const texts = allAnswerTexts();
+  const wordCounts = texts.map(text => countWords(text));
+  const totalWordCount = wordCounts.reduce((sum, n) => sum + n, 0);
+  const shortAnswerCount = wordCounts.filter(n => n > 0 && n < 12).length;
+  const richAnswerCount = wordCounts.filter(n => n >= 60).length;
+  const probeEntries = Object.values(domainProbes || {});
+  const generatedProbeCount = probeEntries.filter(probe => probe?.asked && probe?.question).length;
+  const answeredProbeCount = probeEntries.filter(probe => probe?.answer && countWords(probe.answer) > 0).length;
+  const elapsedSeconds = interviewStartedAtMs ? Math.round((Date.now() - interviewStartedAtMs) / 1000) : null;
+
+  return {
+    baseQuestionCount: QUESTIONS.length,
+    answeredPromptCount: texts.length,
+    totalWordCount,
+    averageWordsPerAnswer: texts.length ? Math.round(totalWordCount / texts.length) : 0,
+    shortAnswerCount,
+    shortAnswerRate: texts.length ? Number((shortAnswerCount / texts.length).toFixed(3)) : 0,
+    richAnswerCount,
+    generatedProbeCount,
+    answeredProbeCount,
+    elapsedSeconds,
+    businessNiche,
+    shareComfort,
+    intakeVariant,
+    questionSet: activeQuestionSetName(),
+    maxAdaptiveProbes: activeMaxAdaptiveProbes(),
+    ...progressMetrics()
+  };
+}
+
+function currentQuestionMeta() {
+  const q = QUESTIONS[currentQ] || {};
+  return {
+    questionIndex: scenarioStage ? null : currentQ,
+    questionType: scenarioStage ? `scenario_${scenarioStage}` : (subStep === 'followup' ? 'mastery_followup' : subStep === 'probe' ? 'domain_probe' : q.type || ''),
+    domain: scenarioStage ? 'Voice & Standards' : q.domain || '',
+    stage: scenarioStage || subStep || 'main'
+  };
+}
+
+function logHermesEvent(eventType, status = 'info', details = {}) {
+  try {
+    readWelcomeFields();
+    const meta = currentQuestionMeta();
+    const transcriptText = document.getElementById('transcript')?.innerText || '';
+    const quality = answerQuality(details.answerTextForMetrics || transcriptText);
+    const payload = {
+      clientDraftId: ensureClientDraftId(),
+      clientName,
+      businessName,
+      businessCategory,
+      businessNiche,
+      shareComfort,
+      companySize,
+      ownerWorkStatus,
+      partner: campaignPartner,
+      campaign: campaignId,
+      intakeVariant,
+      eventType,
+      status,
+      stage: meta.stage,
+      questionIndex: meta.questionIndex,
+      questionType: meta.questionType,
+      domain: meta.domain,
+      answerWordCount: quality.wordCount,
+      details: {
+        partner: campaignPartner,
+        campaign: campaignId,
+        intakeVariant,
+        questionSet: activeQuestionSetName(),
+        hasWebsite: !!websiteUrl,
+        businessNiche,
+        shareComfort,
+        departments,
+        privacyConsent,
+        privacyPolicyVersion: PRIVACY_POLICY_VERSION,
+        btaiFollowupInterest,
+        answerQualityBucket: quality.bucket,
+        isShortAnswer: quality.isShortAnswer,
+        hasNumber: quality.hasNumber,
+        hasExampleLanguage: quality.hasExampleLanguage,
+        ...details
+      }
+    };
+    delete payload.details.answerTextForMetrics;
+
+    const body = JSON.stringify(payload);
+    if (navigator.sendBeacon) {
+      const blob = new Blob([body], { type: 'application/json' });
+      if (navigator.sendBeacon('/api/hermes-log', blob)) return;
+    }
+
+    fetch('/api/hermes-log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+      keepalive: true
+    }).catch(() => {});
+  } catch (e) { /* monitoring must never block the interview */ }
+}
+function hermesSectionKey(sectionType, sectionName) {
+  return `${sectionType}:${sectionName || 'unknown'}`;
+}
+
+function logHermesSectionStarted(sectionType, sectionName, details = {}) {
+  const key = hermesSectionKey(sectionType, sectionName);
+  if (loggedSectionStarts[key]) return;
+  loggedSectionStarts[key] = true;
+  sectionStartTimes[key] = Date.now();
+  logHermesEvent(`${sectionType}_started`, 'success', { section: sectionName, ...details });
+}
+
+function logHermesSectionCompleted(sectionType, sectionName, details = {}) {
+  const key = hermesSectionKey(sectionType, sectionName);
+  if (loggedSectionCompletes[key]) return;
+  loggedSectionCompletes[key] = true;
+  const durationSeconds = sectionStartTimes[key] ? Math.round((Date.now() - sectionStartTimes[key]) / 1000) : null;
+  logHermesEvent(`${sectionType}_completed`, 'success', { section: sectionName, durationSeconds, ...details });
+}
+
+function domainAnswerStats(domainName) {
+  const indexes = QUESTIONS
+    .map((q, i) => ({ q, i }))
+    .filter(x => x.q.section === 'business' && x.q.domain === domainName);
+  const baseWords = indexes.reduce((sum, x) => sum + countWords(answers[x.i] || ''), 0);
+  const probes = probeEntriesForDomain(domainName);
+  const probeWords = probes.reduce((sum, probe) => sum + countWords(probe?.answer || ''), 0);
+  return {
+    questionCount: indexes.length + probes.filter(probe => probe?.asked && probe?.question).length,
+    totalWordCount: baseWords + probeWords
+  };
+}
+
+function masteryAnswerStats(qIndex) {
+  return {
+    questionCount: 2,
+    totalWordCount: countWords(answers[qIndex] || '') + countWords(masteryFollowups[qIndex] || '')
+  };
+}
+function captureVisibleTranscript() {
+  const box = document.getElementById('transcript');
+  if (!box) return;
+  const val = box.innerText.trim();
+
+  if (scenarioStage === 'good') scenarioGood = val;
+  else if (scenarioStage === 'bad') scenarioBad = val;
+  else if (subStep === 'followup') masteryFollowups[currentQ] = val;
+  else if (subStep === 'probe' && activeProbe) {
+    const probeKey = activeProbe.key || activeProbe.domain || questionProbeKey(currentQ);
+    if (!domainProbes[probeKey]) domainProbes[probeKey] = { ...activeProbe, answer: '', asked: true };
+    domainProbes[probeKey].answer = val;
+    domainProbes[probeKey].asked = true;
+  } else if (answers.length) {
+    answers[currentQ] = val;
+  }
+}
+
+function normalizeEmail(value = '') {
+  return String(value || '').trim().toLowerCase();
+}
+
+function isValidEmail(value = '') {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(value));
+}
+
+function updateEmailFieldStatus(showEmpty = false) {
+  const input = document.getElementById('client-email');
+  const status = document.getElementById('client-email-status');
+  if (!input || !status) return true;
+  const value = normalizeEmail(input.value);
+  input.value = value;
+  input.classList.remove('field-invalid');
+  status.classList.remove('error', 'ok');
+  if (!value) {
+    status.textContent = showEmpty ? 'Please enter the email address where you want the report sent.' : '';
+    if (showEmpty) {
+      status.classList.add('error');
+      input.classList.add('field-invalid');
+    }
+    return false;
+  }
+  if (!isValidEmail(value)) {
+    status.textContent = 'That email address looks incomplete. Please check for a missing @, dot, or typo.';
+    status.classList.add('error');
+    input.classList.add('field-invalid');
+    return false;
+  }
+  status.textContent = 'Looks good. The report will be sent to this address unless you correct it later.';
+  status.classList.add('ok');
+  return true;
+}
+
+function updateCompletionEmailFieldStatus(showMessage = false) {
+  const input = document.getElementById('completion-email-input');
+  const status = document.getElementById('followup-save-status');
+  if (!input) return isValidEmail(clientEmail);
+  const value = normalizeEmail(input.value);
+  input.value = value;
+  if (!value || !isValidEmail(value)) {
+    if (status && showMessage) status.textContent = 'Please enter a valid email address before sending the free report.';
+    return false;
+  }
+  clientEmail = value;
+  if (status && showMessage) status.textContent = `Ready to send your free report to ${value}.`;
+  return true;
+}
+
+function readWelcomeFields() {
+  clientName = document.getElementById('client-name').value.trim();
+  clientEmail = normalizeEmail(document.getElementById('client-email').value);
+  privacyConsent = document.getElementById('privacy-consent').checked;
+  btaiFollowupInterest = document.querySelector('input[name="btai-followup"]:checked')?.value || btaiFollowupInterest || 'maybe';
+  businessName = document.getElementById('business-name').value.trim();
+  businessNiche = document.getElementById('business-niche').value.trim();
+  // New intakes use one plain-language description. A legacy draft can still
+  // carry a separate old category; retain it so its established industry pack
+  // does not silently change when the user resumes and saves.
+  const legacyCategory = LEGACY_CATEGORY_PACK_MAP[businessCategory] ? businessCategory : '';
+  if (!legacyCategory) businessCategory = businessNiche;
+  shareComfort = document.getElementById('share-comfort').value.trim() || 'Directional only';
+  websiteUrl = document.getElementById('website-url').value.trim();
+  companySize = document.getElementById('company-size').value.trim();
+  ownerWorkStatus = document.getElementById('owner-work-status').value.trim();
+  departments = Array.from(document.querySelectorAll('.dept-pill input:checked')).map(cb => cb.value);
+}
+
+function applyWelcomeFields() {
+  document.getElementById('client-name').value = clientName || '';
+  document.getElementById('client-email').value = clientEmail || '';
+  updateEmailFieldStatus(false);
+  document.getElementById('privacy-consent').checked = !!privacyConsent;
+  const followupInput = document.querySelector(`input[name="btai-followup"][value="${btaiFollowupInterest || 'maybe'}"]`);
+  if (followupInput) followupInput.checked = true;
+  document.getElementById('business-name').value = businessName || '';
+  document.getElementById('business-niche').value = businessNiche || businessCategory || '';
+  document.getElementById('share-comfort').value = shareComfort || 'Directional only';
+  document.getElementById('website-url').value = websiteUrl || '';
+  document.getElementById('company-size').value = companySize || '';
+  document.getElementById('owner-work-status').value = ownerWorkStatus || '';
+  document.querySelectorAll('.dept-pill input').forEach(cb => { cb.checked = departments.includes(cb.value); });
+}
+
+function buildDraftPayload(captureTranscript = true) {
+  if (!draftAutosaveEnabled) return;
+  readWelcomeFields();
+  if (captureTranscript) captureVisibleTranscript();
+  return {
+    version: 2,
+    storageMode: 'server_encrypted_supabase',
+    savedAt: new Date().toISOString(),
+    clientDraftId: ensureClientDraftId(),
+    clientName,
+    clientEmail,
+    privacyConsent,
+    privacyConsentAt,
+    privacyPolicyVersion: PRIVACY_POLICY_VERSION,
+    btaiFollowupInterest,
+    btaiFollowupInterestAt,
+    campaignPartner,
+    campaignId,
+    partnerDisplayName,
+    intakeVariant,
+    questionSet: activeQuestionSetName(),
+    businessName,
+    businessCategory,
+    businessNiche,
+    shareComfort,
+    websiteUrl,
+    companySize,
+    ownerWorkStatus,
+    departments,
+    currentQ,
+    answers,
+    masteryFollowups,
+    masteryFollowupQ,
+    domainProbes,
+    snapshotAnswersArchive,
+    scenarioText,
+    scenarioGood,
+    scenarioBad,
+    scenarioStage,
+    scenarioDone,
+    businessContext,
+    industryPack: industryPackSummary(),
+    subStep,
+    activeProbe,
+    interviewStarted: scenarioDone || !!scenarioStage || answers.some(Boolean) || masteryFollowups.some(Boolean) || Object.keys(domainProbes).length > 0
+  };
+}
+
+function postDraftToServer(payload, useBeacon = false) {
+  if (!payload || !payload.clientDraftId) return Promise.resolve({ saved: false });
+  try { localStorage.setItem(SESSION_KEY, payload.clientDraftId); } catch (e) { /* ignore */ }
+
+  const body = JSON.stringify({ action: 'save', payload, draftAccessToken });
+  if (useBeacon && draftAccessToken && navigator.sendBeacon) {
+    try {
+      const blob = new Blob([body], { type: 'application/json' });
+      if (navigator.sendBeacon('/api/draft', blob)) return Promise.resolve({ saved: true, queued: true });
+    } catch (e) { /* fall through to fetch */ }
+  }
+
+  return fetch('/api/draft', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body,
+    keepalive: useBeacon
+  }).then(async resp => {
+    if (!resp.ok) {
+      const data = await resp.json().catch(() => ({}));
+      throw new Error(data.error || 'Draft save failed');
+    }
+    const data = await resp.json();
+    if (data.draftAccessToken) {
+      draftAccessToken = data.draftAccessToken;
+      try { localStorage.setItem(DRAFT_ACCESS_KEY, draftAccessToken); } catch (e) { /* session resume unavailable */ }
+    }
+    updateDraftSaveStatus('Your answers are saved. It is safe to refresh this page.', 'ok');
+    return data;
+  });
+}
+
+function updateDraftSaveStatus(message = '', state = '') {
+  const status = document.getElementById('draft-save-status');
+  if (!status) return;
+  status.textContent = message;
+  status.className = `draft-save-status${state ? ` ${state}` : ''}`;
+}
+
+function flushDraftSave(useBeacon = false) {
+  if (draftSaveTimer) {
+    clearTimeout(draftSaveTimer);
+    draftSaveTimer = null;
+  }
+  const payload = pendingDraftPayload;
+  pendingDraftPayload = null;
+  if (!payload) return Promise.resolve({ saved: false });
+  return postDraftToServer(payload, useBeacon).catch(err => {
+    updateDraftSaveStatus('We could not save the latest changes. Please do not refresh yet.', 'error');
+    logHermesEvent('autosave_failed', 'failed', { autosaveTarget: 'server_encrypted_supabase', error: err.message || 'Server draft storage unavailable' });
+    return { saved: false, error: err.message };
+  });
+}
+
+function saveDraft(captureTranscript = true, immediate = false) {
+  if (!draftAutosaveEnabled) return;
+  try {
+    const payload = buildDraftPayload(captureTranscript);
+    if (!payload) return;
+    updateDraftSaveStatus('Saving your answers…', 'saving');
+    pendingDraftPayload = payload;
+    if (draftSaveTimer) clearTimeout(draftSaveTimer);
+    if (immediate) flushDraftSave(false);
+    else draftSaveTimer = setTimeout(() => flushDraftSave(false), 900);
+  } catch (e) { logHermesEvent('autosave_failed', 'failed', { autosaveTarget: 'server_encrypted_supabase', error: e.message || 'Draft preparation failed' }); }
+}
+
+async function loadDraft(clientDraftIdOverride = '') {
+  let sessionId = '';
+  if (clientDraftIdOverride) sessionId = String(clientDraftIdOverride || '').trim();
+  else {
+    try { sessionId = localStorage.getItem(SESSION_KEY) || ''; } catch (e) { sessionId = ''; }
+  }
+  if (!draftAccessToken) {
+    try { draftAccessToken = localStorage.getItem(DRAFT_ACCESS_KEY) || ''; } catch (e) { /* session resume unavailable */ }
+  }
+  if (!sessionId) return null;
+
+  try {
+    const resp = await fetch('/api/draft', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'load', clientDraftId: sessionId, draftAccessToken })
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    return data.found ? data.payload : null;
+  } catch (e) { return null; }
+}
+
+async function maybeContinueDeepInterviewFromLink() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('continue') !== 'deep') return false;
+  const recordId = params.get('recordId') || '';
+  if (!recordId) return false;
+
+  const draft = await loadDraft(recordId);
+  if (!draft) return false;
+  try { localStorage.setItem(SESSION_KEY, recordId); } catch (e) { /* resume unavailable */ }
+  lastLoadedDraft = { ...draft, clientDraftId: draft.clientDraftId || recordId };
+  await resumeSavedInterview({ requireCampaignMatch: false });
+  if (isSnapshotFirstCampaign()) {
+    continueIntoDeepDiagnostic();
+    return true;
+  }
+  return false;
+}
+
+function normalizeCampaignValue(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function draftMatchesCurrentCampaign(draft) {
+  if (!draft) return false;
+  return (
+    normalizeCampaignValue(draft.campaignPartner || CONFIG.DEFAULT_PARTNER) === normalizeCampaignValue(campaignPartner || CONFIG.DEFAULT_PARTNER) &&
+    normalizeCampaignValue(draft.campaignId || CONFIG.DEFAULT_CAMPAIGN) === normalizeCampaignValue(campaignId || CONFIG.DEFAULT_CAMPAIGN) &&
+    normalizeCampaignValue(draft.intakeVariant || activeIntakeVariant()) === normalizeCampaignValue(intakeVariant || activeIntakeVariant())
+  );
+}
+
+async function showResumeCardIfNeeded() {
+  const draft = await loadDraft();
+  const card = document.getElementById('resume-card');
+  if (!card || !draft) return;
+  if (!draftMatchesCurrentCampaign(draft)) return;
+  lastLoadedDraft = draft;
+
+  clientDraftId = draft.clientDraftId || '';
+  clientName = draft.clientName || '';
+  clientEmail = draft.clientEmail || '';
+  privacyConsent = !!draft.privacyConsent;
+  privacyConsentAt = draft.privacyConsentAt || '';
+  btaiFollowupInterest = draft.btaiFollowupInterest || 'maybe';
+  btaiFollowupInterestAt = draft.btaiFollowupInterestAt || '';
+  campaignPartner = draft.campaignPartner || campaignPartner || CONFIG.DEFAULT_PARTNER;
+  campaignId = draft.campaignId || campaignId || CONFIG.DEFAULT_CAMPAIGN;
+  partnerDisplayName = draft.partnerDisplayName || partnerDisplayName || '';
+  intakeVariant = draft.intakeVariant || activeIntakeVariant();
+  applyCampaignQuestionSet();
+  businessName = draft.businessName || '';
+  businessCategory = draft.businessCategory || '';
+  businessNiche = draft.businessNiche || '';
+  shareComfort = draft.shareComfort || 'Directional only';
+  websiteUrl = draft.websiteUrl || '';
+  companySize = draft.companySize || '';
+  ownerWorkStatus = draft.ownerWorkStatus || '';
+  departments = Array.isArray(draft.departments) ? draft.departments : [];
+  applyPartnerBranding();
+  applyWelcomeFields();
+  updateDraftSaveStatus('Your saved answers were restored. You can keep going.', 'ok');
+
+  if (draft.interviewStarted) {
+    logHermesEvent('resume_prompt_shown', 'success', { autosaveTarget: 'server_encrypted_supabase', resumeUsed: false });
+    const when = draft.savedAt ? new Date(draft.savedAt).toLocaleString() : 'recently';
+    document.getElementById('resume-summary').textContent = `Saved progress for ${draft.businessName || draft.clientName || 'this interview'} from ${when}.`;
+    card.style.display = 'block';
+  }
+  applyCampaignCopy();
+}
+
+function applyCampaignCopy() {
+  if (!isSnapshotFirstCampaign()) return;
+  configureSnapshotFrontDoor();
+  setText('header-tag', 'AI Opportunity Snapshot');
+  setText('welcome-eyebrow', 'Free AI Opportunity Snapshot');
+  setHtml('welcome-headline', 'Get a private <em>Snapshot Scorecard</em> before you buy anything.');
+  setText('welcome-body', 'In about 8-12 minutes, this interview looks at one frustrating workflow and turns your answers into a private AI Opportunity Snapshot. You will see five directional signals: workflow drag, AI fit, information readiness, human-review boundaries, and the first useful win. General examples are enough; please do not enter private financials, recipes, customer lists, supplier contracts, payroll details, invoices, or confidential operating data.');
+  setText('payoff-title', 'Your free report starts with a Snapshot Scorecard');
+  setText('payoff-note', 'Directional signals based on your answers, not fake ROI math.');
+  setText('gauge-number', '5');
+  setText('gauge-label', 'signals we review');
+  setText('gauge-sub', 'One clear starting point for AI');
+  setText('outcome-title-1', 'Best first AI win');
+  setText('outcome-copy-1', 'A practical use case tied to real friction, not AI hype.');
+  setText('outcome-title-2', 'Ready vs. cleanup');
+  setText('outcome-copy-2', 'A read on whether your information and workflow are ready enough to try.');
+  setText('outcome-title-3', 'Useful first move');
+  setText('outcome-copy-3', 'One next step or prompt you can use without buying anything.');
+  setText('snapshot-result-title', 'What your free snapshot can reveal');
+  setText('result-item-1', 'The workflow most likely to benefit from AI because it repeats, slows down, or depends on manual follow-up.');
+  setText('result-item-2', 'The type of AI help that looks safest to try first: drafting, organizing, summarizing, checking, reminding, or reporting.');
+  setText('result-item-3', 'Whether existing templates, forms, emails, SOPs, or spreadsheets give AI enough structure to work from.');
+  setText('result-item-4', 'What should remain human-reviewed, what needs confirmation, and what extra detail a deeper interview would need before a paid plan makes sense.');
+  setText('step-one-text', 'You will answer focused questions about one high-friction workflow: how often it happens, how it is handled today, where it slows down, what information exists, and where AI should or should not help.');
+  setText('step-four-text', 'A few answers may trigger up to two short follow-ups when more context is needed. Your progress is saved securely as you go, and the free snapshot remains directional rather than a full implementation plan.');
+  setText('free-report-title', 'Your free AI Opportunity Snapshot is prepared');
+  setText('next-desc-1', 'Bridge To AI creates a private first-pass AI Opportunity Snapshot from your completed interview and sends it to the email address you provided. This free snapshot does not create a business voice/DNA profile.');
+  setText('next-desc-2', 'The snapshot is intentionally shorter and directional. If you want more detail, Bridge To AI can invite you into the deeper diagnostic from the same secure interview platform.');
+  setText('paid-reports-title', 'Want the deeper diagnostic?');
+}
+
+function configureSnapshotFrontDoor() {
+  const splash = document.getElementById('snapshot-splash');
+  const detail = document.getElementById('welcome-detail');
+  if (!splash || !detail) return;
+  if (splash.dataset.visited === '1') return;
+  splash.classList.add('active');
+  detail.classList.add('is-hidden');
+}
+
+function configureAfpaCourseFrontDoor() {
+  const front = document.getElementById('afpa-course-front');
+  const detail = document.getElementById('welcome-detail');
+  const splash = document.getElementById('snapshot-splash');
+  if (!front || !detail || !isAfpaDecemberAiCourseCampaign()) return;
+  if (front.dataset.visited === '1') return;
+  if (splash) splash.classList.remove('active');
+  front.classList.add('active');
+  detail.classList.add('is-hidden');
+}
+
+function openAfpaCourseStart() {
+  const front = document.getElementById('afpa-course-front');
+  const detail = document.getElementById('welcome-detail');
+  if (front) {
+    front.dataset.visited = '1';
+    front.classList.remove('active');
+  }
+  if (detail) detail.classList.remove('is-hidden');
+  const firstInput = document.getElementById('client-name');
+  if (firstInput) setTimeout(() => firstInput.focus(), 80);
+  window.scrollTo(0, 0);
+}
+
+function showAfpaResumeStatus(message) {
+  const status = document.getElementById('afpa-resume-status');
+  if (!status) return;
+  status.textContent = message;
+  status.classList.add('active');
+}
+
+async function openAfpaCourseResume() {
+  const status = document.getElementById('afpa-resume-status');
+  if (status) {
+    status.textContent = 'Checking this browser for a saved AFPA session...';
+    status.classList.add('active');
+  }
+
+  const draft = lastLoadedDraft || await loadDraft();
+  if (!draft || !draft.interviewStarted || !draftMatchesCurrentCampaign(draft)) {
+    lastLoadedDraft = null;
+    showAfpaResumeStatus('No active AFPA December course session is available in this browser. Use Continue to interview to start a new one.');
+    return;
+  }
+
+  lastLoadedDraft = draft;
+  await resumeSavedInterview();
+}
+
+function openSnapshotStart() {
+  const splash = document.getElementById('snapshot-splash');
+  const detail = document.getElementById('welcome-detail');
+  if (splash) {
+    splash.dataset.visited = '1';
+    splash.classList.remove('active');
+  }
+  if (detail) detail.classList.remove('is-hidden');
+  const firstInput = document.getElementById('client-name');
+  if (firstInput) setTimeout(() => firstInput.focus(), 80);
+  window.scrollTo(0, 0);
+}
+
+async function openSnapshotResume() {
+  openSnapshotStart();
+  const card = document.getElementById('resume-card');
+  if (card && card.style.display !== 'none') {
+    await resumeSavedInterview();
+    return;
+  }
+  const summary = document.getElementById('resume-summary');
+  if (summary) summary.textContent = 'If this browser has a saved session, it will appear here. Otherwise, start a new snapshot below.';
+}
+
+async function resumeSavedInterview(options = {}) {
+  const requireCampaignMatch = options.requireCampaignMatch !== false;
+  draftAutosaveEnabled = true;
+  const draft = lastLoadedDraft || await loadDraft();
+  if (!draft) return;
+  if (requireCampaignMatch && !draftMatchesCurrentCampaign(draft)) return;
+
+  clientDraftId = draft.clientDraftId || '';
+  clientName = draft.clientName || '';
+  clientEmail = draft.clientEmail || '';
+  privacyConsent = !!draft.privacyConsent;
+  privacyConsentAt = draft.privacyConsentAt || '';
+  btaiFollowupInterest = draft.btaiFollowupInterest || 'maybe';
+  btaiFollowupInterestAt = draft.btaiFollowupInterestAt || '';
+  campaignPartner = draft.campaignPartner || campaignPartner || CONFIG.DEFAULT_PARTNER;
+  campaignId = draft.campaignId || campaignId || CONFIG.DEFAULT_CAMPAIGN;
+  partnerDisplayName = draft.partnerDisplayName || partnerDisplayName || '';
+  intakeVariant = draft.intakeVariant || activeIntakeVariant();
+  applyCampaignQuestionSet();
+  businessName = draft.businessName || '';
+  businessCategory = draft.businessCategory || '';
+  businessNiche = draft.businessNiche || '';
+  shareComfort = draft.shareComfort || 'Directional only';
+  websiteUrl = draft.websiteUrl || '';
+  companySize = draft.companySize || '';
+  ownerWorkStatus = draft.ownerWorkStatus || '';
+  departments = Array.isArray(draft.departments) ? draft.departments : [];
+  answers = Array.isArray(draft.answers) ? draft.answers : new Array(QUESTIONS.length).fill('');
+  masteryFollowups = Array.isArray(draft.masteryFollowups) ? draft.masteryFollowups : new Array(QUESTIONS.length).fill('');
+  masteryFollowupQ = Array.isArray(draft.masteryFollowupQ) ? draft.masteryFollowupQ : new Array(QUESTIONS.length).fill('');
+  domainProbes = draft.domainProbes || {};
+  snapshotAnswersArchive = Array.isArray(draft.snapshotAnswersArchive) ? draft.snapshotAnswersArchive : [];
+  scenarioText = draft.scenarioText || '';
+  scenarioGood = draft.scenarioGood || '';
+  scenarioBad = draft.scenarioBad || '';
+  scenarioStage = draft.scenarioStage || null;
+  scenarioDone = !!draft.scenarioDone;
+  businessContext = draft.businessContext || null;
+  currentQ = Number.isInteger(draft.currentQ) ? draft.currentQ : 0;
+  subStep = draft.subStep || 'main';
+  activeProbe = draft.activeProbe || null;
+  interviewStartedAtMs = interviewStartedAtMs || Date.now();
+
+  applyPartnerBranding();
+  applyWelcomeFields();
+  logHermesEvent('interview_resumed', 'success', { resumeUsed: true, ...interviewKpiSummary() });
+  showScreen('screen-interview');
+  if (scenarioStage) renderScenario();
+  else renderQuestion();
+}
+
+function clearSavedInterview(resetFields = false) {
+  if (resetFields) draftAutosaveEnabled = true;
+  const priorDraftId = clientDraftId;
+  try {
+    localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(DRAFT_ACCESS_KEY);
+    localStorage.removeItem(LEGACY_DRAFT_KEY);
+  } catch (e) { /* ignore */ }
+  lastLoadedDraft = null;
+  if (priorDraftId) {
+    fetch('/api/draft', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete', clientDraftId: priorDraftId, draftAccessToken }),
+      keepalive: true
+    }).catch(() => {});
+  }
+  const card = document.getElementById('resume-card');
+  if (card) card.style.display = 'none';
+  if (resetFields) {
+    clientName = '';
+    clientEmail = '';
+    privacyConsent = false;
+    privacyConsentAt = '';
+    btaiFollowupInterest = 'maybe';
+    btaiFollowupInterestAt = '';
+    campaignPartner = CONFIG.DEFAULT_PARTNER;
+    campaignId = CONFIG.DEFAULT_CAMPAIGN;
+    initCampaignContext();
+    businessName = '';
+    businessCategory = '';
+    businessNiche = '';
+    shareComfort = 'Directional only';
+    websiteUrl = '';
+    companySize = '';
+    ownerWorkStatus = '';
+    departments = [];
+    applyWelcomeFields();
+  }
+}
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (id === 'screen-complete') updateCompletionCampaignOptions();
+  window.scrollTo(0, 0);
+}
+
+function updateCompletionCampaignOptions() {
+  const deepenBox = document.getElementById('deepen-interview-box');
+  const completionLayout = document.querySelector('#screen-complete .completion-layout');
+  const completionEmailInput = document.getElementById('completion-email-input');
+  const snapshotMode = isSnapshotFirstCampaign();
+  if (deepenBox) deepenBox.classList.toggle('active', snapshotMode);
+  if (completionLayout) completionLayout.classList.toggle('snapshot-simple', snapshotMode);
+  if (completionEmailInput) completionEmailInput.value = clientEmail || '';
+
+  if (snapshotMode) {
+    setText('complete-message', `Thank you, ${clientName}. Your snapshot interview is complete and securely saved.`);
+    setText('free-report-title', 'Your free snapshot is sent by email');
+    setText('next-title-2', 'Your email includes deeper options');
+    setText('next-title-3', 'Your raw answers stay secure');
+    setText('next-desc-1', 'Bridge To AI prepares your private first-pass AI Opportunity Snapshot and sends it to the email address confirmed here.');
+    setText('next-desc-2', 'The email includes links if you want the deeper diagnostic, action plan, or implementation/workbench support.');
+    setText('next-desc-3', 'Your raw answers are stored securely. Partners receive only anonymized aggregate insights where applicable, not your individual answers.');
+  } else {
+    setText('free-report-title', 'Your free report is sent by email');
+    setText('next-title-2', 'Your email includes next options');
+    setText('next-title-3', activePartnerProfile() ? 'AFPA receives aggregate themes only' : 'Your raw answers stay secure');
+    setText('next-desc-1', 'Bridge To AI prepares your private AI Opportunity Snapshot and sends it to the email address confirmed here.');
+    setText('next-desc-2', 'The email includes links if you want the Detailed AI Opportunity Report, Preliminary AI Action Plan, or implementation/workbench support.');
+    setText('next-desc-3', activePartnerProfile()
+      ? 'Your individual answers and raw interview record are not shared with AFPA. AFPA may receive anonymized themes to help shape member AI education.'
+      : 'Your raw answers are stored securely and used only for your Bridge To AI engagement.');
+  }
+}
+
+function continueIntoDeepDiagnostic() {
+  if (!isSnapshotFirstCampaign()) return;
+  if (isRecording) stopRecording();
+  captureVisibleTranscript();
+  mapCurrentAnswersToFullQuestionSet();
+  intakeVariant = 'full_diagnostic_continued';
+  campaignId = 'snapshot_to_full';
+  applyCampaignQuestionSet();
+  currentQ = firstUnansweredFullQuestionIndex(answers);
+  subStep = 'main';
+  activeProbe = null;
+  scenarioStage = null;
+  scenarioDone = true;
+  draftAutosaveEnabled = true;
+  ensureClientDraftId();
+  saveDraft(false, true);
+  logHermesEvent('snapshot_user_continued_deep_diagnostic', 'success', {
+    startingQuestionIndex: currentQ,
+    preservedAnswerCount: answers.filter(Boolean).length,
+    questionCount: QUESTIONS.length,
+    priorVariant: 'snapshot_first',
+    nextVariant: intakeVariant
+  });
+  showScreen('screen-interview');
+  renderQuestion();
+}
+
+// -- Welcome -> Interview ----------------------------------------------------
+async function startInterview(evt) {
+  initCampaignContext();
+  clientName = document.getElementById('client-name').value.trim();
+  clientEmail = normalizeEmail(document.getElementById('client-email').value);
+  privacyConsent = document.getElementById('privacy-consent').checked;
+  businessName = document.getElementById('business-name').value.trim();
+  businessNiche = document.getElementById('business-niche').value.trim();
+  businessCategory = businessNiche;
+  shareComfort = document.getElementById('share-comfort').value.trim() || 'Directional only';
+  websiteUrl = document.getElementById('website-url').value.trim();
+  companySize = document.getElementById('company-size').value.trim();
+  ownerWorkStatus = document.getElementById('owner-work-status').value.trim();
+  departments = Array.from(document.querySelectorAll('.dept-pill input:checked')).map(cb => cb.value);
+  const err = document.getElementById('welcome-error');
+
+  const validEmail = updateEmailFieldStatus(true);
+  if (!clientName || !clientEmail || !validEmail || !businessName || !businessNiche || !privacyConsent) {
+    logHermesEvent('interview_start_blocked', 'failed', {
+      missingName: !clientName,
+      missingValidEmail: !clientEmail || !validEmail,
+      missingBusinessName: !businessName,
+      missingBusinessDescription: !businessNiche,
+      missingPrivacyConsent: !privacyConsent
+    });
+    err.style.display = 'block';
+    return;
+  }
+  privacyConsentAt = privacyConsentAt || new Date().toISOString();
+  interviewStartedAtMs = interviewStartedAtMs || Date.now();
+  err.style.display = 'none';
+  answers = new Array(QUESTIONS.length).fill('');
+  masteryFollowups = new Array(QUESTIONS.length).fill('');
+  masteryFollowupQ = new Array(QUESTIONS.length).fill('');
+  domainProbes = {};
+  snapshotAnswersArchive = [];
+  scenarioText = '';
+  scenarioGood = '';
+  scenarioBad = '';
+  scenarioStage = null;
+  scenarioDone = false;
+  businessContext = null;
+  currentQ = 0;
+  subStep = 'main';
+
+  draftAutosaveEnabled = true;
+  clearSavedInterview(false);
+  clientDraftId = '';
+  draftAccessToken = '';
+  ensureClientDraftId();
+  saveDraft(false, true);
+  logHermesEvent('interview_started', 'success', {
+    industryPack: industryPackSummary(),
+    privacyConsentAt,
+    privacyPolicyVersion: PRIVACY_POLICY_VERSION,
+    questionCount: QUESTIONS.length,
+    businessNiche,
+    shareComfort
+  });
+
+  // Generate the tailored scenario only for deeper diagnostic interviews.
+  const startBtn = evt && evt.target ? evt.target : null;
+  if (startBtn) { startBtn.disabled = true; startBtn.textContent = 'Setting up your session...'; }
+  await researchBusinessContext();
+  if (activeScenarioStepCount() > 0) await generateScenario();
+  if (startBtn) { startBtn.disabled = false; startBtn.textContent = 'Begin my discovery session ->'; }
+  saveDraft(false, true);
+
+  showScreen('screen-interview');
+  if (activeScenarioStepCount() === 0) {
+    scenarioDone = true;
+    scenarioStage = null;
+    logHermesEvent('snapshot_voice_scenario_skipped', 'success', {
+      reason: 'Voice and standards questions are reserved for deeper diagnostic interviews.'
+    });
+    renderQuestion();
+  } else {
+    scenarioStage = 'good';
+    renderScenario();
+  }
+}
+
+// -- Quiet background context research -------------------------------------
+async function researchBusinessContext() {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 6500);
+  try {
+    const resp = await fetch('/api/interview-ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ task: 'research-business', businessName, businessCategory, businessNiche, shareComfort, websiteUrl, companySize, ownerWorkStatus, departments }),
+      signal: controller.signal
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.context) businessContext = data.context;
+    }
+  } catch (e) {
+    businessContext = null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+// -- Generate a business-tailored scenario -----------------------------------
+async function generateScenario() {
+  try {
+    const resp = await fetch('/api/interview-ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ task: 'scenario', businessCategory, businessNiche, shareComfort, businessContext })
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.scenario && data.scenario.trim()) scenarioText = data.scenario.trim();
+    }
+  } catch (e) { /* fall back below */ }
+
+  if (!scenarioText) {
+    scenarioText = 'A customer reaches out, clearly frustrated that something they were expecting from you is late, and they want to know what is going on.';
+  }
+}
+
+// -- Render the scenario beats (good reply, then bad reply) -------------------
+function renderScenario() {
+  if (isRecording) stopRecording();
+  document.getElementById('answer-error').style.display = 'none';
+  logHermesSectionStarted('scenario', 'Voice & Standards', { questionCount: 2 });
+  document.getElementById('btn-back').style.visibility = (scenarioStage === 'good') ? 'hidden' : 'visible';
+  document.getElementById('btn-next').textContent = 'Continue ->';
+
+  const totalSteps = (Array.isArray(QUESTIONS) ? QUESTIONS.length : 0) + 2;
+  const scenarioStep = scenarioStage === 'good' ? 1 : 2;
+  document.getElementById('progress-fill').style.width = Math.round((scenarioStep / totalSteps) * 100) + '%';
+
+  let label, text, hint, saved;
+  if (scenarioStage === 'good') {
+    label = 'Your Voice & Standards';
+    text = 'Read the situation below, then write the reply you\'d be proud of - the one that shows your business at its best.';
+    hint = 'SCENARIO: ' + scenarioText + '\n\nDon\'t worry about being polished. Write it the way you actually would, in your own words.';
+    saved = scenarioGood;
+    document.getElementById('progress-count').textContent = `Your voice - ${scenarioStep} of ${totalSteps}`;
+  } else {
+    label = 'Your Voice & Standards';
+    text = 'Now write the kind of reply you\'ve seen go wrong - rushed, dismissive, or off-brand. The kind you\'d never want sent.';
+    hint = 'Same situation as before. Showing what "bad" looks like helps us understand your standards just as much as the good version.';
+    saved = scenarioBad;
+    document.getElementById('progress-count').textContent = `Your voice - ${scenarioStep} of ${totalSteps}`;
+  }
+
+  document.getElementById('q-domain').textContent = label;
+  document.getElementById('q-text').textContent = text;
+  document.getElementById('q-hint').textContent = hint;
+  document.getElementById('progress-label').textContent = label;
+
+  const box = document.getElementById('transcript');
+  box.textContent = saved || '';
+  updateWordCount();
+  if (isRecording) stopRecording();
+  saveDraft(false);
+}
+
+// -- Advance through the scenario beats --------------------------------------
+function normalizedCompanySizeNumber() {
+  const match = String(companySize || '').match(/\d+/);
+  return match ? Number(match[0]) : null;
+}
+
+function isSoloOrNoStaff() {
+  const size = normalizedCompanySizeNumber();
+  const deptList = Array.isArray(departments) ? departments : [];
+  const status = `${ownerWorkStatus || ''} ${businessCategory || ''} ${deptList.join(' ')}`.toLowerCase();
+  return size === 0 || size === 1 || status.includes('semi-retired') || status.includes('semi retired') || status.includes('mostly just me') || status.includes('solo') || status.includes('self-employed') || status.includes('self employed') || status.includes('no employees');
+}
+
+function normalizeIndustryText(value) {
+  return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function detectIndustryPack() {
+  if (isAfpaMemberIntake()) return INDUSTRY_PACKS.food_processing_manufacturing_distribution;
+  const categoryMapped = LEGACY_CATEGORY_PACK_MAP[businessCategory];
+  if (categoryMapped && INDUSTRY_PACKS[categoryMapped]) return INDUSTRY_PACKS[categoryMapped];
+  const haystack = normalizeIndustryText([businessCategory, businessNiche, businessName, websiteUrl].filter(Boolean).join(' '));
+  if (!haystack) return INDUSTRY_PACKS.general_business;
+  const packs = Object.values(INDUSTRY_PACKS).filter(pack => pack.id !== 'general_business');
+  let best = { pack: null, score: 0 };
+  packs.forEach(pack => {
+    const score = (pack.aliases || []).reduce((total, alias) => {
+      const needle = normalizeIndustryText(alias);
+      return total + (needle && haystack.includes(needle) ? Math.max(1, needle.split(' ').length) : 0);
+    }, 0);
+    if (score > best.score) best = { pack, score };
+  });
+  return best.pack || INDUSTRY_PACKS.general_business;
+}
+
+function inferIndustrySubtype(pack, source = '') {
+  const text = normalizeIndustryText(source);
+  const subtypes = pack?.subtypes || [];
+  if (!text || !subtypes.length) return '';
+  const match = subtypes.find(subtype => normalizeIndustryText(subtype).split(' ').some(word => word.length > 4 && text.includes(word)));
+  return match || '';
+}
+
+function currentIndustryGuidance() {
+  const base = detectIndustryPack();
+  const niche = String(businessNiche || '').trim();
+  const subtype = inferIndustrySubtype(base, niche || businessCategory);
+  const label = subtype && !/other/i.test(subtype) ? `${subtype} (${base.label})` : base.label;
+  return { ...base, label, subtype };
+}
+
+function industryList(items) {
+  return (items || []).slice(0, 8).join(', ');
+}
+
+function industryPackSummary() {
+  const guidance = currentIndustryGuidance();
+  return {
+    id: guidance.id,
+    label: guidance.label,
+    subtype: guidance.subtype || '',
+    opportunities: guidance.opportunities || [],
+    customerTypes: guidance.customerTypes || [],
+    workflowExamples: guidance.workflowExamples || [],
+    riskBoundaries: guidance.riskBoundaries || [],
+    reportFraming: guidance.reportFraming || ''
+  };
+}
+
+function adaptQuestionForContext(q) {
+  const guidance = currentIndustryGuidance();
+  const industryOverrides = {
+    'Business Model & Direction|AI Fit': {
+      text: 'Which parts of your business run on manual knowledge work that eats your time?',
+      hint: `For a ${guidance.label}, this may include ${industryList(guidance.opportunities)}. Keep examples directional; no confidential details are needed.`
+    },
+    'Customer Reality|Current Reality': {
+      text: 'Describe your best customers or accounts - who are they and why do they choose you?',
+      hint: `Use customer types, not names. Examples may include ${industryList(guidance.customerTypes)}.`
+    },
+    'Customer Reality|AI Fit': {
+      text: 'Which customer touchpoints are slow, repetitive, or inconsistent?',
+      hint: `Think about follow-up, updates, order questions, buyer readiness, repeat-purchase prompts, onboarding, reviews, or service replies.`
+    },
+    'Revenue Engine|Revenue Opportunity': {
+      text: 'When you think about new revenue, which type of opportunity would matter most right now, and how would you describe its value without sharing exact numbers?',
+      hint: `For a ${guidance.label}, this could mean ${industryList(guidance.customerTypes)}. Describe the scale as small but steady, meaningful weekly revenue, meaningful monthly revenue, capacity-changing, hiring/system-justifying, not sure, or better discussed privately later.`
+    },
+    'Operations & Delivery|AI Fit': {
+      text: 'Which delivery or production tasks involve gathering information, writing, checking, planning, or repeating the same decision?',
+      hint: `For a ${guidance.label}, possible areas include ${industryList(guidance.opportunities)}. Do not include recipes, exact costs, customer names, or supplier contracts.`
+    },
+    'Information & Systems|Current Reality': {
+      text: 'Where does the important information in your business actually live?',
+      hint: 'Think about tools and places, not private records: accounting software, POS, spreadsheets, email, shared drives, notebooks, scheduling tools, production records, CRM, or people\'s heads.'
+    },
+    'Operations & Delivery|Current Workaround': {
+      text: 'How do you handle that work today?',
+      hint: `For a ${guidance.shortLabel || guidance.label}, think about ${industryList(guidance.workflowExamples)}. Who starts it, what tools or notes they use, and what workaround keeps it moving?`
+    },
+    'Information & Systems|Information Location': {
+      text: 'Where does the information needed for this work usually live?',
+      hint: `Examples: ${industryList(guidance.workflowExamples)}, plus email, spreadsheets, software, shared folders, paper forms, photos, notes, or memory.`
+    },
+    'Risk & Adoption|Current Reality': {
+      text: 'What privacy, compliance, or confidentiality constraints apply to your business?',
+      hint: `Relevant boundaries for a ${guidance.shortLabel || guidance.label}: ${industryList(guidance.riskBoundaries)}. Keep this directional; do not paste private records.`
+    },
+    'Risk & Adoption|Human Review Boundary': {
+      text: 'What should AI absolutely not touch or decide without a person reviewing it?',
+      hint: `Think about human-review boundaries such as ${industryList(guidance.riskBoundaries)}.`
+    },
+    'Risk & Adoption|AI Fit': {
+      text: 'Which low-risk, reversible AI uses could you try first to build confidence?',
+      hint: `Good first tests avoid sensitive data. For a ${guidance.label}, examples might include drafts, checklists, summaries, training notes, follow-up reminders, product or service descriptions, and planning templates.`
+    }
+  };
+
+  let adapted = industryOverrides[`${q.domain}|${q.type}`] || { text: q.text, hint: q.hint };
+
+  if (!isSoloOrNoStaff()) return adapted;
+
+  const overrides = {
+    'People & Decision-Making|Current Reality': {
+      text: 'What parts of the business depend entirely on you, and what would pause if you were unavailable?',
+      hint: 'Think about sales, delivery, admin, customer replies, decisions, and any informal helpers or future hires.'
+    },
+    'People & Decision-Making|Pain & Cost': {
+      text: 'Where do decisions or tasks bottleneck because they need your personal attention?',
+      hint: 'What cannot move forward until you approve it, remember it, explain it, or do it yourself?'
+    },
+    'People & Decision-Making|Desired Future': {
+      text: 'What would it look like if the business could keep moving without you personally touching every step?',
+      hint: 'Focus on backup systems, clearer instructions, simple automations, or support a future helper could follow.'
+    },
+    'People & Decision-Making|AI Fit': {
+      text: 'Which decisions or communications depend on your knowledge that AI could help organize, draft, or explain?',
+      hint: 'The repeat answers, judgment calls, and customer replies that currently live mostly in your head.'
+    },
+    'Risk & Adoption|Current Reality': {
+      text: 'What privacy, compliance, or confidentiality constraints apply to your business?',
+      hint: 'Client data, regulated information, industry rules, and your own comfort level with new tech.'
+    },
+    'Risk & Adoption|Desired Future': {
+      text: 'What would a successful AI rollout look and feel like for you?',
+      hint: 'What would change in your day-to-day work, and what would make the system feel trustworthy rather than intrusive?'
+    }
+  };
+
+  return overrides[`${q.domain}|${q.type}`] || adapted;
+}
+function nextScenario() {
+  const val = document.getElementById('transcript').innerText.trim();
+  if (!val || val.length < 5) {
+    document.getElementById('answer-error').style.display = 'block';
+    return;
+  }
+  if (isRecording) stopRecording();
+  document.getElementById('answer-error').style.display = 'none';
+
+  if (scenarioStage === 'good') {
+    scenarioGood = val;
+    scenarioStage = 'bad';
+    saveDraft(false);
+    renderScenario();
+  } else {
+    scenarioBad = val;
+    logHermesSectionCompleted('scenario', 'Voice & Standards', { questionCount: 2, totalWordCount: countWords(scenarioGood) + countWords(scenarioBad) });
+    scenarioDone = true;
+    saveDraft(false);
+    scenarioStage = null;
+    // move into the main questionnaire
+    currentQ = 0;
+    subStep = 'main';
+    renderQuestion();
+  }
+}
+
+function prevScenario() {
+  const val = document.getElementById('transcript').innerText.trim();
+  if (isRecording) stopRecording();
+  if (scenarioStage === 'bad') {
+    scenarioBad = val;
+    scenarioStage = 'good';
+    saveDraft(false);
+    renderScenario();
+  }
+}
+
+// -- Render current question ------------------------------------------------
+function clampQuestionIndex(index) {
+  const total = Array.isArray(QUESTIONS) ? QUESTIONS.length : 0;
+  if (!total) return 0;
+  const n = Number.isInteger(index) ? index : 0;
+  return Math.max(0, Math.min(n, total - 1));
+}
+
+function setTranscriptValue(value = '') {
+  const box = document.getElementById('transcript');
+  if (!box) return;
+  const nextValue = value || '';
+  recognitionSessionId += 1;
+  box.replaceChildren(document.createTextNode(nextValue));
+  updateWordCount();
+}
+
+function transitionToQuestion(index, nextSubStep = 'main', nextProbe = null) {
+  currentQ = clampQuestionIndex(index);
+  subStep = nextSubStep;
+  activeProbe = nextProbe;
+  renderQuestion();
+}
+
+function renderQuestion() {
+  try {
+    if (isRecording) stopRecording();
+    const total = Array.isArray(QUESTIONS) ? QUESTIONS.length : 0;
+    if (!total) throw new Error('No interview questions are available.');
+    currentQ = clampQuestionIndex(currentQ);
+    const q = QUESTIONS[currentQ];
+    if (!q) throw new Error(`Missing question at index ${currentQ}`);
+
+    if (subStep === 'main') {
+      if (q.section === 'business') logHermesSectionStarted('business_domain', q.domain);
+      if (q.section === 'mastery') logHermesSectionStarted('owner_self_assessment', q.domain, { questionCount: 2 });
+    }
+    if (subStep === 'probe' && activeProbe) logHermesSectionStarted('adaptive_probe', activeProbe.domain, { questionCount: 1 });
+
+    const scenarioSteps = activeScenarioStepCount();
+    const totalSteps = total + scenarioSteps;
+    const displayStep = currentQ + 1 + scenarioSteps;
+    const pct = Math.round((displayStep / totalSteps) * 100);
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('btn-back').style.visibility = (currentQ === 0 && subStep === 'main' && activeScenarioStepCount() === 0) ? 'hidden' : 'visible';
+    document.getElementById('answer-error').style.display = 'none';
+
+    let domainLabel = q.domain || 'Discovery Question';
+    const adapted = adaptQuestionForContext(q) || {};
+    let qText = adapted.text || q.text || 'Tell us what matters most about this part of your business.';
+    let qHint = adapted.hint || q.hint || 'Answer in your own words. A rough answer is better than a polished one.';
+    let countText = '';
+    let savedValue = answers[currentQ] || '';
+
+    if (subStep === 'followup') {
+      domainLabel = (q.domain || 'Discovery Question') + ' - looking ahead';
+      qText = masteryFollowupQ[currentQ] || MASTERY_FOLLOWUP;
+      qHint = 'There\'s no wrong answer. Picture it actually handled, and tell us what changes.';
+      savedValue = masteryFollowups[currentQ] || '';
+      countText = 'Follow-up';
+    } else if (subStep === 'probe' && activeProbe) {
+      domainLabel = (activeProbe.domain || 'Discovery Question') + ' - one more thing';
+      qText = activeProbe.question || 'What else should we understand about this before moving on?';
+      qHint = 'A quick follow-up to make sure we capture this accurately.';
+      savedValue = (domainProbes[activeProbe.key || activeProbe.domain] && domainProbes[activeProbe.key || activeProbe.domain].answer) || '';
+      countText = 'Follow-up';
+    } else if (q.section === 'mastery') {
+      countText = 'About you';
+    } else {
+      countText = q.type || 'Question';
+    }
+
+    if (q.section === 'business' && subStep !== 'followup') {
+      qHint = `${qHint}\n\n${SENSITIVE_DETAIL_WARNING}`;
+    }
+
+    document.getElementById('q-domain').textContent = domainLabel;
+    document.getElementById('q-text').textContent = qText;
+    document.getElementById('q-hint').textContent = qHint;
+    document.getElementById('progress-label').textContent = domainLabel;
+    let progressText = '';
+    if (subStep === 'followup' || (subStep === 'probe' && activeProbe)) {
+      progressText = `Follow-up after core step ${displayStep} of ${totalSteps}`;
+    } else if (countText) {
+      progressText = `${countText} - core step ${displayStep} of ${totalSteps}`;
+    } else {
+      progressText = `Core step ${displayStep} of ${totalSteps}`;
+    }
+    document.getElementById('progress-count').textContent = progressText;
+
+    const isLastItem = (currentQ === total - 1);
+    const lastQ = QUESTIONS[total - 1] || {};
+    const isFinalSubStep = isLastItem && (lastQ.section === 'mastery' ? subStep === 'followup' : (subStep === 'probe' || subStep === 'main'));
+    document.getElementById('btn-next').textContent = isFinalSubStep ? 'Submit answers ->' : 'Continue ->';
+
+    setTranscriptValue(savedValue);
+    if (isRecording) stopRecording();
+    saveDraft(false);
+  } catch (err) {
+    console.error('Question render error:', err);
+    logHermesEvent('question_render_failed', 'failed', { error: err.message || 'Question render failed', currentQ, subStep });
+    document.getElementById('q-domain').textContent = 'Discovery Question';
+    document.getElementById('q-text').textContent = 'Tell us what matters most about your business right now.';
+    document.getElementById('q-hint').textContent = 'The interview had trouble loading this question. Please refresh and resume if this repeats.';
+    document.getElementById('progress-label').textContent = 'Discovery Question';
+    document.getElementById('progress-count').textContent = `Question ${clampQuestionIndex(currentQ) + 1}`;
+    document.getElementById('btn-next').textContent = 'Continue ->';
+    setTranscriptValue('');
+  }
+}
+function getTranscriptValue() {
+  const box = document.getElementById('transcript');
+  return box ? (box.innerText || box.textContent || '').trim() : '';
+}
+
+function showAnswerError(message) {
+  const err = document.getElementById('answer-error');
+  if (!err) return;
+  if (message) err.textContent = message;
+  err.style.display = 'block';
+}
+// -- Navigation -------------------------------------------------------------
+function saveCurrentAnswer(value = null) {
+  const val = value === null ? getTranscriptValue() : String(value || '').trim();
+  if (subStep === 'followup') {
+    masteryFollowups[currentQ] = val;
+  } else if (subStep === 'probe' && activeProbe) {
+    const probeKey = activeProbe.key || activeProbe.domain || questionProbeKey(currentQ);
+    if (!domainProbes[probeKey]) domainProbes[probeKey] = { ...activeProbe, answer: '', asked: true };
+    domainProbes[probeKey].answer = val;
+    domainProbes[probeKey].asked = true;
+  } else {
+    answers[currentQ] = val;
+  }
+}
+
+async function nextQuestion() {
+  const btn = document.getElementById('btn-next');
+  try {
+    if (scenarioStage) { nextScenario(); return; }
+
+    const val = getTranscriptValue();
+    if (!val || val.length < 3) {
+      showAnswerError('Please type or speak at least a few words before continuing.');
+      return;
+    }
+
+    if (isRecording) stopRecording();
+    saveCurrentAnswer(val);
+    logHermesEvent('answer_saved', 'success', { answerTextForMetrics: val });
+    document.getElementById('answer-error').style.display = 'none';
+
+    const total = Array.isArray(QUESTIONS) ? QUESTIONS.length : 0;
+    currentQ = clampQuestionIndex(currentQ);
+    const q = QUESTIONS[currentQ];
+    if (!q) throw new Error(`Missing question at index ${currentQ}`);
+
+    if (btn) { btn.disabled = true; btn.textContent = 'Loading next question...'; }
+
+    if (subStep === 'followup') {
+      if (currentQ < total - 1) transitionToQuestion(currentQ + 1, 'main', null);
+      else submitInterview();
+      return;
+    }
+
+    if (subStep === 'probe') {
+      if (currentQ < total - 1) transitionToQuestion(currentQ + 1, 'main', null);
+      else submitInterview();
+      return;
+    }
+
+    const redirected = await maybeRunAdaptiveRedirect(currentQ, val);
+    if (redirected) return;
+
+    if (q.section === 'mastery') {
+      await runMasteryFollowup(currentQ);
+      return;
+    }
+
+    const nextQ = QUESTIONS[currentQ + 1];
+    const isDomainEnd = (currentQ === total - 1) || !nextQ || (nextQ.domain !== q.domain) || (nextQ.section !== 'business');
+    if (isDomainEnd) {
+      logHermesSectionCompleted('business_domain', q.domain, domainAnswerStats(q.domain));
+    }
+
+    if (currentQ < total - 1) transitionToQuestion(currentQ + 1, 'main', null);
+    else submitInterview();
+  } catch (err) {
+    console.error('Next question error:', err);
+    logHermesEvent('next_question_failed', 'failed', { error: err.message || 'Next question failed', currentQ, subStep });
+    showAnswerError('The next question did not load correctly. Please refresh this page, then use Resume.');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      if (btn.textContent === 'Loading next question...') btn.textContent = 'Continue ->';
+    }
+  }
+}
+// -- AI probe: ask Claude if this domain's answers need one follow-up --------
+function isRepetitiveProbeQuestion(question) {
+  const q = String(question || '').toLowerCase();
+  const broadProcessPhrases = [
+    'current process look like',
+    'walk me through',
+    'first contact to',
+    'fully onboarded',
+    'delivering results',
+    'is that mostly in your head',
+    'documented somewhere',
+    'have any of it documented',
+    'from first contact',
+    'what happens from first contact'
+  ];
+  return broadProcessPhrases.some(phrase => q.includes(phrase));
+}
+
+function generatedProbeCount() {
+  return Object.values(domainProbes || {}).filter(probe => probe?.asked && probe?.question).length;
+}
+
+function normalizeProbePayload(data) {
+  if (!data) return null;
+  if (typeof data.followup === 'object' && data.followup) return data.followup;
+  const question = String(data.followup || '').trim();
+  if (!question || question.toUpperCase() === 'NONE') return null;
+  return {
+    ask_followup: true,
+    question_type: data.question_type || 'clarify',
+    question,
+    sensitivity_level: data.sensitivity_level || 'low',
+    why_needed: data.why_needed || ''
+  };
+}
+
+function validateProbeCandidate(candidate, domainName) {
+  const result = { ok: false, question: '', reason: 'empty' };
+  if (!candidate || candidate.ask_followup === false) return { ...result, reason: 'model_skipped' };
+  const question = String(candidate.question || '').trim();
+  const questionType = String(candidate.question_type || 'clarify').toLowerCase();
+  const sensitivity = String(candidate.sensitivity_level || 'low').toLowerCase();
+
+  if (!question) return { ...result, reason: 'empty_question' };
+  if (question.length > 260) return { ...result, reason: 'too_long' };
+  if (!APPROVED_PROBE_TYPES.includes(questionType)) return { ...result, reason: 'unapproved_question_type' };
+  if (!['low', 'medium-low', 'medium_low'].includes(sensitivity)) return { ...result, reason: 'sensitivity_too_high' };
+  if (FORBIDDEN_PROBE_PATTERNS.some(pattern => pattern.test(question))) return { ...result, reason: 'forbidden_sensitive_request' };
+  if (isRepetitiveProbeQuestion(question)) return { ...result, reason: 'repetitive_probe' };
+
+  const priorText = [
+    ...QUESTIONS.map(q => q.text || ''),
+    ...Object.values(domainProbes || {}).map(probe => probe?.question || '')
+  ].join('\n').toLowerCase();
+  const meaningfulWords = question.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(w => w.length > 4);
+  const overlap = meaningfulWords.filter(w => priorText.includes(w)).length;
+  if (meaningfulWords.length >= 8 && overlap / meaningfulWords.length > 0.85) return { ...result, reason: 'too_similar_to_prior_questions' };
+
+  return { ok: true, question, reason: 'accepted', questionType, sensitivity };
+}
+async function maybeRunAdaptiveRedirect(qIndex, answer) {
+  const q = QUESTIONS[qIndex];
+  if (!q || !String(answer || '').trim()) return false;
+  const probeKey = questionProbeKey(qIndex);
+  if (domainProbes[probeKey]?.asked) return false;
+
+  const decision = adaptiveRedirectDecision(q, answer);
+  if (!decision.needsRedirect) return false;
+
+  const maxAdaptiveProbes = activeMaxAdaptiveProbes();
+  if (generatedProbeCount() >= maxAdaptiveProbes) {
+    domainProbes[probeKey] = {
+      key: probeKey,
+      domain: q.domain || '',
+      sourceQuestionIndex: qIndex,
+      sourceQuestionType: q.type || '',
+      question: null,
+      answer: '',
+      asked: true,
+      rejectedReason: 'limit_reached',
+      priorityWeight: decision.priorityWeight
+    };
+    logHermesEvent('adaptive_probe_rejected_limit_reached', 'success', {
+      domain: q.domain || '',
+      sourceQuestionIndex: qIndex,
+      sourceQuestionType: q.type || '',
+      priorityWeight: decision.priorityWeight,
+      maxAdaptiveProbes,
+      weakAnswerRedirect: true
+    });
+    return false;
+  }
+
+  const btn = document.getElementById('btn-next');
+  const originalLabel = btn ? btn.textContent : '';
+  if (btn) {
+    btn.textContent = 'One moment...';
+    btn.disabled = true;
+  }
+
+  logHermesEvent('weak_answer_redirect_needed', 'info', {
+    domain: q.domain || '',
+    sourceQuestionIndex: qIndex,
+    sourceQuestionType: q.type || '',
+    priorityWeight: decision.priorityWeight,
+    weakAnswerReason: decision.reason,
+    answerQualityBucket: decision.quality.bucket,
+    weakAnswerRedirect: true,
+    ...progressMetrics()
+  });
+  logHermesSectionStarted('adaptive_probe', q.domain || 'Discovery Question', { questionCount: 1 });
+
+  let probeQuestion = null;
+  let probeMeta = null;
+  let rejectedReason = '';
+  try {
+    const resp = await fetch('/api/interview-ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        task: 'probe',
+        domain: q.domain || '',
+        qa: `Q (${q.type || 'Question'}): ${q.text || ''}\nA: ${answer || ''}`,
+        sourceQuestion: q.text || '',
+        sourceQuestionType: q.type || '',
+        answerQualityBucket: decision.quality.bucket,
+        priorityWeight: decision.priorityWeight,
+        weakAnswerReason: decision.reason,
+        businessCategory,
+        businessNiche,
+        shareComfort,
+        companySize,
+        ownerWorkStatus,
+        departments,
+        businessContext
+      })
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      const candidate = normalizeProbePayload(data);
+      if (candidate) {
+        const validation = validateProbeCandidate(candidate, q.domain || '');
+        if (validation.ok) {
+          probeQuestion = validation.question;
+          probeMeta = validation;
+        } else {
+          rejectedReason = validation.reason;
+          logHermesEvent('adaptive_probe_rejected_by_guardrail', 'success', {
+            domain: q.domain || '',
+            sourceQuestionIndex: qIndex,
+            sourceQuestionType: q.type || '',
+            priorityWeight: decision.priorityWeight,
+            rejectedReason,
+            proposedQuestionType: candidate.question_type || '',
+            sensitivityLevel: candidate.sensitivity_level || ''
+          });
+        }
+      } else {
+        rejectedReason = 'model_skipped';
+      }
+    } else {
+      rejectedReason = 'probe_request_failed';
+    }
+  } catch (e) {
+    rejectedReason = 'probe_request_error';
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = originalLabel || 'Continue ->';
+    }
+  }
+
+  if (!probeQuestion) {
+    domainProbes[probeKey] = {
+      key: probeKey,
+      domain: q.domain || '',
+      sourceQuestionIndex: qIndex,
+      sourceQuestionType: q.type || '',
+      question: null,
+      answer: '',
+      asked: true,
+      rejectedReason,
+      priorityWeight: decision.priorityWeight
+    };
+    logHermesEvent('adaptive_probe_skipped', 'success', {
+      domain: q.domain || '',
+      sourceQuestionIndex: qIndex,
+      sourceQuestionType: q.type || '',
+      priorityWeight: decision.priorityWeight,
+      rejectedReason
+    });
+    return false;
+  }
+
+  activeProbe = {
+    key: probeKey,
+    domain: q.domain || '',
+    sourceQuestionIndex: qIndex,
+    sourceQuestionType: q.type || '',
+    question: probeQuestion,
+    priorityWeight: decision.priorityWeight
+  };
+  domainProbes[probeKey] = {
+    ...activeProbe,
+    answer: '',
+    asked: true,
+    questionType: probeMeta?.questionType || '',
+    sensitivityLevel: probeMeta?.sensitivity || 'low'
+  };
+  logHermesEvent('adaptive_probe_generated', 'success', {
+    domain: q.domain || '',
+    sourceQuestionIndex: qIndex,
+    sourceQuestionType: q.type || '',
+    priorityWeight: decision.priorityWeight,
+    questionType: probeMeta?.questionType || '',
+    sensitivityLevel: probeMeta?.sensitivity || '',
+    generatedProbeCount: generatedProbeCount() + 1,
+    weakAnswerRedirect: true
+  });
+  saveDraft(false);
+  transitionToQuestion(qIndex, 'probe', activeProbe);
+  return true;
+}
+
+// -- Smart mastery follow-up: reflect back what they said, conditionally ------
+async function runMasteryFollowup(qIndex) {
+  const q = QUESTIONS[qIndex];
+  const answer = answers[qIndex] || '';
+  const total = QUESTIONS.length;
+
+  // If we already generated a follow-up for this item (e.g. on backtrack), reuse it.
+  if (masteryFollowupQ[qIndex]) {
+    transitionToQuestion(qIndex, 'followup', null);
+    return;
+  }
+
+  // Thin answers don't get a smart follow-up - use the generic line directly.
+  if (answer.trim().split(/\s+/).filter(Boolean).length < 12) {
+    masteryFollowupQ[qIndex] = MASTERY_FOLLOWUP;
+    transitionToQuestion(qIndex, 'followup', null);
+    return;
+  }
+
+  const btn = document.getElementById('btn-next');
+  const originalLabel = btn.textContent;
+  btn.textContent = 'One moment...';
+  btn.disabled = true;
+  logHermesEvent('mastery_followup_requested', 'info', { domain: q.domain });
+
+  let followup = null;
+  try {
+    const resp = await fetch('/api/interview-ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ task: 'mastery-followup', area: q.domain, answer, businessCategory, businessNiche, shareComfort, companySize, ownerWorkStatus, departments, businessContext })
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.followup && data.followup.trim() && data.followup.trim().toUpperCase() !== 'NONE') {
+        followup = data.followup.trim();
+      }
+    }
+  } catch (e) {
+    followup = null;
+  }
+
+  btn.disabled = false;
+  btn.textContent = originalLabel;
+
+  // Smart follow-up if we got one; otherwise the generic AI-future line.
+  logHermesEvent(followup ? 'mastery_followup_generated' : 'mastery_followup_fallback', 'success', { domain: q.domain });
+  masteryFollowupQ[qIndex] = followup || MASTERY_FOLLOWUP;
+  transitionToQuestion(qIndex, 'followup', null);
+}
+
+function prevQuestion() {
+  if (scenarioStage) { prevScenario(); return; }
+
+  saveCurrentAnswer();
+  if (isRecording) stopRecording();
+  if (subStep === 'followup' || subStep === 'probe') {
+    transitionToQuestion(currentQ, 'main', null);
+    return;
+  }
+  if (currentQ === 0 && subStep === 'main' && scenarioDone && activeScenarioStepCount() > 0) {
+    scenarioStage = 'bad';
+    saveDraft(false);
+    renderScenario();
+    return;
+  }
+  if (currentQ > 0) {
+    transitionToQuestion(currentQ - 1, 'main', null);
+  }
+}
+// -- Word count -------------------------------------------------------------
+document.getElementById('transcript').addEventListener('input', () => { updateWordCount(); saveDraft(); });
+
+document.querySelectorAll('#screen-welcome input, #screen-welcome select').forEach(input => {
+  input.addEventListener('input', () => {
+    if (input.id === 'client-email') updateEmailFieldStatus(false);
+    saveDraft(false);
+  });
+  input.addEventListener('change', () => {
+    if (input.id === 'client-email') updateEmailFieldStatus(false);
+    saveDraft(false);
+  });
+});
+document.getElementById('client-email')?.addEventListener('blur', () => updateEmailFieldStatus(true));
+document.getElementById('completion-email-input')?.addEventListener('input', () => updateCompletionEmailFieldStatus(false));
+document.getElementById('completion-email-input')?.addEventListener('blur', () => updateCompletionEmailFieldStatus(true));
+document.querySelectorAll('.dept-pill input').forEach(input => input.addEventListener('change', () => saveDraft(false)));
+document.getElementById('privacy-consent').addEventListener('change', event => {
+  privacyConsent = event.target.checked;
+  if (privacyConsent && !privacyConsentAt) privacyConsentAt = new Date().toISOString();
+  logHermesEvent(privacyConsent ? 'privacy_consent_checked' : 'privacy_consent_unchecked', privacyConsent ? 'success' : 'info', {
+    privacyProofType: 'consent',
+    privacyConsentAt: privacyConsent ? privacyConsentAt : '',
+    privacyPolicyVersion: PRIVACY_POLICY_VERSION,
+    rawInterviewIncluded: false,
+    partnerRawAccess: false,
+    partnerAggregateOnly: true,
+    proofStatus: privacyConsent ? 'accepted' : 'not_accepted'
+  });
+  saveDraft(false);
+});
+document.querySelectorAll('a[href="/privacy.html"]').forEach(link => {
+  link.addEventListener('click', () => logHermesEvent('privacy_policy_link_clicked', 'success', {
+    privacyPolicyVersion: PRIVACY_POLICY_VERSION
+  }));
+});
+document.querySelectorAll('input[name="btai-followup"]').forEach(input => {
+  input.addEventListener('change', event => {
+    btaiFollowupInterest = event.target.value || 'maybe';
+    btaiFollowupInterestAt = new Date().toISOString();
+    const status = document.getElementById('followup-save-status');
+    if (status && !freeReportDeliveryStarted) status.textContent = 'This preference will be included with your free report.';
+    logHermesEvent('btai_followup_interest_selected', 'success', {
+      btaiFollowupInterest,
+      btaiFollowupInterestAt
+    });
+    saveDraft(false);
+  });
+});
+
+function saveFollowupPreference(silent = false) {
+  const selected = document.querySelector('input[name="btai-followup"]:checked');
+  btaiFollowupInterest = selected ? selected.value : 'maybe';
+  btaiFollowupInterestAt = new Date().toISOString();
+  logHermesEvent('btai_followup_interest_saved', 'success', {
+    btaiFollowupInterest,
+    btaiFollowupInterestAt
+  });
+  const status = document.getElementById('followup-save-status');
+  if (status && !silent) status.textContent = 'Preference saved with your report request.';
+}
+
+function handleReportDeliveryButton() {
+  saveFollowupPreference(true);
+  if (!updateCompletionEmailFieldStatus(false)) {
+    const status = document.getElementById('followup-save-status');
+    if (status) status.textContent = 'Please correct the email address before sending the free report.';
+    return;
+  }
+  if (completionTestMode) {
+    const status = document.getElementById('followup-save-status');
+    if (status) status.textContent = 'Test mode: no report email sent.';
+    return;
+  }
+  triggerFreeReportDelivery({ manual: true });
+}
+
+function friendlyReportDeliveryError(message = '') {
+  const text = String(message || '').trim();
+  if (/No client email found/i.test(text)) {
+    return 'The secure record is missing the client email, so the report was not sent. Contact team@bridgetoai.ca with the Record ID.';
+  }
+  if (/Client email does not match/i.test(text)) {
+    return 'The email on this page does not match the secure intake record, so the report was not sent.';
+  }
+  if (/Supabase is not configured|Supabase request failed/i.test(text)) {
+    return 'Secure storage could not be reached, so the report was not sent. Please try again shortly.';
+  }
+  if (/Missing RESEND_API_KEY|Email service is not configured|Free report email failed|Email delivery failed|RESEND/i.test(text)) {
+    return 'The email service did not confirm delivery. Please try again shortly.';
+  }
+  if (/Automated report delivery is not enabled for this pilot/i.test(text)) {
+    return 'Free-report email is not available in this private test yet. Your answers are securely saved.';
+  }
+  if (/quality gate failed/i.test(text)) {
+    return 'The report did not pass the quality check, so it was not sent automatically.';
+  }
+  if (/fetch|network|Failed to fetch/i.test(text)) {
+    return 'The browser could not reach the report server. Please check the connection and try again.';
+  }
+  return text ? `Report delivery did not confirm: ${text}` : 'We could not confirm report delivery. Please try again or contact team@bridgetoai.ca.';
+}
+function logAbandonmentProgress(reason = 'pagehide') {
+  try {
+    captureVisibleTranscript();
+    if (!draftAutosaveEnabled || interviewSubmitted || !clientDraftId) return;
+    const progress = progressMetrics({ abandonmentReason: reason, abandoned: true });
+    if (progress.completedPromptCount <= 0 && !scenarioStage) return;
+    const now = Date.now();
+    if (now - lastAbandonmentLogAt < 1500) return;
+    lastAbandonmentLogAt = now;
+    logHermesEvent('interview_abandoned_progress', 'info', progress);
+  } catch (e) { /* monitoring must never block navigation */ }
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden' && draftAutosaveEnabled && clientDraftId) {
+    logAbandonmentProgress('visibility_hidden');
+    logHermesEvent('page_hidden_with_active_or_draft_session', 'info', interviewKpiSummary());
+  }
+});
+window.addEventListener('pagehide', () => {
+  logAbandonmentProgress('pagehide');
+});
+window.addEventListener('beforeunload', () => {
+  logAbandonmentProgress('beforeunload');
+  saveDraft();
+  flushDraftSave(true);
+});
+showResumeCardIfNeeded();
+
+function updateWordCount() {
+  const text = document.getElementById('transcript').innerText.trim();
+  const words = text ? text.split(/\s+/).filter(Boolean).length : 0;
+  document.getElementById('char-count').textContent = words + (words === 1 ? ' word' : ' words');
+}
+
+// -- Voice recording --------------------------------------------------------
+function toggleRecording() {
+  if (isRecording) {
+    stopRecording();
+  } else {
+    startRecording();
+  }
+}
+
+function startRecording() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    alert('Voice input is not supported in this browser. Please use Chrome or Edge, or type your answer.');
+    return;
+  }
+
+  recognitionSessionId += 1;
+  const sessionId = recognitionSessionId;
+  const activeRecognition = new SpeechRecognition();
+  recognition = activeRecognition;
+  activeRecognition.continuous = true;
+  activeRecognition.interimResults = true;
+  activeRecognition.lang = 'en-CA';
+
+  const box = document.getElementById('transcript');
+  let baseText = box.innerText.trim();
+  if (baseText) baseText += ' ';
+
+  activeRecognition.onresult = (e) => {
+    if (sessionId !== recognitionSessionId || recognition !== activeRecognition) return;
+    let interim = '';
+    let final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) {
+        final += e.results[i][0].transcript + ' ';
+      } else {
+        interim += e.results[i][0].transcript;
+      }
+    }
+    if (final) baseText += final;
+    box.textContent = baseText + interim;
+    updateWordCount();
+  };
+
+  activeRecognition.onerror = (e) => {
+    if (sessionId !== recognitionSessionId || recognition !== activeRecognition) return;
+    if (e.error !== 'no-speech') stopRecording();
+  };
+
+  activeRecognition.onend = () => {
+    if (sessionId === recognitionSessionId && isRecording && recognition === activeRecognition) activeRecognition.start();
+  };
+
+  activeRecognition.start();
+  isRecording = true;
+
+  const btn = document.getElementById('voice-btn');
+  btn.classList.add('recording');
+  document.getElementById('voice-label').textContent = 'Recording - click to stop';
+}
+
+function stopRecording() {
+  recognitionSessionId += 1;
+  const activeRecognition = recognition;
+  recognition = null;
+  if (activeRecognition) {
+    activeRecognition.onend = null;
+    try { activeRecognition.stop(); } catch (e) { /* ignore already-stopped recognition */ }
+  }
+  isRecording = false;
+  const btn = document.getElementById('voice-btn');
+  btn.classList.remove('recording');
+  document.getElementById('voice-label').textContent = 'Click to speak';
+}
+
+// -- Submit & process -------------------------------------------------------
+async function submitInterview() {
+  interviewSubmitted = true;
+  showScreen('screen-processing');
+  animateProcessingSteps();
+
+  try {
+    saveDraft(true, true);
+    await flushDraftSave(false);
+    logHermesEvent('interview_completed_answers', 'success', interviewKpiSummary());
+    const dnaContent = await generateDNAWithClaude();
+    if (!lastSecureStorage || !lastSecureStorage.saved) {
+      throw new Error(lastSecureStorage?.reason || 'Secure Supabase storage did not confirm');
+    }
+
+    logHermesEvent('drive_save_result', 'success', { driveSaved: false, driveReason: 'Secure Supabase storage is primary; plaintext Drive save skipped.' });
+    logHermesEvent('email_delivery_result', 'skipped', { emailDelivered: false, reason: 'Completion notifications are disabled for this private preview.', driveSaved: false });
+    logHermesEvent('interview_submission_complete', 'success', interviewKpiSummary());
+
+    draftAutosaveEnabled = false;
+    try {
+      localStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem(LEGACY_DRAFT_KEY);
+    } catch (e) { /* ignore */ }
+    const card = document.getElementById('resume-card');
+    if (card) card.style.display = 'none';
+    if (window.processingTimer) clearInterval(window.processingTimer);
+    showScreen('screen-complete');
+    document.getElementById('complete-message').textContent =
+      isSnapshotFirstCampaign()
+        ? `Thank you, ${clientName}. Your free AI Opportunity Snapshot has been encrypted and securely saved. It will be used only to prepare your private first-pass report - never shared, never sold, never made public.`
+        : (activePartnerProfile()?.completion || `Thank you, ${clientName}. Your business profile has been encrypted and securely saved. It will be used only to prepare your custom AI plan - never shared, never sold, never made public.`);
+    updateCompletionCampaignOptions();
+    saveFollowupPreference(true);
+    const status = document.getElementById('followup-save-status');
+    if (status) status.textContent = 'Confirm the email address, then send your free report.';
+  } catch (err) {
+    console.error('Submission error:', err);
+    logHermesEvent('submission_failed', 'failed', { emailDelivered: false, error: err.message || 'Submission failed', ...interviewKpiSummary() });
+    if (window.processingTimer) clearInterval(window.processingTimer);
+    showScreen('screen-complete');
+    updateCompletionCampaignOptions();
+    if (err.privacyReviewRequired) {
+      document.getElementById('complete-message').textContent =
+        `Thank you, ${clientName}. Your interview was encrypted and saved, but the Bridge To AI Privacy Gate paused automatic report generation because sensitive details may be present. The Bridge Team will review the sanitized record before preparing or sending your report.`;
+      const status = document.getElementById('followup-save-status');
+      if (status) status.textContent = 'Privacy review required before automatic report delivery.';
+      const deliveryButton = document.getElementById('report-delivery-btn');
+      if (deliveryButton) {
+        deliveryButton.textContent = 'Privacy review required before report delivery';
+        deliveryButton.disabled = true;
+      }
+      return;
+    }
+    document.getElementById('complete-message').textContent =
+      `Thank you, ${clientName}. Your interview is complete and securely saved. Use the button below to send your free report.`;
+  }
+}
+
+function animateProcessingSteps() {
+  const steps = ['pstep-1', 'pstep-2', 'pstep-3', 'pstep-4'];
+  const snapshotMode = isSnapshotFirstCampaign();
+  const messages = snapshotMode
+    ? [
+      'Reviewing your answers for the clearest first AI opportunity.',
+      'Creating a secure opportunity snapshot from your directional answers.',
+      'Preparing the free report and privacy proof trail.',
+      'Saving encrypted records and preparing delivery.',
+      'Still working. This can take a little longer when the report service is busy, but the snapshot is still being prepared securely.'
+    ]
+    : [
+      'Reviewing the full interview for business patterns and constraints.',
+      'Creating the secure business profile. Longer answers can take a little more time.',
+      'Preparing the free-report analysis and proof trail.',
+      'Saving encrypted records and preparing your next step.',
+      'Still working. This is normal for a detailed profile, especially after a full interview.'
+    ];
+  const startedAt = Date.now();
+  let activeStep = 0;
+
+  setText('processing-title', snapshotMode ? 'Creating your private AI Opportunity Snapshot...' : 'Creating your private business profile...');
+  setText('processing-body', snapshotMode
+    ? 'Your answers are being turned into a secure first-pass opportunity snapshot. The free report is prepared after your encrypted record is saved, and deeper reports are generated only if you request them.'
+    : 'Your answers are being turned into a secure business profile. The free report is prepared after your secure record is saved, and deeper reports are generated only when requested.');
+  setText('pstep-1-label', snapshotMode ? 'Reviewing your snapshot answers' : 'Reviewing the full interview');
+  setText('pstep-2-label', snapshotMode ? 'Creating the secure opportunity snapshot' : 'Creating the secure business profile');
+  setText('pstep-3-label', snapshotMode ? 'Preparing the free report' : 'Preparing report-ready insights');
+  setText('pstep-4-label', 'Saving encrypted records securely');
+
+  steps.forEach((id, index) => {
+    const step = document.getElementById(id);
+    step.classList.toggle('active', index === 0);
+    step.classList.remove('done');
+    step.querySelector('.p-icon').textContent = String(index + 1);
+  });
+
+  const timer = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+    const minutes = Math.floor(elapsed / 60);
+    const seconds = String(elapsed % 60).padStart(2, '0');
+    const timerEl = document.getElementById('processing-timer');
+    const bodyEl = document.getElementById('processing-body');
+
+    if (timerEl) timerEl.textContent = `Working for ${minutes}:${seconds}. Please keep this tab open until you see the confirmation screen.`;
+    if (bodyEl) bodyEl.textContent = messages[Math.min(Math.floor(elapsed / 25), messages.length - 1)];
+
+    const nextStep = Math.min(Math.floor(elapsed / 30), steps.length - 1);
+    if (nextStep !== activeStep) {
+      document.getElementById(steps[activeStep]).classList.remove('active');
+      document.getElementById(steps[activeStep]).classList.add('done');
+      document.getElementById(steps[activeStep]).querySelector('.p-icon').textContent = '\u2713';
+      activeStep = nextStep;
+      document.getElementById(steps[activeStep]).classList.add('active');
+    }
+  }, 1000);
+
+  window.processingTimer = timer;
+}
+
+// -- Build prompt for Claude ------------------------------------------------
+function buildPrivacyScanText() {
+  const boundaryCategoryPattern = /\b(?:private financials?|recipes?|formulas?|customer lists?|customer names?|client lists?|client names?|supplier contracts?|customer contracts?|vendor contracts?|contracts?|payroll|invoices?|confidential operating data|confidential formulas?|regulated data)\b/gi;
+  const answerForPrivacyScan = (question, value) => {
+    const answer = String(value || '').trim();
+    if (!answer) return '';
+    const boundaryQuestion = /risk|boundary|human review|do not automate|should ai absolutely not touch/i.test(`${question?.domain || ''} ${question?.type || ''} ${question?.text || ''}`);
+    if (boundaryQuestion) {
+      return answer.replace(boundaryCategoryPattern, '[BOUNDARY_CATEGORY]');
+    }
+    return answer;
+  };
+  const pack = industryPackSummary();
+  const lines = [
+    'PARTICIPANT-PROVIDED INTAKE DATA',
+    `Business Name: ${businessName || ''}`,
+    `Business Description: ${businessNiche || businessCategory || ''}`,
+    `Detail-Sharing Comfort: ${shareComfort || ''}`,
+    `Website URL: ${websiteUrl || ''}`,
+    `Company Size: ${companySize || ''}`,
+    `Owner Work Status / Capacity: ${ownerWorkStatus || ''}`,
+    `Departments / Functions: ${departments.join(', ')}`,
+    `Industry Pack: ${pack.label || ''}`,
+    `Industry Privacy Boundaries: ${industryList(pack.riskBoundaries) || ''}`
+  ];
+
+  QUESTIONS.forEach((q, i) => {
+    const answer = answerForPrivacyScan(q, answers[i]);
+    if (!answer) return;
+    lines.push(`\n[${q.domain} - ${q.type}]`);
+    lines.push(answer);
+  });
+
+  Object.keys(domainProbes || {}).forEach(domain => {
+    const probe = domainProbes[domain];
+    if (!probe?.answer) return;
+    lines.push(`\n[Adaptive follow-up - ${domain}]`);
+    lines.push(String(probe.answer || '').trim());
+  });
+
+  snapshotAnswersArchive.forEach(item => {
+    if (!item?.answer) return;
+    lines.push(`\n[Snapshot archive - ${item.domain || ''} - ${item.type || ''}]`);
+    lines.push(String(item.answer || '').trim());
+  });
+
+  if (scenarioGood || scenarioBad) {
+    lines.push('\n[Voice and standards answers]');
+    if (scenarioGood) lines.push(`Best reply: ${scenarioGood}`);
+    if (scenarioBad) lines.push(`Off-brand reply: ${scenarioBad}`);
+  }
+
+  return lines.join('\n').trim();
+}
+
+function buildPrompt() {
+  // -- Business answers, grouped by domain, with any AI probe appended --
+  let businessBlock = '';
+  let lastDomain = null;
+  QUESTIONS.forEach((q, i) => {
+    if (q.section !== 'business') return;
+    if (q.domain !== lastDomain) {
+      // close previous domain's probe
+
+      businessBlock += `\n### DOMAIN: ${q.domain}\n`;
+      lastDomain = q.domain;
+    }
+    businessBlock += `[${q.type}] ${q.text}\n-> ${answers[i] || '(no answer provided)'}\n`;
+    probeEntriesForQuestion(i).forEach(probe => {
+      if (!probe?.answer) return;
+      businessBlock += `  FOLLOW-UP (${probe.sourceQuestionType || probe.questionType || 'adaptive'}): ${probe.question}\n  ANSWER: ${probe.answer}\n`;
+    });
+  });
+
+  const snapshotArchiveBlock = snapshotAnswersArchive.length ? snapshotAnswersArchive.map(item => (
+    `\n[${item.domain} - ${item.type}]\nQUESTION: ${item.question}\nANSWER: ${item.answer}`
+  )).join('\n') : 'None.';
+
+  // -- Owner-mastery answers, each with its AI-future follow-up --
+  let masteryBlock = '';
+  QUESTIONS.forEach((q, i) => {
+    if (q.section !== 'mastery') return;
+    masteryBlock += `\n### ${q.domain}\n`;
+    masteryBlock += `Where they are now: ${answers[i] || '(no answer provided)'}\n`;
+    masteryBlock += `If AI handled it: ${masteryFollowups[i] || '(no answer provided)'}\n`;
+  });
+  if (!masteryBlock && isSnapshotFirstCampaign()) {
+    masteryBlock = 'Not captured in this shorter free Snapshot First interview. The free interview includes one practical leverage question, but it does not include the full owner mastery self-assessment.';
+  }
+
+  // -- Voice & Standards: the good vs. bad reply contrast --
+  const hasVoiceProfile = activeScenarioStepCount() > 0;
+  const voiceBlock = hasVoiceProfile ? `
+SCENARIO PRESENTED: ${scenarioText || '(none)'}
+
+THEIR "BEST / PROUD" REPLY:
+${scenarioGood || '(no answer provided)'}
+
+THEIR "BAD / OFF-BRAND" REPLY (what they'd never want sent):
+${scenarioBad || '(no answer provided)'}
+` : 'Not captured in this shorter free Snapshot First interview. Voice, standards, and Business DNA profile material belongs to the deeper diagnostic interview.';
+
+  const contextBlock = businessContext ? `
+PRIVATE BUSINESS CONTEXT PROFILE:
+Source: ${businessContext.source || 'business description / provided website'}
+Website URL provided: ${websiteUrl || '(not provided)'}
+Summary: ${businessContext.summary || '(none)'}
+Offers / services: ${businessContext.offers && businessContext.offers.length ? businessContext.offers.join('; ') : '(none)'}
+Likely customers: ${businessContext.likelyCustomers && businessContext.likelyCustomers.length ? businessContext.likelyCustomers.join('; ') : '(none)'}
+Positioning: ${businessContext.positioning || '(none)'}
+Tone notes: ${businessContext.tone || '(none)'}
+Likely workflows: ${businessContext.likelyWorkflows && businessContext.likelyWorkflows.length ? businessContext.likelyWorkflows.join('; ') : '(none)'}
+Likely AI opportunities: ${businessContext.likelyAiOpportunities && businessContext.likelyAiOpportunities.length ? businessContext.likelyAiOpportunities.join('; ') : '(none)'}
+Question guidance used during interview: ${businessContext.questionGuidance && businessContext.questionGuidance.length ? businessContext.questionGuidance.join('; ') : '(none)'}
+
+Use this as background signal only. Do not claim that website observations are facts unless the client's own answers confirm them. Where useful, compare what the business appears to offer with what the client says they actually do.
+` : 'PRIVATE BUSINESS CONTEXT PROFILE: Not available.';
+
+  const interviewModeDescription = isSnapshotFirstCampaign()
+    ? 'a shorter Snapshot First interview: a focused first-pass diagnostic designed to produce a useful free AI Opportunity Snapshot and identify whether a deeper diagnostic is warranted. It does not include the Voice & Standards scenario and must not be treated as a complete Business DNA interview'
+    : 'a deep 8-domain business diagnostic plus a 6-part owner self-assessment';
+  const interviewDepthInstruction = isSnapshotFirstCampaign()
+    ? 'This was the shorter Snapshot First campaign. Treat missing detail as an intentional limitation of the first pass. Give Darren a high-signal opportunity brief, but do not create a business voice/DNA profile. Label deeper workflow sequencing, readiness scoring, ROI, implementation assumptions, and voice/brand conclusions as Needs confirmation or Requires the deeper interview.'
+    : 'This was the full diagnostic path. Use the full answer set to produce the richest practical brief possible while still respecting the certainty rules.';
+  const artifactName = isSnapshotFirstCampaign() ? 'AI Opportunity Snapshot Brief' : 'Business DNA file';
+  const section9Instruction = hasVoiceProfile
+    ? 'Synthesize Part C. From the contrast between their "best" and "bad" replies, capture: their brand voice and tone (the words, warmth, and style of the good reply), the specific standards they hold (what made the bad version bad in their eyes), and the dos/don\'ts an AI clone must follow to sound like them. This is the raw material for matching their voice in any AI build. Quote directly where it reveals their voice.'
+    : 'State clearly that Voice & Standards were not captured in the free Snapshot First interview. Do not infer brand voice, writing tone, AI clone rules, or Business DNA from the shorter question set. List this as a reason to continue into the deeper interview if voice-matched AI outputs are desired.';
+  const opportunitySourceNote = hasVoiceProfile
+    ? 'the voice/standards in Part C'
+    : 'the stated business answers only; do not use inferred voice/standards because they were not captured';
+  const pack = industryPackSummary();
+
+  return `You are a business analyst for Bridge To AI, an AI implementation consulting firm run by Darren Randles (Kandar Consulting, Alberta, Canada).
+
+A new client has just completed their Bridge To AI interview - ${interviewModeDescription}. Your job is to produce a complete, structured ${artifactName} from their answers. This file is CONFIDENTIAL - it goes directly to Darren, not to the client.
+
+CLIENT INFORMATION:
+Owner Name: ${clientName}
+Owner Email: ${clientEmail || '(not provided)'}
+Business Name: ${businessName}
+Business Description: ${businessNiche || businessCategory || '(not specified)'}
+Detail-Sharing Comfort: ${shareComfort || '(not specified)'}
+Website URL: ${websiteUrl || '(not provided)'}
+Company Size: ${companySize ? companySize + ' people' : '(not specified)'}
+Owner Work Status / Capacity: ${ownerWorkStatus || '(not specified)'}
+Departments / Functions: ${departments.length ? departments.join(', ') : '(not specified)'}
+Industry Pack: ${pack.label || '(not specified)'}
+Industry Pack ID: ${pack.id || '(not specified)'}
+Detected Subtype: ${pack.subtype || '(not specified)'}
+Industry Workflow Examples: ${industryList(pack.workflowExamples) || '(not specified)'}
+Industry AI Opportunity Areas: ${industryList(pack.opportunities) || '(not specified)'}
+Industry Privacy / Human Review Boundaries: ${industryList(pack.riskBoundaries) || '(not specified)'}
+Industry Report Framing: ${pack.reportFraming || '(not specified)'}
+Privacy Consent: ${privacyConsent ? 'Accepted' : 'Not accepted'}
+Privacy Policy Version: ${PRIVACY_POLICY_VERSION}
+Privacy Consent Timestamp: ${privacyConsentAt || '(not recorded)'}
+Partner: ${partnerDisplayName || campaignPartner || '(not specified)'}
+Campaign: ${campaignId || '(not specified)'}
+Intake Variant: ${intakeVariant}
+Question Set: ${isSnapshotFirstCampaign() ? 'Snapshot First short set' : isAfpaMemberIntake() ? 'AFPA member 20-question set' : 'Full diagnostic set'}
+Interview Date: ${new Date().toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' })}
+
+Use the Industry Pack as vocabulary and context guidance. Do not pretend to be a licensed expert in the client's trade or regulated field. For healthcare/care services, keep recommendations non-clinical and explicitly preserve privacy/human-review boundaries. For food businesses, avoid recipes, formulas, customer lists, supplier contracts, private financials, and food-safety decisions without human review. For trades, keep safety, code, insurance, and legal decisions human-reviewed. For professional services, avoid confidential client strategy, legal/financial advice, HR records, and private client data.
+
+Use company size, owner work status, and department structure to calibrate your recommendations: a solo operator, semi-retired owner, or side-business operator needs different AI leverage than a 50-person, multi-department business. If they are solo or semi-retired, do not imply staff exist unless the client clearly said so. Where departments are listed, consider whether AI opportunities should be scoped per-function, per-person, or future-hire readiness.
+
+INTERVIEW DEPTH NOTE:
+${interviewDepthInstruction}
+
+${contextBlock}
+
+=======================================
+SNAPSHOT FIRST ANSWERS ALREADY PROVIDED
+=======================================
+${snapshotArchiveBlock}
+
+=======================================
+PART A - BUSINESS DIAGNOSTIC (8 domains)
+=======================================
+${businessBlock}
+
+=======================================
+PART B - OWNER SELF-ASSESSMENT (6 areas)
+${isSnapshotFirstCampaign() || isAfpaMemberIntake() ? 'The full owner mastery section was not part of this shorter intake. Do not infer a coaching-style owner profile.' : 'Each area: where the owner is today, and what they\'d want AI to free up.'}
+=======================================
+${masteryBlock}
+
+=======================================
+PART C - VOICE & STANDARDS
+${hasVoiceProfile ? 'The client reacted to a scenario twice: their best reply, and a deliberately bad one.\nThe CONTRAST reveals their brand voice, tone, and the standards they hold.' : 'This section was not part of the free Snapshot First interview.'}
+=======================================
+${voiceBlock}
+
+Produce a complete ${artifactName} in markdown format with these sections.
+
+IMPORTANT CERTAINTY RULES:
+- This first intake is a trust-first directional diagnostic, not a confidential financial audit.
+- Do not invent exact ROI, savings, margin, payroll, customer value, or implementation cost.
+- Use these labels whenever making conclusions: "Stated by the business", "Directional signal", "Inferred by BTAI", or "Requires private scoping to validate".
+- If a recommendation depends on exact financials, recipes, invoices, supplier contracts, customer lists, or proprietary data, state that it belongs in a private implementation scoping session.
+- Treat volunteered sensitive details carefully and generalize them where possible.
+
+# [BUSINESS NAME] - ${isSnapshotFirstCampaign() ? 'AI OPPORTUNITY SNAPSHOT BRIEF' : 'VENTURE DNA'}
+## ${isSnapshotFirstCampaign() ? 'Snapshot First Interview' : 'Business DNA Interview'} | ${new Date().toLocaleDateString('en-CA')}
+
+### SECTION 1: CLIENT IDENTITY
+Business name, owner, category, date, interview method.
+
+### SECTION 2: WHAT THIS BUSINESS DOES
+2-3 sentence summary of their revenue model, core deliverable, and who benefits. Use their actual words where possible.
+
+### SECTION 3: IDEAL CLIENT PROFILE
+Who they serve, who they don't, what triggers a buying decision, what success looks like for their clients.
+
+### SECTION 4: REVENUE ENGINE
+How leads come in, how sales happen, where deals stall, what the conversion process looks like.
+
+### SECTION 5: OPERATIONS & DELIVERY
+How work moves from sale to result. Key steps, handoffs, recurring workflows, where things slow down.
+
+### SECTION 6: INFORMATION & SYSTEMS
+Where data lives, what tools are in use, data quality issues, what decisions are made without good information.
+
+### SECTION 7: PEOPLE & DECISION-MAKING
+Who owns what, where tribal knowledge is locked, where decisions require the owner, what would break without them.
+
+### SECTION 8: OWNER MASTERY PROFILE
+${isSnapshotFirstCampaign() ? 'State clearly that the full owner mastery profile was not captured in the free Snapshot First interview. Use only the practical leverage answer to describe what the owner hopes to do if one frustrating/repetitive task becomes easier. Do not infer a coaching-style owner profile.' : 'Synthesize Part B. For each of the 6 areas (Personal Productivity, Strategy & Decision-Making, Time & Leverage, Sales & Influence, Marketing & Messaging, Operations & Efficiency): where the owner currently stands, and - critically - where THEY said they want AI to help. This is the owner telling you in their own words where AI should go. Treat it as high-signal.'}
+
+### SECTION 9: VOICE & STANDARDS PROFILE
+${section9Instruction}
+
+### SECTION 10: AI OPPORTUNITY PORTFOLIO
+List 6-10 specific AI opportunities ranked by Impact x Feasibility (both scored 1-5, multiply). Format as a table. Draw from the business diagnostic, the owner's stated AI wishes in Part B, the Revenue Engine opportunity type/scale, the AI Opportunity commercial objective, and ${opportunitySourceNote}. Include a "Certainty" column using the certainty labels above. Use directional ROI language such as time relief, consistency gain, capacity unlocked, confidence improved, risk reduced, or revenue opportunity supported. If exact numbers are missing, state the assumption needed rather than inventing one.
+
+### SECTION 11: READINESS SCORECARD
+Score these 5 dimensions 1-5 with one-line finding each:
+- Data & Information Quality
+- Workflow Documentation
+- Tools & Tech Stack
+- People & Change Readiness
+- Risk & Compliance Posture
+Total score out of 25. Assign a readiness tier: Launch-Ready (21-25), Near-Ready (16-20), Foundation First (11-15), Rebuild Required (6-10), Not Ready (1-5).
+
+### SECTION 12: DO NOW / BUILD NEXT / AVOID FOR NOW
+Three clear boxes. Each action includes what to do and why.
+
+### SECTION 13: 30-60-90 DAY ROADMAP
+Three phases with specific tasks, owners, effort estimates, and outputs. Include 90-day success metrics.
+
+### SECTION 14: KEY QUOTES
+Capture 4-6 direct quotes from the client's answers (business, owner, or voice sections) that reveal their mindset, priorities, or hidden constraints.
+
+### SECTION 15: CONSULTANT NOTES FOR DARREN
+What stood out. What the client didn't say but implied. What to probe in the next conversation. Any risks or red flags. Note especially any mismatch between where the business needs AI and where the OWNER wants AI - that gap is where engagements succeed or fail. Pay special attention to their execution track record (Section 8, "Execution Reality" questions) and whether freed time will be redirected to revenue work or wasted.
+
+EVIDENCE DISCIPLINE:
+For every major finding, recommendation, readiness score, roadmap item, and AI opportunity, include one evidence label in plain text:
+- Client-stated: the client directly said it.
+- Derived: it follows clearly from multiple client answers.
+- Inferred: it is a reasonable hypothesis, but not directly proven.
+- Needs confirmation: the interview did not provide enough evidence.
+
+Do not present inferred ideas as facts. If a number, workflow, employee role, customer segment, constraint, or tool was not supplied, label it Inferred or Needs confirmation. If the client appears solo, semi-retired, or no-staff, do not imply employees or departments exist unless the client clearly said so.
+
+Be specific, direct, and honest. Do not soften constraints or inflate readiness scores. Use the client's actual language where it reveals something true about how they think.`;
+}
+
+// -- Call Anthropic API -----------------------------------------------------
+async function generateDNAWithClaude() {
+  const response = await fetch('/api/generate-dna', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      prompt: buildPrompt(),
+      clientDraftId: ensureClientDraftId(),
+      draftAccessToken,
+      sourceMeta: {
+        partner: campaignPartner,
+        campaign: campaignId,
+        partnerDisplayName,
+        intakeVariant,
+        privacyScanText: buildPrivacyScanText(),
+        questionSet: activeQuestionSetName(),
+        industryPack: industryPackSummary(),
+        businessCategory,
+        companySize,
+        ownerWorkStatus,
+        questionCount: QUESTIONS.length,
+        soloOrNoStaff: isSoloOrNoStaff(),
+        privacyConsent,
+        privacyConsentAt,
+        privacyPolicyVersion: PRIVACY_POLICY_VERSION,
+        partnerAggregateDisclosureShown: !!activePartnerProfile(),
+        partnerAggregateDisclosureAccepted: !!privacyConsent,
+        crossBorderProcessingNoticePresented: true,
+        serviceProviderPolicyAvailable: true,
+        privacyContactPresented: true,
+        deletionRequestPathAvailable: true
+      }
+    })
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    if (response.status === 409 && /Privacy review required/i.test(data.error || data.message || '')) {
+      if (data.secureStorage) lastSecureStorage = data.secureStorage;
+      const privacyErr = new Error(data.message || 'Privacy review required before report generation can continue');
+      privacyErr.privacyReviewRequired = true;
+      privacyErr.privacyGate = data.privacyGate || null;
+      throw privacyErr;
+    }
+    throw new Error(data.message || data.error || 'DNA generation failed');
+  }
+  if (data.hermesPrivacy) {
+    logHermesEvent('tokenization_result', data.hermesPrivacy.anonymized ? 'success' : 'failed', {
+      privacyProofType: 'browser_confirmation_anonymization',
+      privacyAnonymized: !!data.hermesPrivacy.anonymized,
+      anonymizationReplacements: data.hermesPrivacy.stats?.replacements || 0,
+      directIdentifiersRemoved: !!data.hermesPrivacy.anonymized,
+      rawInterviewIncluded: false,
+      aiPayloadType: 'anonymized_business_profile',
+      piiMappingStoredEncrypted: !!data.hermesPrivacy.mappingSaved,
+      driveSaved: !!data.hermesPrivacy.mappingSaved,
+      driveReason: data.hermesPrivacy.mappingSaveReason || '',
+      proofStatus: data.hermesPrivacy.anonymized ? 'passed' : 'failed'
+    });
+  }
+  if (data.secureStorage) {
+    lastSecureStorage = data.secureStorage;
+    logHermesEvent('secure_storage_result', data.secureStorage.saved ? 'success' : 'failed', {
+      privacyProofType: 'browser_confirmation_secure_storage',
+      draftSaved: !!data.secureStorage.saved,
+      encryptedAtRest: !!data.secureStorage.saved,
+      encryptionAlg: 'AES-256-GCM',
+      rawDnaIncluded: false,
+      partnerRawAccess: false,
+      proofStatus: data.secureStorage.saved ? 'passed' : 'failed',
+      error: data.secureStorage.reason || ''
+    });
+  }
+  return data.dnaContent;
+}
+
+// -- Send email via serverless function ------------------------------------
+async function sendEmailWithDNA() {
+  const payload = {
+    recordId: ensureClientDraftId(),
+    draftAccessToken
+  };
+
+  const response = await fetch(CONFIG.EMAIL_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    let detail = '';
+    try {
+      const errorBody = await response.json();
+      detail = errorBody && (errorBody.details || errorBody.message || errorBody.error) ? `: ${JSON.stringify(errorBody.details || errorBody.message || errorBody.error)}` : '';
+    } catch (e) { /* ignore parse errors */ }
+    throw new Error('Email send failed' + detail);
+  }
+}
+
+function triggerFreeReportDelivery(options = {}) {
+  const button = document.getElementById('report-delivery-btn');
+  const status = document.getElementById('followup-save-status');
+  if (completionTestMode) {
+    if (status) status.textContent = 'Test mode: no report email sent.';
+    return;
+  }
+  if (freeReportDeliverySucceeded) {
+    if (status) status.textContent = `Your free report has already been sent to ${clientEmail}.`;
+    return;
+  }
+  if (freeReportDeliveryStarted) {
+    if (status) status.textContent = `Your free report is being prepared and sent to ${clientEmail}.`;
+    return;
+  }
+
+  freeReportDeliveryStarted = true;
+  if (button) {
+    button.textContent = 'Sending your free report...';
+    button.disabled = true;
+  }
+  if (status) status.textContent = `Preparing and sending your free report to ${clientEmail}.`;
+
+  const payload = {
+    action: 'generate-free-email',
+    clientDraftId: ensureClientDraftId(),
+    draftAccessToken
+  };
+
+  fetch(CONFIG.REPORT_PACK_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+    .then(async response => {
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.error) throw new Error(data.error || data.message || 'Free report delivery failed');
+      freeReportDeliverySucceeded = true;
+      if (button) {
+        button.textContent = 'Free report email sent';
+        button.disabled = true;
+      }
+      if (status) status.textContent = `Your free report has been sent to ${clientEmail}.`;
+      logHermesEvent('free_report_delivery_result', 'success', {
+        emailed: !!data.emailed,
+        recipientConfirmed: !!data.recipient,
+        deliveryMode: options.manual ? 'manual_click' : 'automatic_completion'
+      });
+    })
+    .catch(err => {
+      freeReportDeliveryStarted = false;
+      if (button) {
+        button.textContent = 'Try sending my free report again';
+        button.disabled = false;
+      }
+      if (status) status.textContent = friendlyReportDeliveryError(err.message);
+      console.error('Free report delivery failed:', err);
+      logHermesEvent('free_report_delivery_result', 'failed', {
+        error: err.message || 'Free report delivery failed',
+        deliveryMode: options.manual ? 'manual_click' : 'automatic_completion'
+      });
+    });
+}
+
+function maybeLaunchCompletionTestMode() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('testComplete') !== '1') return;
+  const providedRecordId = params.get('recordId') || '';
+  const allowRealDelivery = params.get('allowRealDelivery') === '1' && !!providedRecordId;
+  completionTestMode = !allowRealDelivery;
+
+  clientName = params.get('name') || 'Test Client';
+  businessName = params.get('business') || 'Prairie Hearth Bakery';
+  clientEmail = params.get('email') || 'demo@bridgetoai.test';
+  businessCategory = params.get('category') || 'Food / Beverage / Manufacturing';
+  companySize = params.get('size') || '1-5';
+  ownerWorkStatus = params.get('ownerStatus') || 'Full-time owner/operator';
+  departments = ['Operations', 'Sales', 'Admin'];
+  privacyConsent = true;
+  privacyConsentAt = new Date().toISOString();
+  btaiFollowupInterest = 'maybe';
+  btaiFollowupInterestAt = new Date().toISOString();
+  clientDraftId = providedRecordId || `completion_test_${Date.now()}`;
+  lastSecureStorage = { saved: true, outputId: allowRealDelivery ? 'existing-secure-record' : 'completion-test-only', reason: allowRealDelivery ? 'Real delivery test mode using an existing Record ID' : 'Completion page test mode only' };
+
+  initCampaignContext();
+  showScreen('screen-complete');
+  document.getElementById('complete-message').textContent =
+    allowRealDelivery
+      ? `Thank you, ${clientName}. This is real delivery test mode using an existing secure Record ID. Click "Email my free report" to test report delivery without retaking the interview.`
+      : (activePartnerProfile()?.completion || `Thank you, ${clientName}. This is completion-page test mode. No interview was submitted and no report email was sent.`);
+  const status = document.getElementById('followup-save-status');
+  if (status) status.textContent = allowRealDelivery ? 'Real delivery test mode: no email sent until you click the button.' : 'Test mode: no report email sent.';
+  const deliveryButton = document.getElementById('report-delivery-btn');
+  if (deliveryButton && !allowRealDelivery) {
+    deliveryButton.textContent = 'Test mode only - no report to send';
+    deliveryButton.disabled = true;
+  } else if (deliveryButton) {
+    deliveryButton.textContent = 'Email my free report';
+    deliveryButton.disabled = false;
+  }
+  logHermesEvent('completion_page_test_mode_loaded', 'info', {
+    partner: campaignPartner,
+    campaign: campaignId,
+    allowRealDelivery
+  });
+}
+initCampaignContext();
+maybeContinueDeepInterviewFromLink().then(handled => {
+  if (!handled) maybeLaunchCompletionTestMode();
+});
+</script>
+</body>
+</html>
+```
+
+### api/interview-ai.js
+
+```javascript
+import { anonymizeText, privacyHeader, reidentifyText } from '../lib/privacy.js';
+
+function normalizeUrl(rawUrl) {
+  if (!rawUrl || typeof rawUrl !== 'string') return '';
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return '';
+  const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    const url = new URL(withProtocol);
+    if (!['http:', 'https:'].includes(url.protocol)) return '';
+    return url.toString();
+  } catch {
+    return '';
+  }
+}
+
+function extractVisibleText(html) {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, ' ')
+    .replace(/<!--[\s\S]*?-->/g, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 9000);
+}
+
+async function fetchWebsiteText(websiteUrl) {
+  const url = normalizeUrl(websiteUrl);
+  if (!url) return '';
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 7000);
+  try {
+    const resp = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'BridgeToAI-Intake/1.0',
+        Accept: 'text/html,application/xhtml+xml'
+      }
+    });
+    if (!resp.ok) return '';
+    const contentType = resp.headers.get('content-type') || '';
+    if (!contentType.includes('text/html')) return '';
+    return extractVisibleText(await resp.text());
+  } catch {
+    return '';
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function parseClaudeJson(text) {
+  const raw = String(text || '').trim();
+  if (!raw) throw new Error('Claude returned an empty context response');
+  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  const candidate = (fenced ? fenced[1] : raw).trim();
+  try {
+    return JSON.parse(candidate);
+  } catch (firstErr) {
+    const start = candidate.indexOf('{');
+    const end = candidate.lastIndexOf('}');
+    if (start !== -1 && end !== -1 && end > start) return JSON.parse(candidate.slice(start, end + 1));
+    throw firstErr;
+  }
+}
+
+function fallbackContext({ businessCategory, websiteUrl }) {
+  return {
+    summary: '',
+    offers: [],
+    likelyCustomers: [],
+    positioning: '',
+    tone: '',
+    likelyWorkflows: [],
+    likelyAiOpportunities: [],
+    questionGuidance: [],
+    interviewLanguageRules: [
+      'Use generic phrasing such as "businesses like yours", "your industry often", and "this type of operation".',
+      'Do not say or imply that the website was researched during the interview.'
+    ],
+    source: websiteUrl ? 'business_type_with_website_unavailable' : 'business_type_only',
+    businessCategory: businessCategory || ''
+  };
+}
+
+function businessDescription({ businessCategory, businessNiche } = {}) {
+  return String(businessNiche || businessCategory || '').trim();
+}
+
+async function callClaude(prompt, { maxTokens = 600, explicitIdentifiers = {} } = {}) {
+  const privacy = anonymizeText(prompt, explicitIdentifiers);
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': process.env.ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: maxTokens,
+      messages: [{ role: 'user', content: privacyHeader() + privacy.anonymizedText }]
+    })
+  });
+  if (!response.ok) throw new Error('Claude call failed: ' + await response.text());
+  const data = await response.json();
+  const raw = data.content?.[0]?.text ? data.content[0].text.trim() : '';
+  return reidentifyText(raw, privacy.mapping);
+}
+
+async function researchBusiness(body) {
+  const { businessName, businessCategory, businessNiche, shareComfort, websiteUrl, companySize, departments } = body || {};
+  const description = businessDescription({ businessCategory, businessNiche });
+  if (!description && !websiteUrl) return { context: fallbackContext({ businessCategory, websiteUrl }) };
+
+  try {
+    const normalizedWebsiteUrl = normalizeUrl(websiteUrl);
+    const websiteText = await fetchWebsiteText(normalizedWebsiteUrl);
+    const prompt = `Build an INTERNAL business context profile for an AI implementation discovery interview.
+
+Client-provided information:
+- Business name: ${businessName || '(not provided)'}
+- Business description: ${description || '(not provided)'}
+- Detail-sharing comfort: ${shareComfort || '(not provided)'}
+- Website URL: ${normalizedWebsiteUrl || '(not provided)'}
+- Company size: ${companySize || '(not provided)'}
+- Departments/functions: ${departments && departments.length ? departments.join(', ') : '(not provided)'}
+
+Website text, if available:
+${websiteText || '(no website text available)'}
+
+Return ONLY raw valid JSON with this exact shape. Do not wrap it in markdown, code fences, or explanatory text:
+{
+  "summary": "1-2 sentence private internal summary",
+  "offers": ["visible or likely offer"],
+  "likelyCustomers": ["customer segment"],
+  "positioning": "how this business appears to position itself",
+  "tone": "plain-language voice/tone notes",
+  "likelyWorkflows": ["workflow likely to matter"],
+  "likelyAiOpportunities": ["specific AI opportunity likely relevant"],
+  "questionGuidance": ["guidance for asking sharper interview follow-ups"],
+  "interviewLanguageRules": ["client-facing language rule"]
+}
+
+Rules:
+- This profile is for Darren's private use only.
+- Do NOT overstate certainty. Use "likely" when inferred.
+- Interview questions must sound industry-informed, not researched.
+- Do NOT write "your website says", "I noticed", "we saw", or anything that reveals background research to the client.`;
+
+    const text = await callClaude(prompt, { maxTokens: 1400, explicitIdentifiers: { businessName, websiteUrl: normalizedWebsiteUrl } });
+    const context = parseClaudeJson(text);
+    return {
+      context: {
+        ...fallbackContext({ businessCategory, websiteUrl: normalizedWebsiteUrl }),
+        ...context,
+        source: websiteText ? 'business_type_and_website' : 'business_type_only',
+        websiteUrl: normalizedWebsiteUrl
+      }
+    };
+  } catch (err) {
+    console.error('research-business error:', err);
+    return { context: fallbackContext({ businessCategory, websiteUrl }), warning: err.message };
+  }
+}
+
+async function scenario(body) {
+  const { businessCategory, businessNiche, businessContext } = body || {};
+  const description = businessDescription({ businessCategory, businessNiche }) || 'small business';
+  const contextBlock = businessContext ? `\n\nInternal context for tailoring only:\n${JSON.stringify(businessContext).slice(0, 3000)}\n\nUse this to choose a more relevant situation, but do not reveal or imply background research.` : '';
+  const prompt = `Write ONE short, realistic customer-interaction scenario for a "${description}".
+
+The scenario should be a moment where the customer is mildly unhappy or has a real need - something where HOW the business owner responds reveals their standards, tone, and values. It must be specific enough to feel real for this type of business, but open enough that any owner could respond in their own way.
+
+Rules:
+- 1-2 sentences, written in plain language, addressed to the owner ("A customer...").
+- Make it specific to a ${description} using believable industry patterns.
+- If internal context is available, fit the scenario to likely workflows without saying "your website", "I noticed", "we saw", or anything that reveals background research.
+- Do NOT suggest how to respond. Just set up the situation.
+- Output ONLY the scenario text. No preamble, no quotes, no label.${contextBlock}`;
+  try {
+    return { scenario: await callClaude(prompt, { maxTokens: 200 }) };
+  } catch (err) {
+    console.error('Scenario error:', err);
+    return { scenario: '' };
+  }
+}
+
+function soloOrNoStaff(companySize, ownerWorkStatus, departments) {
+  return /(^|\D)(0|1)(\D|$)/.test(String(companySize || '')) || /semi[- ]?retired|mostly just me|solo|self[- ]?employed|no employees/i.test(`${ownerWorkStatus || ''} ${Array.isArray(departments) ? departments.join(' ') : ''}`);
+}
+
+async function probe(body) {
+  const { domain, qa, businessCategory, businessNiche, shareComfort, companySize, ownerWorkStatus, departments = [], businessContext, sourceQuestion, sourceQuestionType, answerQualityBucket, priorityWeight, weakAnswerReason } = body || {};
+  if (!qa) return { status: 400, body: { error: 'Missing qa' } };
+  const description = businessDescription({ businessCategory, businessNiche }) || 'small business';
+  const contextBlock = businessContext ? `\n\nInternal context for sharper judgment only:\n${JSON.stringify(businessContext).slice(0, 3000)}\n\nUse this to understand likely workflows and industry patterns. Do not reveal background research.` : '';
+  const orgContext = `Business description: ${description}. Detail-sharing comfort: ${shareComfort || 'directional only'}. Company size: ${companySize || 'not specified'} people. Owner status/capacity: ${ownerWorkStatus || 'not specified'}. Departments/functions selected: ${Array.isArray(departments) && departments.length ? departments.join(', ') : 'not specified'}.`;
+  const prompt = `You are conducting a business discovery interview for a ${description}.
+
+Organization context:
+${orgContext}
+${soloOrNoStaff(companySize, ownerWorkStatus, departments) ? 'Important: This appears to be a solo, no-staff, or semi-retired operator. Do not ask about staff, employees, departments, or team handoffs as if they currently exist.' : ''}
+
+The client just gave a weak or vague answer to this ${sourceQuestionType ? `"${sourceQuestionType}"` : 'discovery'} question${sourceQuestion ? `: "${sourceQuestion}"` : ` in the "${domain}" section`}.
+
+Answer quality signal: ${answerQualityBucket || 'unknown'}.
+Question importance weight: ${priorityWeight || 'not supplied'} out of 5.
+Reason the redirect may be needed: ${weakAnswerReason || 'not supplied'}.
+
+${qa}
+${contextBlock}
+
+Your job: ask ONE short redirect question only if it would meaningfully turn a thin answer into usable business context. Default to no follow-up if the answer is already usable.
+
+Rules:
+- If the answers are clear enough to analyze, return ask_followup false.
+- Do not ask broad recap questions such as "walk me through your process" or "what does your current process look like".
+- Only ask for one missing high-value fact: a concrete example, frequency/range, blocker, owner/readiness, information location, human-review boundary, or desired practical output.
+- Make the redirect specific to the business niche and question they just answered. Do not ask a generic "tell me more" question.
+- Keep the question under 220 characters.
+- Ask for directional ranges, severity, priority, frequency, blocker, owner/readiness, risk, low-risk pilot, clarify, or voice/tone only.
+- Never ask for exact revenue, exact profit, exact margin, payroll, bank/tax/legal records, customer names, supplier names, employee personal details, recipes, formulas, contracts, invoices, purchase orders, passwords, API keys, health information, or legal personal information.
+- Do not recommend tools, vendors, or Bridge To AI services during the interview.
+
+Return ONLY raw valid JSON. Do not wrap it in markdown:
+{
+  "ask_followup": true,
+  "question_type": "clarify",
+  "domain": "${domain}",
+  "question": "One safe, short follow-up question or empty string",
+  "why_needed": "Short internal reason",
+  "sensitivity_level": "low",
+  "uses_approved_category": true
+}
+
+If no follow-up is needed, return:
+{
+  "ask_followup": false,
+  "question_type": "clarify",
+  "domain": "${domain}",
+  "question": "",
+  "why_needed": "Answers are sufficient",
+  "sensitivity_level": "low",
+  "uses_approved_category": true
+}`;
+  try {
+    const raw = await callClaude(prompt, { maxTokens: 260 }) || '';
+    const parsed = parseJsonLenient(raw);
+    if (parsed && typeof parsed === 'object') return { followup: parsed };
+    return { followup: 'NONE' };
+  } catch (err) {
+    console.error('Probe error:', err);
+    return { followup: 'NONE' };
+  }
+}
+
+async function masteryFollowup(body) {
+  const { area, answer, businessCategory, businessNiche, companySize, ownerWorkStatus, departments = [], businessContext } = body || {};
+  const description = businessDescription({ businessCategory, businessNiche }) || 'small business';
+  if (!answer) return { status: 400, body: { error: 'Missing answer' } };
+  const contextBlock = businessContext ? `\n\nInternal context for tailoring only:\n${JSON.stringify(businessContext).slice(0, 2500)}\n\nDo not reveal or imply background research happened.` : '';
+  const orgContext = `Company size: ${companySize || 'not specified'} people. Owner status/capacity: ${ownerWorkStatus || 'not specified'}. Departments/functions selected: ${Array.isArray(departments) && departments.length ? departments.join(', ') : 'not specified'}.`;
+  const prompt = `You are conducting a warm, professional business discovery interview for a ${description} owner.
+
+Organization context:
+${orgContext}
+${soloOrNoStaff(companySize, ownerWorkStatus, departments) ? 'Important: This appears to be a solo, no-staff, or semi-retired operator. Do not ask staff/team questions unless they explicitly mentioned employees.' : ''}
+
+You just asked them where they are with "${area}". They answered:
+
+"${answer}"
+${contextBlock}
+
+Write ONE short follow-up question that picks up a specific thing they actually said and asks what AI handling it would change. If too vague, respond exactly: NONE.`;
+  try {
+    return { followup: await callClaude(prompt, { maxTokens: 150 }) || 'NONE' };
+  } catch (err) {
+    console.error('Mastery follow-up error:', err);
+    return { followup: 'NONE' };
+  }
+}
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  const task = String(req.body?.task || '').trim();
+  try {
+    let result;
+    if (task === 'research-business') result = await researchBusiness(req.body);
+    else if (task === 'scenario') result = await scenario(req.body);
+    else if (task === 'probe') result = await probe(req.body);
+    else if (task === 'mastery-followup') result = await masteryFollowup(req.body);
+    else return res.status(400).json({ error: 'Unknown interview AI task' });
+
+    if (result?.status) return res.status(result.status).json(result.body);
+    return res.status(200).json(result);
+  } catch (err) {
+    console.error('interview-ai error:', err);
+    return res.status(200).json({ error: err.message });
+  }
+}
+```
+
+### api/recover-dna.js
+
+```javascript
+import { decryptJson, encryptJson } from '../lib/crypto.js';
+import { insertClaimTrace, insertIntakeEvent, insertIntakeOutput, getIntakeSession, getLatestIntakeOutput, updateIntakeSession } from '../lib/supabase-rest.js';
+import { gateProofDetails, publicGateSummary, runPrivacyGate } from '../lib/privacy-gate.js';
+import { validateDnaOutput } from '../lib/validate-output.js';
+import { assertRateLimit, assertTrustedOrigin, authorizedAdminRequest, safeError } from '../lib/security.js';
+
+function retentionMetadata(category = 'first_intake') {
+  const now = new Date();
+  const review = new Date(now);
+  if (category === 'draft') review.setDate(review.getDate() + 30);
+  else review.setMonth(review.getMonth() + 24);
+  return {
+    retentionPolicyVersion: '2026-07-30-v1',
+    retentionCategory: category,
+    scheduledReviewDate: review.toISOString(),
+    deletionRequestPathAvailable: true
+  };
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function applyPrivacyRedactions(text, redactionMap = []) {
+  let output = String(text || '');
+  const entries = [...(redactionMap || [])]
+    .filter(item => item && item.original && item.token)
+    .sort((a, b) => String(b.original).length - String(a.original).length);
+  for (const item of entries) {
+    output = output.replace(new RegExp(escapeRegExp(item.original), 'g'), item.token);
+  }
+  return output;
+}
+
+function extractField(prompt, label) {
+  const re = new RegExp(`^${escapeRegExp(label)}:\\s*(.+)$`, 'im');
+  const match = prompt.match(re);
+  return match ? match[1].trim() : '';
+}
+
+function addMapping(map, placeholder, value) {
+  const cleaned = String(value || '').trim();
+  if (!cleaned || cleaned.length < 2) return;
+  if (cleaned === '(not provided)' || cleaned === '(not specified)') return;
+  if (!map[placeholder]) map[placeholder] = cleaned;
+}
+
+function replaceAllLiteral(text, value, placeholder) {
+  if (!value || value.length < 2) return text;
+  return text.replace(new RegExp(escapeRegExp(value), 'g'), placeholder);
+}
+
+export function anonymizePrompt(prompt) {
+  const mapping = {};
+  addMapping(mapping, '[OWNER_NAME]', extractField(prompt, 'Owner Name'));
+  addMapping(mapping, '[BUSINESS_NAME]', extractField(prompt, 'Business Name'));
+  // Newer intakes use the plain-language "Business Description" label. Keep
+  // the older label as a fallback so an admin recovery remains safe for both
+  // saved record shapes.
+  addMapping(mapping, '[BUSINESS_DESCRIPTION]', extractField(prompt, 'Business Description') || extractField(prompt, 'Business Category'));
+  addMapping(mapping, '[WEBSITE_URL]', extractField(prompt, 'Website URL'));
+
+  let anonymized = prompt;
+  Object.entries(mapping)
+    .sort((a, b) => b[1].length - a[1].length)
+    .forEach(([placeholder, value]) => {
+      anonymized = replaceAllLiteral(anonymized, value, placeholder);
+    });
+
+  let emailCount = 0;
+  anonymized = anonymized.replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, match => {
+    const placeholder = `[EMAIL_${++emailCount}]`;
+    mapping[placeholder] = match;
+    return placeholder;
+  });
+
+  let phoneCount = 0;
+  anonymized = anonymized.replace(/(?:\+?1[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)\d{3}[\s.-]?\d{4}/g, match => {
+    const placeholder = `[PHONE_${++phoneCount}]`;
+    mapping[placeholder] = match;
+    return placeholder;
+  });
+
+  let urlCount = 0;
+  anonymized = anonymized.replace(/https?:\/\/[^\s)]+/gi, match => {
+    if (Object.values(mapping).includes(match)) return '[WEBSITE_URL]';
+    const placeholder = `[URL_${++urlCount}]`;
+    mapping[placeholder] = match;
+    return placeholder;
+  });
+
+  let moneyAccountCount = 0;
+  anonymized = anonymized.replace(/\b(?:\d[ -]*?){13,19}\b/g, match => {
+    const digits = match.replace(/\D/g, '');
+    if (digits.length < 13 || digits.length > 19) return match;
+    const placeholder = `[FINANCIAL_ACCOUNT_${++moneyAccountCount}]`;
+    mapping[placeholder] = match;
+    return placeholder;
+  });
+
+  const privacyHeader = 'HERMES PRIVACY LAYER ACTIVE:\nThe source interview below has been anonymized before model analysis. Use placeholders exactly as given. Do not attempt to infer real names, emails, phone numbers, websites, addresses, account numbers, or identities behind placeholders.\n\n';
+  return {
+    anonymizedPrompt: privacyHeader + anonymized,
+    mapping,
+    stats: {
+      replacements: Object.keys(mapping).length,
+      emails: emailCount,
+      phones: phoneCount,
+      urls: urlCount,
+      financialAccounts: moneyAccountCount
+    }
+  };
+}
+
+function reidentifyText(text, mapping) {
+  let output = text || '';
+  Object.entries(mapping || {})
+    .sort((a, b) => b[0].length - a[0].length)
+    .forEach(([placeholder, value]) => {
+      output = output.replace(new RegExp(escapeRegExp(placeholder), 'g'), value);
+    });
+  return output;
+}
+
+function safeText(value, fallback = '(not provided)') {
+  const text = String(value || '').trim();
+  return text || fallback;
+}
+
+function wordCount(text) {
+  const cleaned = String(text || '').trim();
+  return cleaned ? cleaned.split(/\s+/).filter(Boolean).length : 0;
+}
+
+function answeredItems(payload) {
+  const items = [];
+  (payload.answers || []).forEach((answer, index) => {
+    if (!String(answer || '').trim()) return;
+    items.push(`Answer ${index + 1}: ${answer}`);
+  });
+  (payload.masteryFollowups || []).forEach((answer, index) => {
+    if (!String(answer || '').trim()) return;
+    const question = payload.masteryFollowupQ?.[index] || 'AI future follow-up';
+    items.push(`Follow-up after answer ${index + 1}: ${question}\n${answer}`);
+  });
+  Object.values(payload.domainProbes || {}).forEach((probe, index) => {
+    if (!String(probe?.answer || '').trim()) return;
+    items.push(`Adaptive clarification ${index + 1}${probe.domain ? ` (${probe.domain})` : ''}: ${probe.question || 'Clarifying question'}\n${probe.answer}`);
+  });
+  (payload.snapshotAnswersArchive || []).forEach((item, index) => {
+    if (!String(item?.answer || '').trim()) return;
+    items.push(`Snapshot archive ${index + 1}${item.domain ? ` (${item.domain})` : ''}: ${item.question || 'Archived question'}\n${item.answer}`);
+  });
+  if (payload.scenarioGood || payload.scenarioBad) {
+    items.push(`Voice and standards scenario: ${payload.scenarioText || '(scenario text not saved)'}`);
+    if (payload.scenarioGood) items.push(`Best/proud reply: ${payload.scenarioGood}`);
+    if (payload.scenarioBad) items.push(`Off-brand reply: ${payload.scenarioBad}`);
+  }
+  return items;
+}
+
+function privacyScanText(payload) {
+  return answeredItems(payload).join('\n\n').trim();
+}
+
+function buildRecoveryPrompt(payload, clientDraftId) {
+  const items = answeredItems(payload);
+  const context = payload.businessContext ? JSON.stringify(payload.businessContext, null, 2) : 'Not available.';
+  const interviewMode = String(payload.intakeVariant || payload.questionSet || '').includes('snapshot')
+    ? 'a shorter Snapshot First interview designed to generate a practical free AI Opportunity Snapshot and determine whether deeper diagnosis is warranted'
+    : 'a Bridge To AI intake interview';
+
+  return `You are a business analyst for Bridge To AI, an AI implementation consulting firm run by Darren Randles in Alberta, Canada.
+
+This is an ADMIN RECOVERY generation. The client already completed the intake, but the first Venture DNA output was paused by the Privacy Gate before the report files were created. Use only the recovered saved interview payload below. If the saved payload lacks a question label, treat the numbered answer as client-stated evidence but do not invent missing facts.
+
+Create a structured Venture DNA source file that downstream Bridge To AI reports can use. Write clearly, practically, and with evidence discipline. Label major claims as Client-stated, Derived, Inferred, or Needs confirmation.
+
+CLIENT INFORMATION:
+Owner Name: ${safeText(payload.clientName)}
+Owner Email: ${safeText(payload.clientEmail)}
+Business Name: ${safeText(payload.businessName)}
+Business Description: ${safeText(payload.businessNiche || payload.businessCategory)}
+Website URL: ${safeText(payload.websiteUrl)}
+Company Size: ${safeText(payload.companySize)}
+Owner Work Status: ${safeText(payload.ownerWorkStatus)}
+Departments / Functions: ${Array.isArray(payload.departments) ? payload.departments.join(', ') : safeText(payload.departments)}
+Share Comfort: ${safeText(payload.shareComfort)}
+Partner: ${safeText(payload.campaignPartner || payload.partner || 'BTAI')}
+Campaign: ${safeText(payload.campaignId || payload.campaign || 'general_intake')}
+Question Set: ${safeText(payload.questionSet || payload.intakeVariant)}
+Record ID: ${clientDraftId}
+
+INTERVIEW MODE:
+The client completed ${interviewMode}.
+
+PRIVATE BUSINESS CONTEXT PROFILE:
+${context}
+
+RECOVERED INTERVIEW ANSWERS:
+${items.length ? items.map((item, index) => `\n### Recovered Evidence ${index + 1}\n${item}`).join('\n') : 'No answer text was recovered from the saved payload.'}
+
+OUTPUT STRUCTURE:
+# ${safeText(payload.businessName, 'Client Business')} - VENTURE DNA
+
+Include these sections:
+1. Business snapshot
+2. What the client appears to sell and to whom
+3. Current workflow drag and repeated work
+4. Information readiness and cleanup needs
+5. AI fit scorecard signals
+6. First useful AI opportunity
+7. What should stay human-reviewed
+8. Safe first prompt or next move
+9. Potential deeper-report questions
+10. Consultant notes for Darren
+11. Evidence map tying recommendations back to recovered answers
+
+Do not claim confidential details were provided unless they appear in the recovered interview. Do not expose sensitive raw details unnecessarily. If a privacy-sensitive category appears only as a boundary, treat it as a human-review boundary rather than an operating detail.`;
+}
+
+async function logPrivacyProof(clientDraftId, eventType, status, details = {}) {
+  try {
+    if (!clientDraftId) return;
+    await insertIntakeEvent({
+      client_draft_id: clientDraftId,
+      event_type: eventType,
+      status,
+      stage: 'admin_recovery',
+      question_index: null,
+      domain: 'BTAI Secure Intelligence Layer',
+      answer_word_count: null,
+      metadata: {
+        ts: new Date().toISOString(),
+        app: 'intake.bridgetoai.ca',
+        eventType,
+        status,
+        stage: 'admin_recovery',
+        privacyProof: true,
+        details: {
+          rawInterviewIncluded: false,
+          rawDnaIncluded: false,
+          partnerRawAccess: false,
+          encryptedAtRest: true,
+          encryptionAlg: 'AES-256-GCM',
+          ...details
+        }
+      }
+    });
+  } catch (err) {
+    console.error('recovery privacy proof log failed:', err);
+  }
+}
+
+async function callClaude(messages) {
+  if (!process.env.ANTHROPIC_API_KEY) throw new Error('Missing ANTHROPIC_API_KEY');
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': process.env.ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 8000,
+      messages
+    })
+  });
+  if (!response.ok) throw new Error('Anthropic API call failed: ' + await response.text());
+  return response.json();
+}
+
+async function saveAnonymizationMapping(clientDraftId, mapping, stats) {
+  try {
+    const hasMapping = mapping && Object.keys(mapping).length > 0;
+    if (!hasMapping) return { saved: false, reason: 'No mapping entries' };
+    const row = await insertIntakeOutput({
+      client_draft_id: clientDraftId,
+      output_type: 'hermes_reidentification_map',
+      encrypted_payload: encryptJson({
+        createdAt: new Date().toISOString(),
+        warning: 'PRIVATE RE-IDENTIFICATION MAP. Do not send this file to third-party AI models.',
+        stats,
+        mapping
+      })
+    });
+    return { saved: true, fileId: row?.id || '' };
+  } catch (err) {
+    return { saved: false, reason: err.message };
+  }
+}
+
+async function savePrivacyGateRecord(clientDraftId, gateResult) {
+  try {
+    const row = await insertIntakeOutput({
+      client_draft_id: clientDraftId,
+      output_type: 'privacy_gate_admin_recovery_venture_dna_generation',
+      encrypted_payload: encryptJson({
+        createdAt: new Date().toISOString(),
+        gateVersion: gateResult.gateVersion,
+        purpose: gateResult.purpose,
+        decision: gateResult.decision,
+        requiresReview: gateResult.requiresReview,
+        adminRecoveryContinuation: true,
+        summary: gateResult.summary,
+        proofFindings: gateResult.proofFindings,
+        originalHash: gateResult.originalHash,
+        sanitizedHash: gateResult.sanitizedHash,
+        sanitizedText: gateResult.sanitizedText,
+        redactionMap: gateResult.redactionMap
+      })
+    });
+    return { saved: true, outputId: row?.id || '' };
+  } catch (err) {
+    return { saved: false, reason: err.message };
+  }
+}
+
+async function saveCompletedDna(clientDraftId, dnaContent, meta = {}) {
+  const row = await insertIntakeOutput({
+    client_draft_id: clientDraftId,
+    output_type: 'venture_dna_markdown',
+    encrypted_payload: encryptJson({
+      createdAt: new Date().toISOString(),
+      dnaContent,
+      meta: {
+        ...meta,
+        retention: retentionMetadata('first_intake')
+      }
+    })
+  });
+  await updateIntakeSession(clientDraftId, {
+    status: 'complete',
+    completed_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  });
+  return { saved: true, outputId: row?.id || '' };
+}
+
+async function saveClaimTrace(clientDraftId, validation) {
+  try {
+    if (!clientDraftId || !validation?.claims?.length) return { saved: false, reason: 'No evidence-labelled claims found' };
+    await Promise.all(validation.claims.map(claim => insertClaimTrace({
+      client_draft_id: clientDraftId,
+      report_section: claim.reportSection,
+      claim_text: claim.claimText,
+      evidence_type: claim.evidenceType,
+      source_question_id: '',
+      source_excerpt: '',
+      confidence: null
+    })));
+    return { saved: true, count: validation.claims.length };
+  } catch (err) {
+    return { saved: false, reason: err.message };
+  }
+}
+
+async function generateRecoveredDna(clientDraftId, payload) {
+  const prompt = buildRecoveryPrompt(payload, clientDraftId);
+  const sourceMeta = {
+    partner: payload.campaignPartner || payload.partner || 'BTAI',
+    campaign: payload.campaignId || payload.campaign || 'general_intake',
+    partnerDisplayName: payload.partnerDisplayName || '',
+    intakeVariant: payload.intakeVariant || '',
+    questionSet: payload.questionSet || '',
+    businessCategory: payload.businessCategory || '',
+    businessNiche: payload.businessNiche || '',
+    companySize: payload.companySize || '',
+    ownerWorkStatus: payload.ownerWorkStatus || '',
+    privacyConsent: !!payload.privacyConsent,
+    privacyConsentAt: payload.privacyConsentAt || '',
+    privacyPolicyVersion: payload.privacyPolicyVersion || '',
+    partnerAggregateDisclosureShown: true,
+    partnerAggregateDisclosureAccepted: !!payload.privacyConsent,
+    crossBorderProcessingNoticePresented: true,
+    serviceProviderPolicyAvailable: true,
+    privacyContactPresented: true,
+    privacyScanText: privacyScanText(payload),
+    adminRecovery: true,
+    recoveredFromEncryptedSession: true
+  };
+
+  const privacyGate = runPrivacyGate(sourceMeta.privacyScanText || prompt, { purpose: 'admin_recovery_venture_dna_generation' });
+  const privacyGateSave = await savePrivacyGateRecord(clientDraftId, privacyGate);
+  await logPrivacyProof(clientDraftId, 'admin_recovery_privacy_gate_scan_completed', 'success', gateProofDetails(privacyGate, {
+    payloadType: 'recovered_encrypted_session_payload',
+    privacyGateOutputId: privacyGateSave.outputId || '',
+    adminRecoveryContinuation: true,
+    proofStatus: privacyGate.requiresReview ? 'admin_review_continued_with_sanitized_payload' : 'passed'
+  }));
+
+  const gatedPrompt = applyPrivacyRedactions(prompt, privacyGate.redactionMap);
+  const hermesPrivacy = anonymizePrompt(gatedPrompt);
+  const mappingSave = await saveAnonymizationMapping(clientDraftId, hermesPrivacy.mapping, hermesPrivacy.stats);
+  await logPrivacyProof(clientDraftId, 'admin_recovery_anonymization_completed', 'success', {
+    privacyProofType: 'anonymization',
+    payloadType: 'sanitized_recovered_interview_prompt',
+    aiPayloadType: 'sanitized_anonymized_business_profile',
+    directIdentifiersRemoved: true,
+    anonymizationReplacements: hermesPrivacy.stats.replacements || 0,
+    mappingFileId: mappingSave.fileId || '',
+    proofStatus: 'passed'
+  });
+
+  const messages = [{ role: 'user', content: hermesPrivacy.anonymizedPrompt }];
+  await logPrivacyProof(clientDraftId, 'admin_recovery_ai_analysis_requested', 'success', {
+    privacyProofType: 'ai_analysis',
+    payloadType: 'anonymized_recovered_prompt',
+    aiPayloadType: 'anonymized_business_profile',
+    directIdentifiersRemoved: true,
+    proofStatus: 'passed'
+  });
+
+  let fullText = '';
+  let stopReason = null;
+  let passes = 0;
+  const MAX_PASSES = 4;
+  do {
+    const data = await callClaude(messages);
+    const piece = data.content?.[0]?.text || '';
+    fullText += piece;
+    stopReason = data.stop_reason;
+    passes++;
+    if (stopReason === 'max_tokens' && passes < MAX_PASSES) {
+      messages.push({ role: 'assistant', content: piece });
+      messages.push({ role: 'user', content: 'Continue exactly where you left off. Do not repeat anything already written. Pick up mid-sentence if needed.' });
+    } else {
+      break;
+    }
+  } while (passes < MAX_PASSES);
+
+  const truncated = stopReason === 'max_tokens';
+  if (truncated) fullText += '\n\n> NOTE TO DARREN: This recovered DNA file reached the maximum generation length. Regenerate or extend manually if a later section is cut.';
+
+  const reidentifiedText = reidentifyText(fullText, hermesPrivacy.mapping);
+  const validation = validateDnaOutput(reidentifiedText, sourceMeta);
+  const claimTraceSave = await saveClaimTrace(clientDraftId, validation);
+  const outputSave = await saveCompletedDna(clientDraftId, reidentifiedText, {
+    truncated,
+    sourceMeta,
+    privacyGate: publicGateSummary(privacyGate),
+    anonymizationStats: hermesPrivacy.stats,
+    adminRecovery: true,
+    validation: {
+      ...validation,
+      claimTraceSaved: !!claimTraceSave.saved,
+      claimTraceCount: claimTraceSave.count || 0,
+      claimTraceReason: claimTraceSave.reason || ''
+    }
+  });
+  await logPrivacyProof(clientDraftId, 'admin_recovery_secure_output_storage', 'success', {
+    privacyProofType: 'secure_storage',
+    outputType: 'venture_dna_markdown',
+    outputId: outputSave.outputId || '',
+    encryptedAtRest: true,
+    proofStatus: 'passed'
+  });
+  return { dnaContent: reidentifiedText, truncated, secureStorage: outputSave, validation };
+}
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  try {
+    assertTrustedOrigin(req);
+    assertRateLimit(req, { key: 'recover-dna', limit: 6, windowMs: 60_000 });
+    if (!(await authorizedAdminRequest(req))) return res.status(401).json({ error: 'Unauthorized' });
+
+    const clientDraftId = String(req.body?.clientDraftId || '').trim();
+    if (!clientDraftId) return res.status(400).json({ error: 'Missing clientDraftId' });
+
+    const existing = await getLatestIntakeOutput(clientDraftId, 'venture_dna_markdown');
+    if (existing && !req.body?.forceRegenerate) {
+      return res.status(200).json({
+        success: true,
+        reusedExisting: true,
+        clientDraftId,
+        outputId: existing.id,
+        createdAt: existing.created_at
+      });
+    }
+
+    const session = await getIntakeSession(clientDraftId);
+    if (!session?.encrypted_payload) return res.status(404).json({ error: 'No encrypted intake session found for that Record ID' });
+    const payload = decryptJson(session.encrypted_payload);
+    const answerCount = answeredItems(payload).filter(item => wordCount(item) > 0).length;
+    if (answerCount < 3) return res.status(409).json({ error: 'Saved intake does not contain enough recovered answers to generate Venture DNA' });
+
+    await logPrivacyProof(clientDraftId, 'admin_recovery_started', 'success', {
+      privacyProofType: 'admin_recovery',
+      recoveredAnswerCount: answerCount,
+      priorSessionStatus: session.status || '',
+      forceRegenerate: !!req.body?.forceRegenerate,
+      proofStatus: 'started'
+    });
+
+    const result = await generateRecoveredDna(clientDraftId, payload);
+    return res.status(200).json({
+      success: true,
+      clientDraftId,
+      recoveredAnswerCount: answerCount,
+      outputId: result.secureStorage.outputId || '',
+      truncated: result.truncated,
+      validation: result.validation,
+      message: 'Recovered Venture DNA created from the encrypted saved intake. You can now generate the free snapshot and full report pack.'
+    });
+  } catch (err) {
+    console.error('recover-dna error:', err);
+    return safeError(res, err, 'Recovery request failed');
+  }
+}
+```
+
+### api/send-email.js
+
+```javascript
+import { decryptJson } from '../lib/crypto.js';
+import { assertDraftAccess } from '../lib/draft-access.js';
+import { getIntakeSession } from '../lib/supabase-rest.js';
+import { assertRateLimit, assertTrustedOrigin, safeError } from '../lib/security.js';
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function clean(value, length = 160) {
+  return String(value || '').trim().slice(0, length);
+}
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  try {
+    assertTrustedOrigin(req);
+    assertRateLimit(req, { key: 'completion-notification', limit: 5, windowMs: 60_000 });
+
+    const recordId = clean(req.body?.recordId, 120);
+    const draftAccessToken = clean(req.body?.draftAccessToken, 4096);
+    if (!recordId) return res.status(400).json({ error: 'Missing recordId' });
+    assertDraftAccess(draftAccessToken, recordId);
+    if (String(process.env.BTAI_ENABLE_COMPLETION_NOTIFICATIONS || '').toLowerCase() !== 'true') {
+      return res.status(503).json({ error: 'Completion notifications are not enabled for this pilot' });
+    }
+
+    const session = await getIntakeSession(recordId);
+    if (!session?.encrypted_payload) return res.status(404).json({ error: 'No secure intake record found' });
+    const payload = decryptJson(session.encrypted_payload);
+    if (!payload?.privacyConsent || !payload?.privacyConsentAt || !payload?.privacyPolicyVersion) {
+      return res.status(409).json({ error: 'Privacy consent must be recorded before notification' });
+    }
+    if (session.status !== 'complete') return res.status(409).json({ error: 'Intake is not complete' });
+
+    if (!process.env.RESEND_API_KEY) return res.status(503).json({ error: 'Email service is not configured' });
+    const recipient = clean(process.env.INTAKE_DIRECT_RECIPIENT, 320);
+    if (!recipient) return res.status(503).json({ error: 'Notification recipient is not configured' });
+
+    const fields = {
+      clientName: clean(payload.clientName, 120) || 'Not provided',
+      clientEmail: clean(payload.clientEmail, 320) || 'Not provided',
+      businessCategory: clean(payload.businessCategory, 160) || 'Not provided',
+      partner: clean(payload.partnerDisplayName || payload.campaignPartner || 'BTAI', 120),
+      campaign: clean(payload.campaignId || 'general_intake', 120),
+      consentAt: clean(payload.privacyConsentAt, 80),
+      policyVersion: clean(payload.privacyPolicyVersion, 80)
+    };
+    const html = `<div style="font-family:Arial,sans-serif;color:#111827"><h1>Bridge To AI — Intake Complete</h1><p>A verified intake is ready for internal review.</p><table><tr><th align="left">Client</th><td>${escapeHtml(fields.clientName)}</td></tr><tr><th align="left">Email</th><td>${escapeHtml(fields.clientEmail)}</td></tr><tr><th align="left">Business description</th><td>${escapeHtml(fields.businessCategory)}</td></tr><tr><th align="left">Partner / campaign</th><td>${escapeHtml(fields.partner)} / ${escapeHtml(fields.campaign)}</td></tr><tr><th align="left">Consent</th><td>Accepted at ${escapeHtml(fields.consentAt)} (policy ${escapeHtml(fields.policyVersion)})</td></tr><tr><th align="left">Record</th><td><code>${escapeHtml(recordId)}</code></td></tr></table><p>This notification contains no report content or attachments.</p></div>`;
+    const text = `BTAI intake complete\nClient: ${fields.clientName}\nEmail: ${fields.clientEmail}\nBusiness description: ${fields.businessCategory}\nPartner/campaign: ${fields.partner} / ${fields.campaign}\nConsent: accepted at ${fields.consentAt} (policy ${fields.policyVersion})\nRecord: ${recordId}\n\nNo report content or attachments are included.`;
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: 'The Bridge Team <team@bridgetoai.ca>', to: [recipient], subject: 'Bridge To AI intake complete', html, text })
+    });
+    if (!response.ok) {
+      console.error('Resend completion notification failed:', response.status);
+      return res.status(502).json({ error: 'Email delivery failed' });
+    }
+    const result = await response.json();
+    return res.status(200).json({ success: true, id: result.id, notificationOnly: true });
+  } catch (err) {
+    console.error('completion notification error:', err);
+    return safeError(res, err, 'Email service unavailable');
+  }
+}
+```
+
+### scripts/intake-business-description-contract-test.mjs
+
+```javascript
+#!/usr/bin/env node
+
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const intakePage = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+
+assert.doesNotMatch(intakePage, /id="business-category"/, 'the retired category selector is not rendered');
+assert.match(intakePage, /<label for="business-niche">What does your business do\?<\/label>/, 'the business-description field is clearly labelled');
+assert.match(intakePage, /maxlength="160"/, 'the business description has a bounded saved value');
+assert.match(intakePage, /businessCategory = businessNiche;/, 'new intakes keep the established API field compatible with the one description');
+assert.match(intakePage, /const legacyCategory = LEGACY_CATEGORY_PACK_MAP\[businessCategory\]/, 'a legacy category is retained while a resumed draft is saved');
+assert.match(intakePage, /!businessNiche \|\| !privacyConsent/, 'the business description is required before an interview starts');
+assert.match(intakePage, /businessCategory, businessNiche, businessName, websiteUrl/, 'industry matching uses the business description');
+assert.match(intakePage, /manufacturing_operations/, 'generic manufacturing has its own non-food tailoring pack');
+assert.match(intakePage, /'bookkeeping'/, 'bookkeeping descriptions match the professional-services pack');
+assert.match(intakePage, /Business Description: \$\{businessNiche \|\| businessCategory \|\| ''\}/, 'prompt context does not duplicate the same business description as a niche');
+
+console.log('business-description intake contract tests passed');
+```
+
+### scripts/recover-dna-anonymization-test.mjs
+
+```javascript
+#!/usr/bin/env node
+
+import assert from 'node:assert/strict';
+import { anonymizePrompt } from '../api/recover-dna.js';
+
+const current = anonymizePrompt([
+  'Owner Name: Test Owner',
+  'Business Name: Test Business',
+  'Business Description: bookkeeping practice',
+  'Website URL: https://example.test'
+].join('\n'));
+
+assert.equal(current.mapping['[BUSINESS_DESCRIPTION]'], 'bookkeeping practice', 'the current business-description label is tokenized');
+assert.doesNotMatch(current.anonymizedPrompt, /bookkeeping practice/i, 'the current description is removed from the anonymized prompt');
+
+const legacy = anonymizePrompt('Business Category: Bakery / Grains');
+assert.equal(legacy.mapping['[BUSINESS_DESCRIPTION]'], 'Bakery / Grains', 'the legacy business-category label remains tokenized');
+
+console.log('recover-dna anonymization tests passed');
+```
+
+### docs/releases/v1.72.27/README.md
+
+```markdown
+# BTAI Intake v1.72.27 — Claude review remediation
+
+## Purpose
+
+This private-Preview-only build addresses the concrete findings from Claude's v1.72.26 independent review. It does not authorize a Production deployment, email delivery change, or service-configuration change.
+
+## Fixed
+
+- Admin recovery now anonymizes both the current `Business Description` label and the legacy `Business Category` label before model analysis.
+- A resumed legacy draft retains its recognized category metadata, so its established tailoring pack does not silently change after a save.
+- Generic manufacturing receives a non-food manufacturing/operations pack; food-specific manufacturing remains food-specific.
+- `bookkeeping` now matches the professional-services pack.
+- The first Snapshot question no longer repeats the welcome question, and the optional field-help copy is visibly styled.
+- AI context uses one business-description line instead of duplicating the same text as a separate niche.
+
+## Verification required
+
+- Run the focused business-description and recovery-anonymization tests.
+- Run the existing privacy and pilot-safety contract tests.
+- Independently review the exact diff and current source before broader tester use.
+
+## Environment boundary
+
+- Public Production remains v1.72.23 on `main`.
+- This release is limited to the private Preview branch.
+```
+
+### docs/AI_HANDOFF/INBOX/CLAUDE/v1.72.26-review-001.md
+
+```markdown
+# Claude independent review — v1.72.26 (review-001)
+
+## Received
+
+2026-10-31, supplied by Darren as a pasted Claude review.
+
+## Codex disposition
+
+Accepted for remediation. The review identified one privacy regression plus two compatibility/tailoring gaps. The review's lower-cost usability observations were also accepted where they preserve the intended one-field intake design.
+
+## Required corrective work
+
+1. Update admin recovery anonymization to recognize `Business Description` as well as the former `Business Category` label.
+2. Preserve recognized legacy category metadata when a resumed draft has separate legacy category and business-description values.
+3. Add a generic manufacturing pack, remove generic manufacturing aliases from the food pack, and add the `bookkeeping` professional-services alias.
+4. Remove duplicated business-description/niche context in model prompts.
+5. Style welcome-field helper text and avoid repeating the welcome description in Snapshot question one.
+6. Add focused regression coverage and package complete evidence for re-review.
+
+## Handoff status
+
+Codex is implementing this work as v1.72.27. A new self-contained review packet will supersede the v1.72.26 candidate after verification.
+```
+
