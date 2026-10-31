@@ -8,16 +8,25 @@ function redact(text, identity = {}, declaredPeople = []) {
 }
 
 let result = redact('Darren Randles approves quotes and Darren in sales sends them.', { clientName: 'Darren Randles' });
-assert.match(result.text, /^\[OWNER_NAME\] approves quotes and \[OWNER_NAME\] in sales sends them\.$/);
+assert.match(result.text, /^\[OWNER_NAME\] approves quotes and \[PERSON_AMBIGUOUS_1\] in sales sends them\.$/);
 
 result = redact('Darren handles the quotes. Randles approves them. darren is an ordinary word.', { clientName: 'Darren Randles' });
-assert.match(result.text, /^\[OWNER_NAME\] handles the quotes\. \[OWNER_NAME\] approves them\. darren is an ordinary word\.$/);
+assert.match(result.text, /^\[PERSON_AMBIGUOUS_1\] handles the quotes\. \[OWNER_NAME\] approves them\. darren is an ordinary word\.$/);
 
 result = redact('Sarah Miles handles the quotes.', { clientName: 'Darren Randles' }, [{ label: 'Sarah Miles', role: 'sales manager' }]);
 assert.match(result.text, /^\[PERSON_SALES_MANAGER_1\] handles the quotes\.$/);
 
 result = redact('Sarah Nguyen at Acme Foods orders weekly.', {});
 assert.match(result.text, /\[PERSON_DETECTED_1\] at \[ORG_1\] orders weekly\./);
+
+result = redact('Sarah Nguyen at Acme Foods orders weekly. Sarah called again. Nguyen wants a discount. SARAH NGUYEN too.', {});
+assert.doesNotMatch(result.text, /Sarah|Nguyen/i, 'every detected-person form stays out of model-bound text');
+
+result = redact('Darren the owner approves. Darren in sales sends quotes. Darren M. handles shipping.', { clientName: 'Darren Randles' }, [{ label: 'Darren M.', role: 'sales manager' }]);
+assert.match(result.text, /^\[PERSON_AMBIGUOUS_1\] the owner approves\. \[PERSON_AMBIGUOUS_1\] in sales sends quotes\. \[PERSON_SALES_MANAGER_1\] handles shipping\.$/);
+
+result = redact('DARREN RANDLES and darren randles.', { clientName: 'Darren Randles' });
+assert.match(result.text, /^\[OWNER_NAME\] and \[OWNER_NAME\]\.$/, 'multi-word known names match case-insensitively');
 
 result = redact("Darren's quotes, DARREN, Darren.", { clientName: 'Darren Randles' });
 assert.doesNotMatch(result.text, /Darren/i);

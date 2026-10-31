@@ -26,4 +26,8 @@ const recoveryResult = anonymizePrompt(recoveryPrompt);
 assert.equal(recoveryResult.mapping['[BUSINESS_DESCRIPTION]'], 'bookkeeping practice', 'the real recovery template feeds its description to the anonymizer');
 assert.doesNotMatch(recoveryResult.anonymizedPrompt, /bookkeeping practice/i, 'the real recovery template does not expose the description to model analysis');
 
+const participantRecovery = anonymizePrompt('## Customer Service\nSarah Nguyen called.', 'Sarah Nguyen called.');
+assert.match(participantRecovery.anonymizedPrompt, /Customer Service/, 'recovery templates are not scanned as participant answers');
+assert.doesNotMatch(participantRecovery.anonymizedPrompt, /Sarah|Nguyen/i, 'recovery participant names are replaced');
+
 console.log('recover-dna anonymization tests passed');

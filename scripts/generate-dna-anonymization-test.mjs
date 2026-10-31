@@ -10,4 +10,13 @@ assert.doesNotMatch(current.anonymizedPrompt, /tax prep for self-employed contra
 const legacy = anonymizePrompt('Business Category: Professional Services');
 assert.equal(legacy.mapping['[BUSINESS_DESCRIPTION]'], 'Professional Services', 'the primary report path still tokenizes the legacy label');
 
+const template = '### Revenue Engine\n## Quick Read\nGoogle Drive is used for planning.\nParticipant answer: Sarah Nguyen called.';
+const participant = 'Sarah Nguyen called.';
+const participantOnly = anonymizePrompt(template, participant);
+assert.match(participantOnly.anonymizedPrompt, /Revenue Engine|Quick Read|Google Drive/, 'template headings and common tools are not scanned as participant names');
+assert.doesNotMatch(participantOnly.anonymizedPrompt, /Sarah|Nguyen/i, 'participant names are replaced before the DNA model request');
+
+const noParticipant = anonymizePrompt(template, '');
+assert.match(noParticipant.anonymizedPrompt, /Revenue Engine|Quick Read/, 'an empty participant-text value disables heuristic template scanning');
+
 console.log('generate-dna anonymization tests passed');
