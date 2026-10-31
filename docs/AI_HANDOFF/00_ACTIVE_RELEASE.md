@@ -4,9 +4,9 @@ This is the fixed starting file for all model work. It is updated by Codex after
 
 ## Current release
 
-- **Version:** v1.72.29 private Preview
-- **Candidate commit:** `88a153bce4641ac5333e285aa78297d27e61ed57`
-- **Baseline commit:** `09a3b5fd6019d7b08a4a97c4a68ef3fb86a6012c`
+- **Version:** v1.72.30 private Preview candidate
+- **Candidate commit:** `3260ac3`
+- **Baseline commit:** `88a153bce4641ac5333e285aa78297d27e61ed57`
 - **Branch:** `release/v1.72.24-secure-intake`
 - **Preview:** `https://bridge-intake-f8jaqws1s-bridgetoai-projects.vercel.app/snapshot`
 - **Production:** unchanged at v1.72.23 on `main`
@@ -16,7 +16,7 @@ This is the fixed starting file for all model work. It is updated by Codex after
 
 Claude must review this one complete packet after Codex generates it:
 
-[v1.72.29 complete Claude review packet](../review-packages/v1.72.29-claude-test/CLAUDE_V1.72.29_COMPLETE_REVIEW_PACKET.md)
+[v1.72.30 complete Claude review packet](../review-packages/v1.72.30-claude-test/CLAUDE_V1.72.30_COMPLETE_REVIEW_PACKET.md)
 
 ## Required outcome
 
