@@ -51,18 +51,19 @@ function replaceAllLiteral(text, value, placeholder) {
   return text.replace(new RegExp(escapeRegExp(value), 'g'), placeholder);
 }
 
-export function anonymizePrompt(prompt) {
+export function anonymizePrompt(prompt, participantText = '') {
   const redacted = anonymizeText(prompt, {
     clientName: extractField(prompt, 'Owner Name'),
     businessName: extractField(prompt, 'Business Name'),
     businessDescription: extractField(prompt, 'Business Description') || extractField(prompt, 'Business Category'),
     websiteUrl: extractField(prompt, 'Website URL'),
-    participantText: prompt
+    participantText
   });
   return {
-    anonymizedPrompt: privacyHeader() + redacted.anonymizedText,
+    anonymizedPrompt: privacyHeader(redacted.ambiguous) + redacted.anonymizedText,
     mapping: redacted.mapping,
-    stats: redacted.stats
+    stats: redacted.stats,
+    ambiguous: redacted.ambiguous
   };
 }
 
@@ -345,7 +346,7 @@ async function generateRecoveredDna(clientDraftId, payload) {
   }));
 
   const gatedPrompt = applyPrivacyRedactions(prompt, privacyGate.redactionMap);
-  const hermesPrivacy = anonymizePrompt(gatedPrompt);
+  const hermesPrivacy = anonymizePrompt(gatedPrompt, sourceMeta.privacyScanText);
   const mappingSave = await saveAnonymizationMapping(clientDraftId, hermesPrivacy.mapping, hermesPrivacy.stats);
   await logPrivacyProof(clientDraftId, 'admin_recovery_anonymization_completed', 'success', {
     privacyProofType: 'anonymization',

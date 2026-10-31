@@ -2148,7 +2148,7 @@
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag" id="header-tag">Business Discovery Session</span>
-      <span class="header-version">v1.72.30 Preview</span>
+      <span class="header-version">v1.72.31 Preview</span>
   </div>
 </header>
 
@@ -5689,7 +5689,7 @@ async function generateDNAWithClaude() {
       privacyProofType: 'browser_confirmation_anonymization',
       privacyAnonymized: !!data.hermesPrivacy.anonymized,
       anonymizationReplacements: data.hermesPrivacy.stats?.replacements || 0,
-      directIdentifiersRemoved: !!data.hermesPrivacy.anonymized,
+      identifiersReplaced: (data.hermesPrivacy.stats?.replacements || 0) > 0,
       rawInterviewIncluded: false,
       aiPayloadType: 'anonymized_business_profile',
       piiMappingStoredEncrypted: !!data.hermesPrivacy.mappingSaved,

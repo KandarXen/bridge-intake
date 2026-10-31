@@ -8,7 +8,7 @@ import { assertRateLimit, assertTrustedOrigin, authorizedAdminRequest, safeError
 import { assertDraftAccess } from '../lib/draft-access.js';
 import { buildIdentityRegistry, redactForModel, reidentify, retokenizeWithMapping } from '../lib/identity-redaction.js';
 
-const APP_VERSION = 'v1.72.30';
+const APP_VERSION = 'v1.72.31';
 
 const REPORTS = {
   free: {
@@ -169,7 +169,7 @@ function privacyProofDefaults(extra = {}) {
 
 async function redactReportSource(clientDraftId, sourceText, dnaMeta = {}) {
   const mappingRow = dnaMeta.reidentificationMappingOutputId
-    ? await getIntakeOutputById(dnaMeta.reidentificationMappingOutputId)
+    ? await getIntakeOutputById(dnaMeta.reidentificationMappingOutputId, { clientDraftId, outputType: 'hermes_reidentification_map' })
     : await getLatestIntakeOutput(clientDraftId, 'hermes_reidentification_map');
   if (mappingRow?.encrypted_payload) {
     const payload = decryptJson(mappingRow.encrypted_payload);

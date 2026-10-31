@@ -106,7 +106,7 @@ async function callClaude(prompt, { maxTokens = 600, identity = {}, participantT
     body: JSON.stringify({
       model: 'claude-sonnet-4-6',
       max_tokens: maxTokens,
-      messages: [{ role: 'user', content: privacyHeader() + privacy.anonymizedText }]
+      messages: [{ role: 'user', content: privacyHeader(privacy.ambiguous) + privacy.anonymizedText }]
     })
   });
   if (!response.ok) throw new Error('Claude call failed: ' + await response.text());
@@ -267,10 +267,13 @@ If no follow-up is needed, return:
   }
 }
 
-async function masteryFollowup(body) {
+export async function masteryFollowup(body) {
   const { area, answer, businessCategory, businessNiche, companySize, ownerWorkStatus, departments = [], businessContext, identity = {} } = body || {};
   const description = businessDescription({ businessCategory, businessNiche }) || 'small business';
   if (!answer) return { status: 400, body: { error: 'Missing answer' } };
+  const gate = runPrivacyGate(answer, { purpose: 'interview_mastery_followup' });
+  if (gate.requiresReview) return { followup: 'NONE' };
+  const safeAnswer = gate.sanitizedText || answer;
   const contextBlock = businessContext ? `\n\nInternal context for tailoring only:\n${JSON.stringify(businessContext).slice(0, 2500)}\n\nDo not reveal or imply background research happened.` : '';
   const orgContext = `Company size: ${companySize || 'not specified'} people. Owner status/capacity: ${ownerWorkStatus || 'not specified'}. Departments/functions selected: ${Array.isArray(departments) && departments.length ? departments.join(', ') : 'not specified'}.`;
   const prompt = `You are conducting a warm, professional business discovery interview for a ${description} owner.
@@ -281,14 +284,12 @@ ${soloOrNoStaff(companySize, ownerWorkStatus, departments) ? 'Important: This ap
 
 You just asked them where they are with "${area}". They answered:
 
-"${answer}"
+"${safeAnswer}"
 ${contextBlock}
 
 Write ONE short follow-up question that picks up a specific thing they actually said and asks what AI handling it would change. If too vague, respond exactly: NONE.`;
   try {
-    const gate = runPrivacyGate(answer, { purpose: 'interview_mastery_followup' });
-    if (gate.requiresReview) return { followup: 'NONE' };
-    return { followup: await callClaude(prompt, { maxTokens: 150, identity, participantText: gate.sanitizedText || answer }) || 'NONE' };
+    return { followup: await callClaude(prompt, { maxTokens: 150, identity, participantText: safeAnswer }) || 'NONE' };
   } catch (err) {
     console.error('Mastery follow-up error:', err);
     return { followup: 'NONE' };

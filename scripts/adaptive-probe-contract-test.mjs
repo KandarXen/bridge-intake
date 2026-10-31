@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import assert from 'node:assert/strict';
-import { probe } from '../api/interview-ai.js';
+import { probe, masteryFollowup } from '../api/interview-ai.js';
 
 const originalFetch = globalThis.fetch;
 let capturedModelBody = '';
@@ -54,6 +54,20 @@ try {
   });
   assert.equal(quarantined.followup, 'NONE', 'a sensitive probe answer is skipped');
   assert.equal(called, false, 'a sensitive probe answer does not reach the model');
+
+  capturedModelBody = '';
+  globalThis.fetch = async (_url, options) => {
+    capturedModelBody = options.body;
+    return { ok: true, json: async () => ({ content: [{ text: 'What would change if that step were easier?' }] }) };
+  };
+  await masteryFollowup({
+    area: 'payroll review',
+    answer: 'Darren Randles checks the $8,250 payroll adjustment with Sarah Nguyen.',
+    businessNiche: 'bookkeeping practice',
+    identity: { clientName: 'Darren Randles' }
+  });
+  assert.doesNotMatch(capturedModelBody, /Darren Randles|Sarah Nguyen|8,250/i, 'the mastery model request excludes raw names and sensitive amount');
+  assert.match(capturedModelBody, /\[ANONYMIZED_PERSON\]|\[OWNER_NAME\]|\[PERSON_DETECTED_1\]/, 'the mastery request contains identity placeholders');
 } finally {
   globalThis.fetch = originalFetch;
 }

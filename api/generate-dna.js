@@ -101,18 +101,21 @@ function replaceAllLiteral(text, value, placeholder) {
   return text.replace(new RegExp(escapeRegExp(value), 'g'), placeholder);
 }
 
-export function anonymizePrompt(prompt) {
+export function anonymizePrompt(prompt, participantText = '') {
   const redacted = anonymizeText(prompt, {
     clientName: extractField(prompt, 'Owner Name'),
     businessName: extractField(prompt, 'Business Name'),
     businessDescription: extractField(prompt, 'Business Description') || extractField(prompt, 'Business Category'),
     websiteUrl: extractField(prompt, 'Website URL'),
-    participantText: prompt
+    // Only interview answers are eligible for heuristic person detection. The
+    // prompt contains ordinary-language headings and instructions.
+    participantText
   });
   return {
-    anonymizedPrompt: privacyHeader() + redacted.anonymizedText,
+    anonymizedPrompt: privacyHeader(redacted.ambiguous) + redacted.anonymizedText,
     mapping: redacted.mapping,
-    stats: redacted.stats
+    stats: redacted.stats,
+    ambiguous: redacted.ambiguous
   };
 }
 
@@ -335,7 +338,7 @@ export default async function handler(req, res) {
     }
 
     const gatedPrompt = promptPrivacyGate.sanitizedText;
-    const hermesPrivacy = anonymizePrompt(gatedPrompt);
+    const hermesPrivacy = anonymizePrompt(gatedPrompt, participantPrivacySource);
     await logPrivacyProof(clientDraftId, 'privacy_proof_anonymization_completed', 'success', {
       privacyProofType: 'anonymization',
       payloadType: 'sanitized_interview_prompt',
@@ -433,7 +436,7 @@ export default async function handler(req, res) {
         }
       },
       hermesPrivacy: {
-        anonymized: true,
+        anonymized: (hermesPrivacy.stats.replacements || 0) > 0,
         stats: hermesPrivacy.stats,
         mappingSaved: !!mappingSave.saved,
         mappingSaveReason: mappingSave.reason || '',

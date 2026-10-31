@@ -8,19 +8,26 @@ function redact(text, identity = {}, declaredPeople = []) {
 }
 
 let result = redact('Darren Randles approves quotes and Darren in sales sends them.', { clientName: 'Darren Randles' });
-assert.match(result.text, /^\[OWNER_NAME\] approves quotes and \[PERSON_SALES\] sends them\.$/);
+assert.match(result.text, /^\[OWNER_NAME\] approves quotes and \[OWNER_NAME\] in sales sends them\.$/);
 
-result = redact('Darren handles the quotes.', { clientName: 'Darren Randles' });
-assert.match(result.text, /^\[PERSON_AMBIGUOUS_1\] handles the quotes\.$/);
+result = redact('Darren handles the quotes. Randles approves them. darren is an ordinary word.', { clientName: 'Darren Randles' });
+assert.match(result.text, /^\[OWNER_NAME\] handles the quotes\. \[OWNER_NAME\] approves them\. darren is an ordinary word\.$/);
 
-result = redact('Darren M. handles the quotes.', { clientName: 'Darren Randles' }, [{ label: 'Darren M.', role: 'sales manager' }]);
-assert.match(result.text, /^\[PERSON_SALES_MANAGER\] handles the quotes\.$/);
+result = redact('Sarah Miles handles the quotes.', { clientName: 'Darren Randles' }, [{ label: 'Sarah Miles', role: 'sales manager' }]);
+assert.match(result.text, /^\[PERSON_SALES_MANAGER_1\] handles the quotes\.$/);
 
 result = redact('Sarah Nguyen at Acme Foods orders weekly.', {});
-assert.match(result.text, /\[PERSON_1\] at \[ORG_1\] orders weekly\./);
+assert.match(result.text, /\[PERSON_DETECTED_1\] at \[ORG_1\] orders weekly\./);
 
 result = redact("Darren's quotes, DARREN, Darren.", { clientName: 'Darren Randles' });
 assert.doesNotMatch(result.text, /Darren/i);
+
+result = redact('Darren in sales checks orders. Sarah in sales submits them. Sarah then calls Darren.', {});
+assert.doesNotMatch(result.text, /Darren|Sarah/);
+assert.match(result.text, /\[PERSON_SALES_1\].*\[PERSON_SALES_2\].*\[PERSON_SALES_2\].*\[PERSON_SALES_1\]/);
+
+result = redact('Pricing is owner decided. Google Drive and Microsoft Excel track the workflow.', {});
+assert.match(result.text, /Pricing is owner decided\. Google Drive and Microsoft Excel track the workflow\./);
 
 result = redact('Google Sheets in Red Deer every Monday uses QuickBooks; mark the date.', {});
 assert.match(result.text, /Google Sheets in Red Deer every Monday uses QuickBooks; mark the date\./);
