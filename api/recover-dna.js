@@ -50,11 +50,14 @@ function replaceAllLiteral(text, value, placeholder) {
   return text.replace(new RegExp(escapeRegExp(value), 'g'), placeholder);
 }
 
-function anonymizePrompt(prompt) {
+export function anonymizePrompt(prompt) {
   const mapping = {};
   addMapping(mapping, '[OWNER_NAME]', extractField(prompt, 'Owner Name'));
   addMapping(mapping, '[BUSINESS_NAME]', extractField(prompt, 'Business Name'));
-  addMapping(mapping, '[BUSINESS_CATEGORY]', extractField(prompt, 'Business Category'));
+  // Newer intakes use the plain-language "Business Description" label. Keep
+  // the older label as a fallback so an admin recovery remains safe for both
+  // saved record shapes.
+  addMapping(mapping, '[BUSINESS_DESCRIPTION]', extractField(prompt, 'Business Description') || extractField(prompt, 'Business Category'));
   addMapping(mapping, '[WEBSITE_URL]', extractField(prompt, 'Website URL'));
 
   let anonymized = prompt;
@@ -177,8 +180,7 @@ CLIENT INFORMATION:
 Owner Name: ${safeText(payload.clientName)}
 Owner Email: ${safeText(payload.clientEmail)}
 Business Name: ${safeText(payload.businessName)}
-Business Description: ${safeText(payload.businessCategory)}
-Specific Niche: ${safeText(payload.businessNiche)}
+Business Description: ${safeText(payload.businessNiche || payload.businessCategory)}
 Website URL: ${safeText(payload.websiteUrl)}
 Company Size: ${safeText(payload.companySize)}
 Owner Work Status: ${safeText(payload.ownerWorkStatus)}

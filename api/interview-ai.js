@@ -88,6 +88,10 @@ function fallbackContext({ businessCategory, websiteUrl }) {
   };
 }
 
+function businessDescription({ businessCategory, businessNiche } = {}) {
+  return String(businessNiche || businessCategory || '').trim();
+}
+
 async function callClaude(prompt, { maxTokens = 600, explicitIdentifiers = {} } = {}) {
   const privacy = anonymizeText(prompt, explicitIdentifiers);
   const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -111,7 +115,8 @@ async function callClaude(prompt, { maxTokens = 600, explicitIdentifiers = {} } 
 
 async function researchBusiness(body) {
   const { businessName, businessCategory, businessNiche, shareComfort, websiteUrl, companySize, departments } = body || {};
-  if (!businessCategory && !websiteUrl) return { context: fallbackContext({ businessCategory, websiteUrl }) };
+  const description = businessDescription({ businessCategory, businessNiche });
+  if (!description && !websiteUrl) return { context: fallbackContext({ businessCategory, websiteUrl }) };
 
   try {
     const normalizedWebsiteUrl = normalizeUrl(websiteUrl);
@@ -120,8 +125,7 @@ async function researchBusiness(body) {
 
 Client-provided information:
 - Business name: ${businessName || '(not provided)'}
-- Business description: ${businessCategory || '(not provided)'}
-- Specific niche: ${businessNiche || '(not provided)'}
+- Business description: ${description || '(not provided)'}
 - Detail-sharing comfort: ${shareComfort || '(not provided)'}
 - Website URL: ${normalizedWebsiteUrl || '(not provided)'}
 - Company size: ${companySize || '(not provided)'}
@@ -166,15 +170,16 @@ Rules:
 }
 
 async function scenario(body) {
-  const { businessCategory, businessContext } = body || {};
+  const { businessCategory, businessNiche, businessContext } = body || {};
+  const description = businessDescription({ businessCategory, businessNiche }) || 'small business';
   const contextBlock = businessContext ? `\n\nInternal context for tailoring only:\n${JSON.stringify(businessContext).slice(0, 3000)}\n\nUse this to choose a more relevant situation, but do not reveal or imply background research.` : '';
-  const prompt = `Write ONE short, realistic customer-interaction scenario for a "${businessCategory || 'small business'}".
+  const prompt = `Write ONE short, realistic customer-interaction scenario for a "${description}".
 
 The scenario should be a moment where the customer is mildly unhappy or has a real need - something where HOW the business owner responds reveals their standards, tone, and values. It must be specific enough to feel real for this type of business, but open enough that any owner could respond in their own way.
 
 Rules:
 - 1-2 sentences, written in plain language, addressed to the owner ("A customer...").
-- Make it specific to a ${businessCategory || 'small business'} using believable industry patterns.
+- Make it specific to a ${description} using believable industry patterns.
 - If internal context is available, fit the scenario to likely workflows without saying "your website", "I noticed", "we saw", or anything that reveals background research.
 - Do NOT suggest how to respond. Just set up the situation.
 - Output ONLY the scenario text. No preamble, no quotes, no label.${contextBlock}`;
@@ -193,9 +198,10 @@ function soloOrNoStaff(companySize, ownerWorkStatus, departments) {
 async function probe(body) {
   const { domain, qa, businessCategory, businessNiche, shareComfort, companySize, ownerWorkStatus, departments = [], businessContext, sourceQuestion, sourceQuestionType, answerQualityBucket, priorityWeight, weakAnswerReason } = body || {};
   if (!qa) return { status: 400, body: { error: 'Missing qa' } };
+  const description = businessDescription({ businessCategory, businessNiche }) || 'small business';
   const contextBlock = businessContext ? `\n\nInternal context for sharper judgment only:\n${JSON.stringify(businessContext).slice(0, 3000)}\n\nUse this to understand likely workflows and industry patterns. Do not reveal background research.` : '';
-  const orgContext = `Specific niche: ${businessNiche || 'not specified'}. Detail-sharing comfort: ${shareComfort || 'directional only'}. Company size: ${companySize || 'not specified'} people. Owner status/capacity: ${ownerWorkStatus || 'not specified'}. Departments/functions selected: ${Array.isArray(departments) && departments.length ? departments.join(', ') : 'not specified'}.`;
-  const prompt = `You are conducting a business discovery interview for a ${businessCategory || 'small business'}.
+  const orgContext = `Business description: ${description}. Detail-sharing comfort: ${shareComfort || 'directional only'}. Company size: ${companySize || 'not specified'} people. Owner status/capacity: ${ownerWorkStatus || 'not specified'}. Departments/functions selected: ${Array.isArray(departments) && departments.length ? departments.join(', ') : 'not specified'}.`;
+  const prompt = `You are conducting a business discovery interview for a ${description}.
 
 Organization context:
 ${orgContext}
@@ -255,11 +261,12 @@ If no follow-up is needed, return:
 }
 
 async function masteryFollowup(body) {
-  const { area, answer, businessCategory, companySize, ownerWorkStatus, departments = [], businessContext } = body || {};
+  const { area, answer, businessCategory, businessNiche, companySize, ownerWorkStatus, departments = [], businessContext } = body || {};
+  const description = businessDescription({ businessCategory, businessNiche }) || 'small business';
   if (!answer) return { status: 400, body: { error: 'Missing answer' } };
   const contextBlock = businessContext ? `\n\nInternal context for tailoring only:\n${JSON.stringify(businessContext).slice(0, 2500)}\n\nDo not reveal or imply background research happened.` : '';
   const orgContext = `Company size: ${companySize || 'not specified'} people. Owner status/capacity: ${ownerWorkStatus || 'not specified'}. Departments/functions selected: ${Array.isArray(departments) && departments.length ? departments.join(', ') : 'not specified'}.`;
-  const prompt = `You are conducting a warm, professional business discovery interview for a ${businessCategory || 'small business'} owner.
+  const prompt = `You are conducting a warm, professional business discovery interview for a ${description} owner.
 
 Organization context:
 ${orgContext}

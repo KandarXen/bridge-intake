@@ -1288,6 +1288,13 @@
   .name-field input:focus,
   .name-field select:focus { border-color: var(--bridge-teal); }
 
+  .field-help {
+    margin-top: 0.4rem;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--ink-soft);
+  }
+
   .consent-box {
     margin: 1.25rem 0 1.5rem;
     padding: 1rem;
@@ -2141,7 +2148,7 @@
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag" id="header-tag">Business Discovery Session</span>
-      <span class="header-version">v1.72.26 Preview</span>
+      <span class="header-version">v1.72.27 Preview</span>
   </div>
 </header>
 
@@ -2719,7 +2726,7 @@ const INDUSTRY_PACKS = {
     id: 'food_processing_manufacturing_distribution',
     label: 'Food Processing / Manufacturing / Distribution',
     shortLabel: 'food, manufacturing, or distribution business',
-    aliases: ['food processor', 'food processing', 'copacker', 'co-packer', 'contract manufacturer', 'cpg', 'food brand', 'manufacturer', 'manufacturing', 'distributor', 'wholesaler', 'importer', 'commissary', 'beverage', 'bakery', 'meat', 'seafood', 'dairy', 'produce', 'prepared foods'],
+    aliases: ['food processor', 'food processing', 'copacker', 'co-packer', 'contract manufacturer', 'cpg', 'food brand', 'food manufacturer', 'food manufacturing', 'distributor', 'wholesaler', 'importer', 'commissary', 'beverage', 'bakery', 'meat', 'seafood', 'dairy', 'produce', 'prepared foods'],
     subtypes: ['Food processor / manufacturer', 'Copacker / contract manufacturer', 'Food brand / CPG company', 'Distributor / wholesaler / importer', 'Foodservice production / commissary', 'Value-added agriculture', 'Other food or beverage business'],
     productAreas: ['Bakery / baked goods', 'Beverage / bottling', 'Meat / seafood / protein', 'Dairy / cheese', 'Produce / value-added farm product', 'Prepared foods / ready-to-eat', 'Sauces / condiments / preserves', 'Snacks / shelf-stable packaged goods', 'Other'],
     opportunities: ['order intake', 'production planning', 'batch/SKU coordination', 'QA records', 'label or spec-sheet updates', 'inventory visibility', 'buyer follow-up', 'supplier updates', 'shipping exceptions', 'SOP capture', 'training templates'],
@@ -2728,11 +2735,23 @@ const INDUSTRY_PACKS = {
     riskBoundaries: ['recipes', 'confidential formulas', 'supplier contracts', 'customer lists', 'private financials', 'payroll', 'invoices', 'food safety decisions without review', 'regulated compliance decisions'],
     reportFraming: 'Look at repeated admin around orders, production, QA/compliance-adjacent records, buyer follow-up, document control, and planning.'
   },
+  manufacturing_operations: {
+    id: 'manufacturing_operations',
+    label: 'Manufacturing / Operations Business',
+    shortLabel: 'manufacturing or operations business',
+    aliases: ['manufacturer', 'manufacturing', 'fabrication', 'fabricator', 'machine shop', 'assembly', 'industrial', 'production shop'],
+    subtypes: ['Fabrication / machine shop', 'Assembly / production', 'Industrial supplier', 'Custom manufacturer', 'Other manufacturing operation'],
+    opportunities: ['quote requests', 'job intake', 'production planning', 'work-order coordination', 'quality records', 'inventory visibility', 'supplier updates', 'shipping exceptions', 'SOP capture', 'training templates'],
+    customerTypes: ['commercial accounts', 'industrial buyers', 'contract customers', 'distributors', 'repeat customers', 'project clients'],
+    workflowExamples: ['quote request to work order', 'work order to production plan', 'quality note to corrective action', 'supplier update to internal record', 'shipment update to customer follow-up'],
+    riskBoundaries: ['proprietary designs', 'customer specifications', 'supplier contracts', 'private financials', 'payroll', 'invoices', 'safety decisions without review', 'regulated compliance decisions'],
+    reportFraming: 'Look at repeated admin around quotes, work orders, production coordination, quality records, customer updates, and planning.'
+  },
   professional_services_advisory: {
     id: 'professional_services_advisory',
     label: 'Professional Services / Advisory Businesses',
     shortLabel: 'professional services or advisory business',
-    aliases: ['business coach', 'coach', 'consultant', 'advisor', 'bookkeeper', 'accountant', 'insurance broker', 'real estate', 'hr consultant', 'trainer', 'facilitator', 'agency', 'professional services'],
+    aliases: ['business coach', 'coach', 'consultant', 'advisor', 'bookkeeper', 'bookkeeping', 'accountant', 'insurance broker', 'real estate', 'hr consultant', 'trainer', 'facilitator', 'agency', 'professional services'],
     subtypes: ['Business coach / consultant', 'Bookkeeping / accounting', 'Broker / advisor', 'Training / facilitation', 'Agency / marketing services', 'Other professional service'],
     opportunities: ['client intake', 'discovery notes', 'proposal drafting', 'scope control', 'session summaries', 'follow-up emails', 'progress tracking', 'reporting', 'resource reuse', 'workshop preparation'],
     customerTypes: ['retainer clients', 'project clients', 'referral partners', 'workshop participants', 'business owners', 'professional buyers'],
@@ -2762,7 +2781,7 @@ const LEGACY_CATEGORY_PACK_MAP = {
   'Prepared Foods': 'food_processing_manufacturing_distribution',
   'Distribution / Wholesale': 'food_processing_manufacturing_distribution',
   'Retail / Food Service': 'food_processing_manufacturing_distribution',
-  'Manufacturing': 'food_processing_manufacturing_distribution',
+  'Manufacturing': 'manufacturing_operations',
   'Professional Services': 'professional_services_advisory',
   'Trades / Field Services': 'trade_field_services',
   'Other': 'general_business'
@@ -3013,7 +3032,7 @@ const AFPA_DECEMBER_AI_COURSE_QUESTIONS = [
 
 const SNAPSHOT_QUESTIONS = [
   { section: 'business', domain: 'Business Model & Direction', type: 'Business Snapshot',
-    text: 'What does your business do, who do you serve, and what kind of work or orders matter most right now?',
+    text: 'Who do you serve, and what work, product, or service matters most right now?',
     hint: 'A simple overview is enough: what you sell or deliver, who buys it, and where the business is trying to grow or stabilize.' },
   { section: 'business', domain: 'AI Opportunity', type: 'Top Bottleneck',
     text: 'What is the most frustrating repeated task or process in the business right now?',
@@ -3673,9 +3692,11 @@ function readWelcomeFields() {
   btaiFollowupInterest = document.querySelector('input[name="btai-followup"]:checked')?.value || btaiFollowupInterest || 'maybe';
   businessName = document.getElementById('business-name').value.trim();
   businessNiche = document.getElementById('business-niche').value.trim();
-  // Preserve the existing storage/API shape while using this one plain-language
-  // description as the source for tailoring questions and report context.
-  businessCategory = businessNiche;
+  // New intakes use one plain-language description. A legacy draft can still
+  // carry a separate old category; retain it so its established industry pack
+  // does not silently change when the user resumes and saves.
+  const legacyCategory = LEGACY_CATEGORY_PACK_MAP[businessCategory] ? businessCategory : '';
+  if (!legacyCategory) businessCategory = businessNiche;
   shareComfort = document.getElementById('share-comfort').value.trim() || 'Directional only';
   websiteUrl = document.getElementById('website-url').value.trim();
   companySize = document.getElementById('company-size').value.trim();
@@ -5363,8 +5384,7 @@ function buildPrivacyScanText() {
   const lines = [
     'PARTICIPANT-PROVIDED INTAKE DATA',
     `Business Name: ${businessName || ''}`,
-    `Business Description: ${businessCategory || ''}`,
-    `Specific Niche: ${businessNiche || ''}`,
+    `Business Description: ${businessNiche || businessCategory || ''}`,
     `Detail-Sharing Comfort: ${shareComfort || ''}`,
     `Website URL: ${websiteUrl || ''}`,
     `Company Size: ${companySize || ''}`,
@@ -5489,8 +5509,7 @@ CLIENT INFORMATION:
 Owner Name: ${clientName}
 Owner Email: ${clientEmail || '(not provided)'}
 Business Name: ${businessName}
-Business Description: ${businessCategory}
-Specific Niche: ${businessNiche || '(not specified)'}
+Business Description: ${businessNiche || businessCategory || '(not specified)'}
 Detail-Sharing Comfort: ${shareComfort || '(not specified)'}
 Website URL: ${websiteUrl || '(not provided)'}
 Company Size: ${companySize ? companySize + ' people' : '(not specified)'}
