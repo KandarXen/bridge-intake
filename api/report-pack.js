@@ -70,7 +70,7 @@ function businessNameFromDna(dna) {
   return 'Client_Business';
 }
 
-async function callClaude(prompt, maxTokens) {
+export async function callClaude(prompt, maxTokens) {
   if (!process.env.ANTHROPIC_API_KEY) throw new Error('Missing ANTHROPIC_API_KEY');
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
