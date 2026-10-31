@@ -5,7 +5,7 @@ This is the fixed starting file for all model work. It is updated by Codex after
 ## Current release
 
 - **Version:** v1.72.31 private Preview corrective candidate
-- **Candidate commit:** pending local verification and commit
+- **Candidate commit:** `4731a9e`
 - **Baseline commit:** `88a153bce4641ac5333e285aa78297d27e61ed57`
 - **Branch:** `release/v1.72.24-secure-intake`
 - **Preview:** `https://bridge-intake-f8jaqws1s-bridgetoai-projects.vercel.app/snapshot`
