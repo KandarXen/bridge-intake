@@ -20,7 +20,7 @@ Claude must review this one complete packet after Codex generates it:
 
 ## Required outcome
 
-Claude creates one review report in `INBOX/CLAUDE/` using the format in `INBOX/CLAUDE/README.md`, then issues the matching Codex handoff command from `COMMAND_PROTOCOL.md`.
+Claude reviews the attached complete packet and returns one review report in chat, then issues the matching Codex handoff command from `COMMAND_PROTOCOL.md` only when a material fix is needed.
 
 ## Safety boundary
 

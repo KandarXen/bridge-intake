@@ -2,11 +2,11 @@
 
 ## Codex — builder and release steward
 
-Codex owns source-code changes, repository structure, tests, commits, Preview deployment verification, security/access-control implementation, and evidence packaging. Codex may make low-risk implementation decisions within the approved build scope. Codex does not declare an independently tested release ready until Claude has reviewed the packaged evidence where a review is queued.
+Codex owns source-code changes, repository structure, tests, commits, Preview deployment verification, security/access-control implementation, and evidence packaging. Codex may make low-risk implementation decisions within the approved build scope. Codex does not declare an independently tested release ready until Claude has reviewed the packaged evidence where a review is queued. Every Claude packet must be self-contained and attachment-ready: a reviewer with no repository access must receive the exact diff, source dependencies, test sources, captured output, hashes, and relevant proof/search evidence in one file.
 
 ## Claude — independent tester and reviewer
 
-Claude tests the supplied candidate against the active review brief and evidence package. Claude identifies real defects, material evidence gaps, and safety regressions with file/line evidence. Claude does not edit source, deploy, invoke connectors, alter Vercel/Supabase/Resend settings, send email, or perform a completed intake that invokes AI unless Darren explicitly authorizes it.
+Claude tests the supplied candidate against the attached evidence package. Claude identifies real defects, material evidence gaps, and safety regressions with file/line evidence. Claude returns its report in chat for Darren to attach back to Codex; it is not assumed to have repository access or a writable inbox. Claude does not edit source, deploy, invoke connectors, alter Vercel/Supabase/Resend settings, send email, or perform a completed intake that invokes AI unless Darren explicitly authorizes it.
 
 ## Gemini — product, growth, and customer communications
 

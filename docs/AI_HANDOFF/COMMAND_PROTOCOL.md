@@ -2,9 +2,18 @@
 
 This protocol makes Darren the product owner—not the technical go-between.
 
-## Shared-repository mode (preferred)
+## Standalone-packet mode (required)
 
-All three models have access to the same BTAI repository. Claude writes its review report to the designated inbox; Codex reads it from there. Darren only passes the short command between chats.
+Darren is never the technical go-between. Every Claude review request is a
+single self-contained Markdown packet that Darren can attach directly in
+Claude. Claude must be able to review it with no repository, connector, shell,
+or live-site access.
+
+Every packet must include the baseline and candidate hashes, exact candidate
+diff, full source for each changed file and each dependency needed to judge the
+change, full relevant test scripts, captured test output, claimed-resolution
+evidence, and any required search/proof output. A packet that only points to
+file names or makes assertions is not a review packet.
 
 ### Command 1 — start an independent Claude review
 
@@ -16,10 +25,9 @@ BTAI REVIEW CURRENT
 
 Claude must:
 
-1. Read `docs/AI_HANDOFF/00_ACTIVE_RELEASE.md`, `MODEL_ROLES.md`, and this file.
-2. Review the linked canonical evidence packet—without changing code or external services.
-3. Write one report to `docs/AI_HANDOFF/INBOX/CLAUDE/<version>-review-001.md`.
-4. End its response with the next command for Codex.
+1. Review the attached canonical evidence packet only—without changing code or external services.
+2. Return one complete Markdown review in chat.
+3. End its response with the next Codex handoff command only if a material fix is needed.
 
 ### Command 2 — send Claude’s findings to Codex
 
@@ -31,7 +39,7 @@ BTAI HANDOFF CLAUDE <version> review-001
 
 Codex must:
 
-1. Read `docs/AI_HANDOFF/00_ACTIVE_RELEASE.md` and the named Claude report.
+1. Read the attached Claude report and the active-release record.
 2. Classify each item as accepted, rejected with evidence, or needing Darren’s decision.
 3. Implement only accepted, in-scope fixes.
 4. Run appropriate checks, update the active release file, and create a new complete evidence packet.
@@ -45,21 +53,22 @@ Codex will return this only when there was a material fix:
 BTAI REVIEW <version>
 ```
 
-Claude writes `...-review-002.md`, then returns:
+Claude returns `...-review-002.md` in chat, then returns:
 
 ```text
 BTAI HANDOFF CLAUDE <version> review-002
 ```
 
-## Attachment fallback (when Claude cannot write to the repository)
+## Attaching a Claude result to Codex
 
-If Claude cannot access or write to the shared repository, it must create a single Markdown file named `<version>-review-001.md` using the inbox format. Darren attaches that one file to Codex and sends:
+Attach Claude's single Markdown review to Codex and send:
 
 ```text
 BTAI HANDOFF CLAUDE <version> review-001 (attached)
 ```
 
-Codex saves it into the inbox before acting. No terminal commands, diffs, or extra evidence collection are required from Darren.
+Codex records it in the project handoff history before acting. No terminal
+commands, diffs, or extra evidence collection are required from Darren.
 
 ## Anti-loop rule
 
