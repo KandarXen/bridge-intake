@@ -18,5 +18,6 @@ assert.match(intakePage, /businessCategory, businessNiche, businessName, website
 assert.match(intakePage, /manufacturing_operations/, 'generic manufacturing has its own non-food tailoring pack');
 assert.match(intakePage, /'bookkeeping'/, 'bookkeeping descriptions match the professional-services pack');
 assert.match(intakePage, /Business Description: \$\{businessNiche \|\| businessCategory \|\| ''\}/, 'prompt context does not duplicate the same business description as a niche');
+assert.match(intakePage, /const status = `\$\{ownerWorkStatus \|\| ''\} \$\{deptList\.join\(' '\)\}`\.toLowerCase\(\);/, 'solo/no-staff detection does not infer staffing from the free-text business description');
 
 console.log('business-description intake contract tests passed');

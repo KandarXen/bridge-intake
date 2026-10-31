@@ -2148,7 +2148,7 @@
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag" id="header-tag">Business Discovery Session</span>
-      <span class="header-version">v1.72.27 Preview</span>
+      <span class="header-version">v1.72.28 Preview</span>
   </div>
 </header>
 
@@ -4366,7 +4366,7 @@ function normalizedCompanySizeNumber() {
 function isSoloOrNoStaff() {
   const size = normalizedCompanySizeNumber();
   const deptList = Array.isArray(departments) ? departments : [];
-  const status = `${ownerWorkStatus || ''} ${businessCategory || ''} ${deptList.join(' ')}`.toLowerCase();
+  const status = `${ownerWorkStatus || ''} ${deptList.join(' ')}`.toLowerCase();
   return size === 0 || size === 1 || status.includes('semi-retired') || status.includes('semi retired') || status.includes('mostly just me') || status.includes('solo') || status.includes('self-employed') || status.includes('self employed') || status.includes('no employees');
 }
 

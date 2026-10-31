@@ -46,7 +46,7 @@ export default async function handler(req, res) {
     const fields = {
       clientName: clean(payload.clientName, 120) || 'Not provided',
       clientEmail: clean(payload.clientEmail, 320) || 'Not provided',
-      businessCategory: clean(payload.businessCategory, 160) || 'Not provided',
+      businessCategory: clean(payload.businessNiche || payload.businessCategory, 160) || 'Not provided',
       partner: clean(payload.partnerDisplayName || payload.campaignPartner || 'BTAI', 120),
       campaign: clean(payload.campaignId || 'general_intake', 120),
       consentAt: clean(payload.privacyConsentAt, 80),

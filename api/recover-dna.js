@@ -163,7 +163,7 @@ function privacyScanText(payload) {
   return answeredItems(payload).join('\n\n').trim();
 }
 
-function buildRecoveryPrompt(payload, clientDraftId) {
+export function buildRecoveryPrompt(payload, clientDraftId) {
   const items = answeredItems(payload);
   const context = payload.businessContext ? JSON.stringify(payload.businessContext, null, 2) : 'Not available.';
   const interviewMode = String(payload.intakeVariant || payload.questionSet || '').includes('snapshot')

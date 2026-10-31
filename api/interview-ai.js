@@ -1,4 +1,5 @@
 import { anonymizeText, privacyHeader, reidentifyText } from '../lib/privacy.js';
+import { assertRateLimit, assertTrustedOrigin, safeError } from '../lib/security.js';
 
 function normalizeUrl(rawUrl) {
   if (!rawUrl || typeof rawUrl !== 'string') return '';
@@ -89,7 +90,7 @@ function fallbackContext({ businessCategory, websiteUrl }) {
 }
 
 function businessDescription({ businessCategory, businessNiche } = {}) {
-  return String(businessNiche || businessCategory || '').trim();
+  return String(businessNiche || businessCategory || '').trim().slice(0, 160);
 }
 
 async function callClaude(prompt, { maxTokens = 600, explicitIdentifiers = {} } = {}) {
@@ -195,7 +196,7 @@ function soloOrNoStaff(companySize, ownerWorkStatus, departments) {
   return /(^|\D)(0|1)(\D|$)/.test(String(companySize || '')) || /semi[- ]?retired|mostly just me|solo|self[- ]?employed|no employees/i.test(`${ownerWorkStatus || ''} ${Array.isArray(departments) ? departments.join(' ') : ''}`);
 }
 
-async function probe(body) {
+export async function probe(body) {
   const { domain, qa, businessCategory, businessNiche, shareComfort, companySize, ownerWorkStatus, departments = [], businessContext, sourceQuestion, sourceQuestionType, answerQualityBucket, priorityWeight, weakAnswerReason } = body || {};
   if (!qa) return { status: 400, body: { error: 'Missing qa' } };
   const description = businessDescription({ businessCategory, businessNiche }) || 'small business';
@@ -251,7 +252,7 @@ If no follow-up is needed, return:
 }`;
   try {
     const raw = await callClaude(prompt, { maxTokens: 260 }) || '';
-    const parsed = parseJsonLenient(raw);
+    const parsed = parseClaudeJson(raw);
     if (parsed && typeof parsed === 'object') return { followup: parsed };
     return { followup: 'NONE' };
   } catch (err) {
@@ -290,6 +291,8 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const task = String(req.body?.task || '').trim();
   try {
+    assertTrustedOrigin(req);
+    assertRateLimit(req, { key: 'interview-ai', limit: 20, windowMs: 60_000 });
     let result;
     if (task === 'research-business') result = await researchBusiness(req.body);
     else if (task === 'scenario') result = await scenario(req.body);
@@ -301,6 +304,6 @@ export default async function handler(req, res) {
     return res.status(200).json(result);
   } catch (err) {
     console.error('interview-ai error:', err);
-    return res.status(200).json({ error: err.message });
+    return safeError(res, err, 'Interview assistance is temporarily unavailable');
   }
 }

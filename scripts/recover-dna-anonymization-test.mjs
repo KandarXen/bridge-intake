@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import assert from 'node:assert/strict';
-import { anonymizePrompt } from '../api/recover-dna.js';
+import { anonymizePrompt, buildRecoveryPrompt } from '../api/recover-dna.js';
 
 const current = anonymizePrompt([
   'Owner Name: Test Owner',
@@ -15,5 +15,15 @@ assert.doesNotMatch(current.anonymizedPrompt, /bookkeeping practice/i, 'the curr
 
 const legacy = anonymizePrompt('Business Category: Bakery / Grains');
 assert.equal(legacy.mapping['[BUSINESS_DESCRIPTION]'], 'Bakery / Grains', 'the legacy business-category label remains tokenized');
+
+const recoveryPrompt = buildRecoveryPrompt({
+  clientName: 'Test Owner',
+  businessName: 'Test Business',
+  businessNiche: 'bookkeeping practice',
+  answers: []
+}, 'test-record');
+const recoveryResult = anonymizePrompt(recoveryPrompt);
+assert.equal(recoveryResult.mapping['[BUSINESS_DESCRIPTION]'], 'bookkeeping practice', 'the real recovery template feeds its description to the anonymizer');
+assert.doesNotMatch(recoveryResult.anonymizedPrompt, /bookkeeping practice/i, 'the real recovery template does not expose the description to model analysis');
 
 console.log('recover-dna anonymization tests passed');

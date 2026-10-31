@@ -100,12 +100,14 @@ function replaceAllLiteral(text, value, placeholder) {
   return text.replace(new RegExp(escapeRegExp(value), 'g'), placeholder);
 }
 
-function anonymizePrompt(prompt) {
+export function anonymizePrompt(prompt) {
   const mapping = {};
 
   addMapping(mapping, '[OWNER_NAME]', extractField(prompt, 'Owner Name'));
   addMapping(mapping, '[BUSINESS_NAME]', extractField(prompt, 'Business Name'));
-  addMapping(mapping, '[BUSINESS_CATEGORY]', extractField(prompt, 'Business Category'));
+  // Current intakes use Business Description; the prior label is accepted only
+  // so older saved prompts are anonymized with the same protection.
+  addMapping(mapping, '[BUSINESS_DESCRIPTION]', extractField(prompt, 'Business Description') || extractField(prompt, 'Business Category'));
   addMapping(mapping, '[WEBSITE_URL]', extractField(prompt, 'Website URL'));
 
   let anonymized = prompt;
