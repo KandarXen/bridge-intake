@@ -28,6 +28,9 @@ assert.match(result.text, /^\[PERSON_AMBIGUOUS_1\] the owner approves\. \[PERSON
 result = redact('DARREN RANDLES and darren randles.', { clientName: 'Darren Randles' });
 assert.match(result.text, /^\[OWNER_NAME\] and \[OWNER_NAME\]\.$/, 'multi-word known names match case-insensitively');
 
+result = redact('May Chan joined in May.', {});
+assert.match(result.text, /^\[PERSON_DETECTED_1\] joined in May\.$/, 'a detected name does not replace an ordinary month mention');
+
 result = redact("Darren's quotes, DARREN, Darren.", { clientName: 'Darren Randles' });
 assert.doesNotMatch(result.text, /Darren/i);
 

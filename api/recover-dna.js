@@ -336,7 +336,17 @@ async function generateRecoveredDna(clientDraftId, payload) {
     recoveredFromEncryptedSession: true
   };
 
-  const privacyGate = runPrivacyGate(sourceMeta.privacyScanText || prompt, { purpose: 'admin_recovery_venture_dna_generation' });
+  if (!sourceMeta.privacyScanText) {
+    await logPrivacyProof(clientDraftId, 'admin_recovery_privacy_source_missing', 'failed', {
+      privacyProofType: 'privacy_source',
+      aiPayloadBlocked: true,
+      adminRecoveryContinuation: false,
+      proofStatus: 'review_required'
+    });
+    throw new Error('Recovered interview privacy source is unavailable; AI generation was paused for review.');
+  }
+
+  const privacyGate = runPrivacyGate(sourceMeta.privacyScanText, { purpose: 'admin_recovery_venture_dna_generation' });
   const privacyGateSave = await savePrivacyGateRecord(clientDraftId, privacyGate);
   await logPrivacyProof(clientDraftId, 'admin_recovery_privacy_gate_scan_completed', 'success', gateProofDetails(privacyGate, {
     payloadType: 'recovered_encrypted_session_payload',

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import assert from 'node:assert/strict';
-import { anonymizePrompt } from '../api/generate-dna.js';
+import { anonymizePrompt, getParticipantPrivacySource } from '../api/generate-dna.js';
 
 const current = anonymizePrompt('Business Description: tax prep for self-employed contractors');
 assert.equal(current.mapping['[BUSINESS_DESCRIPTION]'], 'tax prep for self-employed contractors', 'the primary report path tokenizes the current business-description label');
@@ -18,5 +18,8 @@ assert.doesNotMatch(participantOnly.anonymizedPrompt, /Sarah|Nguyen/i, 'particip
 
 const noParticipant = anonymizePrompt(template, '');
 assert.match(noParticipant.anonymizedPrompt, /Revenue Engine|Quick Read/, 'an empty participant-text value disables heuristic template scanning');
+
+assert.equal(getParticipantPrivacySource({ privacyScanText: 'Answer: Sarah Nguyen quotes.' }), 'Answer: Sarah Nguyen quotes.', 'a supplied participant privacy source is retained');
+assert.equal(getParticipantPrivacySource({}), '', 'a missing privacy source is identifiable so generation can fail closed');
 
 console.log('generate-dna anonymization tests passed');

@@ -119,6 +119,10 @@ export function anonymizePrompt(prompt, participantText = '') {
   };
 }
 
+export function getParticipantPrivacySource(sourceMeta = {}) {
+  return String(sourceMeta?.privacyScanText || '').trim();
+}
+
 function reidentifyText(text, mapping) {
   let output = text || '';
   Object.entries(mapping || {})
@@ -292,7 +296,18 @@ export default async function handler(req, res) {
       ...retentionMetadata('first_intake'),
       proofStatus: 'passed'
     });
-    const participantPrivacySource = String(sourceMeta?.privacyScanText || '').trim();
+    const participantPrivacySource = getParticipantPrivacySource(sourceMeta);
+    if (!participantPrivacySource) {
+      await logPrivacyProof(clientDraftId, 'privacy_source_missing', 'failed', {
+        privacyProofType: 'privacy_source',
+        aiPayloadBlocked: true,
+        proofStatus: 'review_required'
+      });
+      return res.status(409).json({
+        error: 'Privacy review required',
+        message: 'The interview privacy source is unavailable. AI generation has been paused rather than sending unverified participant text for analysis.'
+      });
+    }
     const promptPrivacyGate = runPrivacyGate(prompt, { purpose: 'venture_dna_generation' });
     const sourcePrivacyGate = participantPrivacySource && participantPrivacySource !== prompt
       ? runPrivacyGate(participantPrivacySource, { purpose: 'venture_dna_generation_source' })
