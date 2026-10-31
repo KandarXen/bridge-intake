@@ -4,19 +4,19 @@ This is the fixed starting file for all model work. It is updated by Codex after
 
 ## Current release
 
-- **Version:** v1.72.27 private Preview
-- **Candidate commit:** `fa4ed1888a3c2006ba978b1ae0cc3a971b1f8158`
-- **Baseline commit:** `c81e2fe5cd88af1c459d96c9eaf54fe992ea3eea`
+- **Version:** v1.72.28 private Preview
+- **Candidate commit:** `09a3b5fd6019d7b08a4a97c4a68ef3fb86a6012c`
+- **Baseline commit:** `fa4ed1888a3c2006ba978b1ae0cc3a971b1f8158`
 - **Branch:** `release/v1.72.24-secure-intake`
 - **Preview:** `https://bridge-intake-f8jaqws1s-bridgetoai-projects.vercel.app/snapshot`
 - **Production:** unchanged at v1.72.23 on `main`
-- **Stage:** independent Claude re-review pending
+- **Stage:** independent Claude re-review pending (R2 closed in code; review the complete corrective build)
 
 ## Canonical evidence
 
 Claude must review this one complete packet after Codex generates it:
 
-[v1.72.27 complete Claude review packet](../review-packages/v1.72.27-claude-test/CLAUDE_V1.72.27_COMPLETE_REVIEW_PACKET.md)
+[v1.72.28 complete Claude review packet](../review-packages/v1.72.28-claude-test/CLAUDE_V1.72.28_COMPLETE_REVIEW_PACKET.md)
 
 ## Required outcome
 
