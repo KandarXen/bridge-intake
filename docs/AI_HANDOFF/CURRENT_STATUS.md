@@ -6,28 +6,28 @@
 
 - **Public Production:** `main`, baseline v1.72.23. Do not change or deploy without Darren’s explicit approval.
 - **Private Preview branch:** `release/v1.72.24-secure-intake`.
-- **Current private Preview build:** v1.72.28 candidate, commit `09a3b5fd6019d7b08a4a97c4a68ef3fb86a6012c`.
+- **Current private Preview build:** v1.72.29 candidate, commit `88a153bce4641ac5333e285aa78297d27e61ed57`.
 - **Private Preview URL:** `https://bridge-intake-f8jaqws1s-bridgetoai-projects.vercel.app/snapshot`
 - **Preview protection:** Vercel-protected. A reviewer who reaches a Vercel login page has not reached the product and must not treat that as a product defect.
 
 ## Current product change
 
-v1.72.28 closes the primary-path privacy-label gap found in Claude's v1.72.27 re-review, repairs adaptive follow-up parsing, and preserves the one required question:
+v1.72.29 records the full R2 label search and protects adaptive follow-up prompts with the Privacy Gate while preserving the one required question:
 
 > What does your business do?
 
-The response populates the established compatibility field used by existing draft, report, and internal API paths. This build confirms both current and legacy labels are anonymized in the primary and recovery report paths, avoids inferring staffing from the free-text description, and adds same-origin/rate-limit protection to the interview-AI route.
+The response populates the established compatibility field used by existing draft, report, and internal API paths. Sensitive optional probe answers are not sent to the model; permitted probes use sanitized text. Both current and legacy labels remain anonymized in the primary and recovery report paths.
 
 ## Safety posture
 
 - No Production deployment was made.
 - No email-delivery setting was enabled or changed.
-- No draft capability, email switch, report-delivery switch, or AI-enable switch was changed in v1.72.28.
+- No draft capability, email switch, report-delivery switch, or AI-enable switch was changed in v1.72.29.
 - No real tester data, report delivery, or AI generation was used for this release verification.
 
 ## Active work
 
-**Claude independent re-review of v1.72.28 is pending.** The complete evidence packet is linked in `REVIEW_QUEUE.md`.
+**Claude independent re-review of v1.72.29 is pending.** The complete evidence packet is linked in `REVIEW_QUEUE.md`.
 
 ## Maintenance rule
 

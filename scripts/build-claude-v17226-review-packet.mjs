@@ -6,14 +6,16 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const baseline = 'fa4ed1888a3c2006ba978b1ae0cc3a971b1f8158';
-const candidate = '09a3b5fd6019d7b08a4a97c4a68ef3fb86a6012c';
+const baseline = '09a3b5fd6019d7b08a4a97c4a68ef3fb86a6012c';
+const candidate = '88a153bce4641ac5333e285aa78297d27e61ed57';
 const files = [
   'index.html',
   'api/generate-dna.js',
   'api/interview-ai.js',
   'api/recover-dna.js',
   'api/send-email.js',
+  'api/report-pack.js',
+  'api/partner-aggregate.js',
   'lib/privacy.js',
   'lib/privacy-gate.js',
   'lib/security.js',
@@ -23,10 +25,10 @@ const files = [
   'scripts/adaptive-probe-contract-test.mjs',
   'scripts/pilot-safety-contract-test.mjs',
   'scripts/privacy-gate-context-test.mjs',
-  'docs/releases/v1.72.28/README.md',
-  'docs/AI_HANDOFF/INBOX/CLAUDE/v1.72.27-review-001.md'
+  'docs/releases/v1.72.29/README.md',
+  'docs/AI_HANDOFF/INBOX/CLAUDE/v1.72.28-review-001.md'
 ];
-const outputPath = path.join(root, 'docs', 'review-packages', 'v1.72.28-claude-test', 'CLAUDE_V1.72.28_COMPLETE_REVIEW_PACKET.md');
+const outputPath = path.join(root, 'docs', 'review-packages', 'v1.72.29-claude-test', 'CLAUDE_V1.72.29_COMPLETE_REVIEW_PACKET.md');
 
 function git(args) {
   return execFileSync('git', args, { cwd: root, encoding: 'utf8' });
@@ -42,6 +44,7 @@ function runTest(relativePath) {
 }
 
 const diff = git(['diff', `${baseline}..${candidate}`, '--', ...files]);
+const labelSearch = git(['grep', '-n', '-E', 'Business Category|Specific Niche|BUSINESS_CATEGORY', candidate, '--', 'api', 'lib']);
 const sources = files.map(relativePath => ({
   relativePath,
   content: git(['show', `${candidate}:${relativePath}`])
@@ -56,7 +59,7 @@ const tests = [
 ].map(relativePath => ({ relativePath, output: runTest(relativePath) }));
 
 const parts = [
-  '# BTAI Intake v1.72.28 — Complete independent Claude re-review packet',
+  '# BTAI Intake v1.72.29 — Complete independent Claude re-review packet',
   '',
   '> This is a self-contained evidence packet. Review this packet only; do not use connectors, change code, deploy, alter settings, send email, submit an intake, or make an AI call.',
   '',
@@ -66,7 +69,7 @@ const parts = [
   `- Candidate: \`${candidate}\``,
   '- Branch: `release/v1.72.24-secure-intake`',
   '- Private Preview: `https://bridge-intake-f8jaqws1s-bridgetoai-projects.vercel.app/snapshot`',
-  '- Scope: close the primary report-path label gap, repair adaptive follow-up parsing, and add interview-AI request protection without weakening safety or changing Production.',
+  '- Scope: document the final R2 search, protect optional adaptive probes with the Privacy Gate, and suppress upstream provider errors without weakening safety or changing Production.',
   '',
   '## Required review response',
   '',
@@ -78,6 +81,14 @@ const parts = [
   '',
   '```diff',
   diff.trimEnd(),
+  '```',
+  '',
+  '## R2 repository-wide label search',
+  '',
+  'The following is the exact candidate search across `api/` and `lib/` for `Business Category`, `Specific Niche`, and `BUSINESS_CATEGORY`:',
+  '',
+  '```text',
+  labelSearch.trimEnd(),
   '```',
   '',
   '## Captured local test results',
