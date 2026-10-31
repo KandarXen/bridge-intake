@@ -1,4 +1,5 @@
 import { anonymizeText, privacyHeader, reidentifyText } from '../lib/privacy.js';
+import { runPrivacyGate } from '../lib/privacy-gate.js';
 import { assertRateLimit, assertTrustedOrigin, safeError } from '../lib/security.js';
 
 function normalizeUrl(rawUrl) {
@@ -166,7 +167,7 @@ Rules:
     };
   } catch (err) {
     console.error('research-business error:', err);
-    return { context: fallbackContext({ businessCategory, websiteUrl }), warning: err.message };
+    return { context: fallbackContext({ businessCategory, websiteUrl }), warning: 'context_unavailable' };
   }
 }
 
@@ -199,6 +200,11 @@ function soloOrNoStaff(companySize, ownerWorkStatus, departments) {
 export async function probe(body) {
   const { domain, qa, businessCategory, businessNiche, shareComfort, companySize, ownerWorkStatus, departments = [], businessContext, sourceQuestion, sourceQuestionType, answerQualityBucket, priorityWeight, weakAnswerReason } = body || {};
   if (!qa) return { status: 400, body: { error: 'Missing qa' } };
+  const probePrivacy = runPrivacyGate(qa, { purpose: 'interview_adaptive_probe' });
+  // A probe is optional. If an answer contains information that needs review,
+  // do not send it to the model; the interview simply continues normally.
+  if (probePrivacy.requiresReview) return { followup: 'NONE' };
+  const safeQa = probePrivacy.sanitizedText || qa;
   const description = businessDescription({ businessCategory, businessNiche }) || 'small business';
   const contextBlock = businessContext ? `\n\nInternal context for sharper judgment only:\n${JSON.stringify(businessContext).slice(0, 3000)}\n\nUse this to understand likely workflows and industry patterns. Do not reveal background research.` : '';
   const orgContext = `Business description: ${description}. Detail-sharing comfort: ${shareComfort || 'directional only'}. Company size: ${companySize || 'not specified'} people. Owner status/capacity: ${ownerWorkStatus || 'not specified'}. Departments/functions selected: ${Array.isArray(departments) && departments.length ? departments.join(', ') : 'not specified'}.`;
@@ -214,7 +220,7 @@ Answer quality signal: ${answerQualityBucket || 'unknown'}.
 Question importance weight: ${priorityWeight || 'not supplied'} out of 5.
 Reason the redirect may be needed: ${weakAnswerReason || 'not supplied'}.
 
-${qa}
+${safeQa}
 ${contextBlock}
 
 Your job: ask ONE short redirect question only if it would meaningfully turn a thin answer into usable business context. Default to no follow-up if the answer is already usable.
