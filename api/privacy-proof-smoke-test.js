@@ -54,7 +54,7 @@ async function logProof(clientDraftId, eventType, status, details = {}) {
         partnerAggregateOnly: true,
         encryptedAtRest: true,
         encryptionAlg: 'AES-256-GCM',
-        directIdentifiersRemoved: true,
+        identifiersReplaced: true,
         ...details
       }
     }
