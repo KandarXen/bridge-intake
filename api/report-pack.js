@@ -1,7 +1,7 @@
 import { decryptJson, encryptJson } from '../lib/crypto.js';
 import { createDocxBuffer, createZipBuffer } from '../lib/docx.js';
 import { createReportHtml } from '../lib/report-html.js';
-import { getIntakeEvents, getIntakeSession, getLatestIntakeOutput, insertIntakeEvent, insertIntakeOutput, updateIntakeSession } from '../lib/supabase-rest.js';
+import { getIntakeEvents, getIntakeSession, getIntakeOutputById, getLatestIntakeOutput, insertIntakeEvent, insertIntakeOutput, updateIntakeSession } from '../lib/supabase-rest.js';
 import { gateProofDetails, publicGateSummary, runPrivacyGate } from '../lib/privacy-gate.js';
 import { validateDnaOutput } from '../lib/validate-output.js';
 import { assertRateLimit, assertTrustedOrigin, authorizedAdminRequest, safeError } from '../lib/security.js';
@@ -167,8 +167,10 @@ function privacyProofDefaults(extra = {}) {
   };
 }
 
-async function redactReportSource(clientDraftId, sourceText) {
-  const mappingRow = await getLatestIntakeOutput(clientDraftId, 'hermes_reidentification_map');
+async function redactReportSource(clientDraftId, sourceText, dnaMeta = {}) {
+  const mappingRow = dnaMeta.reidentificationMappingOutputId
+    ? await getIntakeOutputById(dnaMeta.reidentificationMappingOutputId)
+    : await getLatestIntakeOutput(clientDraftId, 'hermes_reidentification_map');
   if (mappingRow?.encrypted_payload) {
     const payload = decryptJson(mappingRow.encrypted_payload);
     const mapping = payload?.mapping || {};
@@ -323,7 +325,7 @@ Your raw interview stays in the secure record. Partners, where applicable, recei
   }
   return `## How This Was Handled Privately
 
-Your raw interview was not attached to this report. The working record is stored securely, direct identifiers are removed or replaced where practical before AI analysis, and the private re-identification map is encrypted at rest using AES-256-GCM.
+Your raw interview was not attached to this report. The working record is stored securely. Before AI analysis, identifiers we can detect—such as your name, business name, email, phone number and links—are replaced with placeholders and restored in your report. No detection method is perfect, so please avoid naming other people. The private re-identification map is encrypted at rest using AES-256-GCM.
 
 If this intake was completed through a partner program, the partner does not receive your raw answers. Partner reporting is limited to anonymized aggregate themes where applicable. The purpose of this process is simple: use your answers to give you a useful report, while keeping the underlying interview record protected.`;
 }
@@ -968,7 +970,7 @@ async function generateOne(clientDraftId, tier, options = {}) {
   const startedAt = Date.now();
   const { dnaContent, meta } = await getDna(clientDraftId);
   const gatedSource = await prepareSanitizedAiSource(clientDraftId, dnaContent, `report_${tier}_generation`);
-  const identitySource = await redactReportSource(clientDraftId, gatedSource.sanitizedText);
+  const identitySource = await redactReportSource(clientDraftId, gatedSource.sanitizedText, meta);
   const businessName = businessNameFromDna(dnaContent);
   await logReportEvent(clientDraftId, 'report_generation_started', 'success', privacyProofDefaults({
     partner: meta?.sourceMeta?.partner || 'BTAI',
@@ -1648,6 +1650,7 @@ async function privacyProofSummary(clientDraftId) {
     !!details.privacyContactPresented && !!details.privacyPolicyVersion
   );
   const reportScanEvents = proofEvents.filter(e => e.event_type === 'report_privacy_scan_completed');
+  const reportIdentityEvents = proofEvents.filter(e => e.event_type === 'report_generation_started' && e.metadata?.details?.identityRedaction?.stats);
   const blockingReportScanEvents = reportScanEvents.filter(e => {
     const details = e.metadata?.details || {};
     return Array.isArray(details.blockingFindings)
@@ -1661,6 +1664,7 @@ async function privacyProofSummary(clientDraftId) {
     proofEventCount: proofEvents.length,
     encryptedRecordsConfirmed: !!successfulEvent('privacy_proof_secure_output_storage'),
     anonymizedAiAnalysisConfirmed: !!successfulEvent('privacy_proof_ai_analysis_requested'),
+    reportIdentityRedactionConfirmed: reportIdentityEvents.length > 0,
     privacyGateConfirmed: proofEvents.some(e => e.event_type === 'privacy_gate_scan_completed' && e.status === 'success'),
     privacyGateReviewRequired: proofEvents.some(e => (e.metadata?.details || {}).privacyGateDecision === 'quarantine'),
     privacyGateAdminApproved: proofEvents.some(e => e.event_type === 'privacy_gate_admin_review_approved' && e.status === 'success'),
@@ -1691,6 +1695,7 @@ async function privacyProofSummary(clientDraftId) {
   if (summary.privacyGateReviewRequired && !summary.privacyGateAdminApproved) summary.remainingImprovements.push('Privacy Gate found high-risk content and admin review is still required.');
   if (!summary.adminAccessLogged) summary.remainingImprovements.push('No admin access event has been logged yet for this record.');
   if (!summary.reportPrivacyScanCompleted) summary.remainingImprovements.push('Report privacy scan proof was not found for this record.');
+  if (!summary.reportIdentityRedactionConfirmed) summary.remainingImprovements.push('Report-stage identifier-redaction proof was not found for this record.');
   if (summary.reportPrivacyScanBlockingIssueFound) summary.remainingImprovements.push('A report privacy scan found a blocking client-delivery issue.');
   summary.privacyConclusion = summary.remainingImprovements.length
     ? 'Passed core SIL privacy proof with improvement items noted.'
@@ -1726,7 +1731,7 @@ function briefPrivacyCertificateMarkdown(summary) {
 
 ## Executive Summary
 
-Your Bridge To AI intake record was handled through the BTAI Secure Intelligence Layer. The proof log confirms encrypted storage, anonymized AI analysis where practical, partner access limits, and raw interview/DNA exclusion from the report package.
+Your Bridge To AI intake record was handled through the BTAI Secure Intelligence Layer. The proof log confirms encrypted storage, identifiers replaced before AI analysis where detected, partner access limits, and raw interview/DNA exclusion from the report package. Detection is heuristic and may not catch every name.
 
 ${summary.remainingImprovements?.length ? 'There are improvement notes on the internal audit record. These notes do not indicate that raw interview data was shared with a partner or included in the report package.' : 'No open privacy-proof improvement items were found in this record.'}
 
@@ -1737,7 +1742,8 @@ ${summary.remainingImprovements?.length ? 'There are improvement notes on the in
 | Protection | Status |
 | --- | --- |
 | Encrypted secure storage | ${yesNo(summary.encryptedRecordsConfirmed)} |
-| Anonymized AI analysis step | ${yesNo(summary.anonymizedAiAnalysisConfirmed)} |
+| Identifiers replaced before AI analysis (where detected) | ${yesNo(summary.anonymizedAiAnalysisConfirmed)} |
+| Report-stage identifiers replaced before AI analysis (where detected) | ${yesNo(summary.reportIdentityRedactionConfirmed)} |
 | Raw interview/DNA excluded from report ZIP | ${summary.rawDnaIncludedInReportZip ? 'Needs review' : 'Verified'} |
 | Partner raw access blocked | ${summary.rawDataSharedWithPartner ? 'Needs review' : 'Verified'} |
 | Partner reporting limited to aggregate insights | ${yesNo(summary.partnerAggregateOnly)} |
@@ -1784,7 +1790,8 @@ ${warnings}
 | Compliance Measure | Status | Technical Details |
 | --- | --- | --- |
 | Encrypted records at rest | ${yesNo(summary.encryptedRecordsConfirmed)} | AES-256-GCM is recorded in proof events where encryption is logged. |
-| Anonymized AI analysis | ${yesNo(summary.anonymizedAiAnalysisConfirmed)} | AI analysis request is logged as an anonymized business profile/prompt where practical. |
+| Identifiers replaced before AI analysis (where detected) | ${yesNo(summary.anonymizedAiAnalysisConfirmed)} | Detection is heuristic and may not catch every name. |
+| Report-stage identifier redaction | ${yesNo(summary.reportIdentityRedactionConfirmed)} | A report-stage event records computed redaction counts; no source values are logged. |
 | Consent proof | ${yesNo(summary.privacyConsentConfirmed)} | Requires accepted consent, consent timestamp, and Privacy Policy version. |
 | Cross-border/vendor notice proof | ${yesNo(summary.crossBorderNoticeConfirmed)} | Requires notice presented, provider policy availability, privacy contact presented, and policy version. |
 | Retention/deletion proof | ${yesNo(summary.retentionPolicyRecorded)} | Retention review and deletion request path must be recorded. |

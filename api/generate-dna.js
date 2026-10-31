@@ -343,7 +343,8 @@ export default async function handler(req, res) {
       privacyGateVersion: privacyGate.gateVersion,
       privacyGateDecision: privacyGate.decision,
       sanitizedAiPayloadCreated: true,
-      directIdentifiersRemoved: true,
+      identifiersReplaced: (hermesPrivacy.stats.replacements || 0) > 0,
+      identityRedactionStats: hermesPrivacy.stats,
       anonymizationReplacements: hermesPrivacy.stats.replacements || 0,
       proofStatus: 'passed'
     });
@@ -360,7 +361,8 @@ export default async function handler(req, res) {
       privacyProofType: 'ai_analysis',
       payloadType: 'anonymized_prompt',
       aiPayloadType: 'anonymized_business_profile',
-      directIdentifiersRemoved: true,
+      identifiersReplaced: (hermesPrivacy.stats.replacements || 0) > 0,
+      identityRedactionStats: hermesPrivacy.stats,
       proofStatus: 'passed'
     });
     let fullText = '';
@@ -396,6 +398,7 @@ export default async function handler(req, res) {
       sourceMeta: sourceMeta || {},
       privacyGate: publicGateSummary(privacyGate),
       anonymizationStats: hermesPrivacy.stats,
+      reidentificationMappingOutputId: mappingSave.fileId || '',
       validation: {
         ...validation,
         claimTraceSaved: !!claimTraceSave.saved,

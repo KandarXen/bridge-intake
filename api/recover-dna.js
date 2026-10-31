@@ -351,7 +351,8 @@ async function generateRecoveredDna(clientDraftId, payload) {
     privacyProofType: 'anonymization',
     payloadType: 'sanitized_recovered_interview_prompt',
     aiPayloadType: 'sanitized_anonymized_business_profile',
-    directIdentifiersRemoved: true,
+    identifiersReplaced: (hermesPrivacy.stats.replacements || 0) > 0,
+    identityRedactionStats: hermesPrivacy.stats,
     anonymizationReplacements: hermesPrivacy.stats.replacements || 0,
     mappingFileId: mappingSave.fileId || '',
     proofStatus: 'passed'
@@ -362,7 +363,8 @@ async function generateRecoveredDna(clientDraftId, payload) {
     privacyProofType: 'ai_analysis',
     payloadType: 'anonymized_recovered_prompt',
     aiPayloadType: 'anonymized_business_profile',
-    directIdentifiersRemoved: true,
+    identifiersReplaced: (hermesPrivacy.stats.replacements || 0) > 0,
+    identityRedactionStats: hermesPrivacy.stats,
     proofStatus: 'passed'
   });
 
@@ -395,6 +397,7 @@ async function generateRecoveredDna(clientDraftId, payload) {
     sourceMeta,
     privacyGate: publicGateSummary(privacyGate),
     anonymizationStats: hermesPrivacy.stats,
+    reidentificationMappingOutputId: mappingSave.fileId || '',
     adminRecovery: true,
     validation: {
       ...validation,

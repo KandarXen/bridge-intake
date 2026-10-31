@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { probe } from '../api/interview-ai.js';
 
 const originalFetch = globalThis.fetch;
+let capturedModelBody = '';
 globalThis.fetch = async () => ({
   ok: true,
   json: async () => ({
@@ -30,6 +31,19 @@ try {
   assert.equal(typeof result.followup, 'object', 'a well-formed model response is parsed into a follow-up object');
   assert.equal(result.followup.ask_followup, true, 'the parsed follow-up preserves the model decision');
   assert.match(result.followup.question, /how often/i, 'the parsed follow-up preserves the model question');
+
+  globalThis.fetch = async (_url, options) => {
+    capturedModelBody = options.body;
+    return { ok: true, json: async () => ({ content: [{ text: JSON.stringify({ ask_followup: false, question: '' }) }] }) };
+  };
+  await probe({
+    domain: 'Workflow Friction',
+    qa: 'Question: What slows down?\nAnswer: Darren Randles at Acme Foods emails owner@example.test.',
+    businessNiche: 'Acme Foods',
+    identity: { clientName: 'Darren Randles', businessName: 'Acme Foods', clientEmail: 'owner@example.test' }
+  });
+  assert.doesNotMatch(capturedModelBody, /Darren Randles|Acme Foods|owner@example\.test/i, 'the model-bound probe request excludes known owner, business, and email values');
+  assert.match(capturedModelBody, /\[OWNER_NAME\]|\[PERSON_1\]/, 'the model-bound probe request contains placeholders instead');
 
   let called = false;
   globalThis.fetch = async () => { called = true; throw new Error('A quarantined probe must not call the model'); };

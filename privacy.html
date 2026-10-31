@@ -143,8 +143,8 @@
     <p>The browser is not intended to store your full raw intake. It stores only what is needed to identify or resume the secure session.</p>
 
     <h2>7. Pseudonymization / Tokenization For AI Processing</h2>
-    <p>When your answers are processed by AI, Bridge To AI uses a secure processing layer to reduce unnecessary exposure of identifying details where practical.</p>
-    <p>The secure processing layer may replace identifying information such as names, emails, phone numbers, websites, and similar details with placeholders before AI analysis. If the placeholders need to be restored so the correct report can be delivered, the re-identification map is kept separately and encrypted.</p>
+      <p>When your answers are processed by AI, Bridge To AI uses a secure processing layer to reduce unnecessary exposure of identifying details where detected.</p>
+      <p>The secure processing layer replaces identifiers it can detect, such as owner and business names, emails, phone numbers, links, account numbers, and postal codes, with placeholders before AI analysis. If placeholders need to be restored so the correct report can be delivered, the re-identification map is kept separately and encrypted. Detection is heuristic and may not catch every name; please describe other people by role where possible.</p>
     <p>Because this process can be reversible when a re-identification map exists, it is more accurately described as pseudonymization or tokenization, not permanent anonymization. Anonymized aggregate reporting is used for partner-level insights where raw identities and re-identification maps are not shared with the partner.</p>
     <p>Pseudonymization reduces exposure, but it may not remove every possible business-identifying detail, especially if you provide highly specific or recognizable business information.</p>
 
