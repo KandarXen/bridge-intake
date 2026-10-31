@@ -3,6 +3,7 @@ import { insertClaimTrace, insertIntakeEvent, insertIntakeOutput, getIntakeSessi
 import { gateProofDetails, publicGateSummary, runPrivacyGate } from '../lib/privacy-gate.js';
 import { validateDnaOutput } from '../lib/validate-output.js';
 import { assertRateLimit, assertTrustedOrigin, authorizedAdminRequest, safeError } from '../lib/security.js';
+import { anonymizeText, privacyHeader } from '../lib/privacy.js';
 
 function retentionMetadata(category = 'first_intake') {
   const now = new Date();
@@ -51,64 +52,17 @@ function replaceAllLiteral(text, value, placeholder) {
 }
 
 export function anonymizePrompt(prompt) {
-  const mapping = {};
-  addMapping(mapping, '[OWNER_NAME]', extractField(prompt, 'Owner Name'));
-  addMapping(mapping, '[BUSINESS_NAME]', extractField(prompt, 'Business Name'));
-  // Newer intakes use the plain-language "Business Description" label. Keep
-  // the older label as a fallback so an admin recovery remains safe for both
-  // saved record shapes.
-  addMapping(mapping, '[BUSINESS_DESCRIPTION]', extractField(prompt, 'Business Description') || extractField(prompt, 'Business Category'));
-  addMapping(mapping, '[WEBSITE_URL]', extractField(prompt, 'Website URL'));
-
-  let anonymized = prompt;
-  Object.entries(mapping)
-    .sort((a, b) => b[1].length - a[1].length)
-    .forEach(([placeholder, value]) => {
-      anonymized = replaceAllLiteral(anonymized, value, placeholder);
-    });
-
-  let emailCount = 0;
-  anonymized = anonymized.replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, match => {
-    const placeholder = `[EMAIL_${++emailCount}]`;
-    mapping[placeholder] = match;
-    return placeholder;
+  const redacted = anonymizeText(prompt, {
+    clientName: extractField(prompt, 'Owner Name'),
+    businessName: extractField(prompt, 'Business Name'),
+    businessDescription: extractField(prompt, 'Business Description') || extractField(prompt, 'Business Category'),
+    websiteUrl: extractField(prompt, 'Website URL'),
+    participantText: prompt
   });
-
-  let phoneCount = 0;
-  anonymized = anonymized.replace(/(?:\+?1[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)\d{3}[\s.-]?\d{4}/g, match => {
-    const placeholder = `[PHONE_${++phoneCount}]`;
-    mapping[placeholder] = match;
-    return placeholder;
-  });
-
-  let urlCount = 0;
-  anonymized = anonymized.replace(/https?:\/\/[^\s)]+/gi, match => {
-    if (Object.values(mapping).includes(match)) return '[WEBSITE_URL]';
-    const placeholder = `[URL_${++urlCount}]`;
-    mapping[placeholder] = match;
-    return placeholder;
-  });
-
-  let moneyAccountCount = 0;
-  anonymized = anonymized.replace(/\b(?:\d[ -]*?){13,19}\b/g, match => {
-    const digits = match.replace(/\D/g, '');
-    if (digits.length < 13 || digits.length > 19) return match;
-    const placeholder = `[FINANCIAL_ACCOUNT_${++moneyAccountCount}]`;
-    mapping[placeholder] = match;
-    return placeholder;
-  });
-
-  const privacyHeader = 'HERMES PRIVACY LAYER ACTIVE:\nThe source interview below has been anonymized before model analysis. Use placeholders exactly as given. Do not attempt to infer real names, emails, phone numbers, websites, addresses, account numbers, or identities behind placeholders.\n\n';
   return {
-    anonymizedPrompt: privacyHeader + anonymized,
-    mapping,
-    stats: {
-      replacements: Object.keys(mapping).length,
-      emails: emailCount,
-      phones: phoneCount,
-      urls: urlCount,
-      financialAccounts: moneyAccountCount
-    }
+    anonymizedPrompt: privacyHeader() + redacted.anonymizedText,
+    mapping: redacted.mapping,
+    stats: redacted.stats
   };
 }
 

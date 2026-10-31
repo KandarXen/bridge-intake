@@ -2148,7 +2148,7 @@
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag" id="header-tag">Business Discovery Session</span>
-      <span class="header-version">v1.72.28 Preview</span>
+      <span class="header-version">v1.72.30 Preview</span>
   </div>
 </header>
 
@@ -3122,6 +3122,7 @@ let activeProbe = null;        // { key, domain, sourceQuestionIndex, question }
 let draftAutosaveEnabled = true;
 let clientDraftId = '';
 let draftAccessToken = '';
+const interviewIdentity = () => ({ clientName, clientEmail, businessName, websiteUrl, declaredPeople: [] });
 let lastLoggedQuestionKey = '';
 let loggedSectionStarts = {};
 let loggedSectionCompletes = {};
@@ -4286,7 +4287,7 @@ async function researchBusinessContext() {
     const resp = await fetch('/api/interview-ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ task: 'research-business', businessName, businessCategory, businessNiche, shareComfort, websiteUrl, companySize, ownerWorkStatus, departments }),
+      body: JSON.stringify({ task: 'research-business', businessName, businessCategory, businessNiche, shareComfort, websiteUrl, companySize, ownerWorkStatus, departments, identity: interviewIdentity() }),
       signal: controller.signal
     });
     if (resp.ok) {
@@ -4305,7 +4306,7 @@ async function generateScenario() {
     const resp = await fetch('/api/interview-ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ task: 'scenario', businessCategory, businessNiche, shareComfort, businessContext })
+      body: JSON.stringify({ task: 'scenario', businessCategory, businessNiche, shareComfort, businessContext, identity: interviewIdentity() })
     });
     if (resp.ok) {
       const data = await resp.json();
@@ -4864,7 +4865,7 @@ async function maybeRunAdaptiveRedirect(qIndex, answer) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        task: 'probe',
+        task: 'probe', identity: interviewIdentity(),
         domain: q.domain || '',
         qa: `Q (${q.type || 'Question'}): ${q.text || ''}\nA: ${answer || ''}`,
         sourceQuestion: q.text || '',
@@ -4998,7 +4999,7 @@ async function runMasteryFollowup(qIndex) {
     const resp = await fetch('/api/interview-ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ task: 'mastery-followup', area: q.domain, answer, businessCategory, businessNiche, shareComfort, companySize, ownerWorkStatus, departments, businessContext })
+      body: JSON.stringify({ task: 'mastery-followup', area: q.domain, answer, businessCategory, businessNiche, shareComfort, companySize, ownerWorkStatus, departments, businessContext, identity: interviewIdentity() })
     });
     if (resp.ok) {
       const data = await resp.json();

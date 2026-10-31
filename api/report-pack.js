@@ -6,8 +6,9 @@ import { gateProofDetails, publicGateSummary, runPrivacyGate } from '../lib/priv
 import { validateDnaOutput } from '../lib/validate-output.js';
 import { assertRateLimit, assertTrustedOrigin, authorizedAdminRequest, safeError } from '../lib/security.js';
 import { assertDraftAccess } from '../lib/draft-access.js';
+import { buildIdentityRegistry, redactForModel, reidentify, retokenizeWithMapping } from '../lib/identity-redaction.js';
 
-const APP_VERSION = 'v1.72.25';
+const APP_VERSION = 'v1.72.30';
 
 const REPORTS = {
   free: {
@@ -157,7 +158,6 @@ function privacyProofDefaults(extra = {}) {
     privacyProof: true,
     rawInterviewIncluded: false,
     rawDnaIncluded: false,
-    directIdentifiersRemoved: true,
     partnerRawAccess: false,
     partnerAggregateOnly: true,
     encryptedAtRest: true,
@@ -165,6 +165,24 @@ function privacyProofDefaults(extra = {}) {
     proofStatus: 'passed',
     ...extra
   };
+}
+
+async function redactReportSource(clientDraftId, sourceText) {
+  const mappingRow = await getLatestIntakeOutput(clientDraftId, 'hermes_reidentification_map');
+  if (mappingRow?.encrypted_payload) {
+    const payload = decryptJson(mappingRow.encrypted_payload);
+    const mapping = payload?.mapping || {};
+    if (Object.keys(mapping).length) {
+      return { text: retokenizeWithMapping(sourceText, mapping), mapping, stats: payload.stats || {}, source: 'stored_mapping' };
+    }
+  }
+  const session = await getSessionPayload(clientDraftId);
+  const redacted = redactForModel(sourceText, buildIdentityRegistry({
+    identity: session,
+    declaredPeople: session.declaredPeople,
+    participantText: sourceText
+  }));
+  return { text: redacted.text, mapping: redacted.mapping, stats: redacted.stats, source: 'session_fallback' };
 }
 
 class PrivacyGateReviewError extends Error {
@@ -950,6 +968,7 @@ async function generateOne(clientDraftId, tier, options = {}) {
   const startedAt = Date.now();
   const { dnaContent, meta } = await getDna(clientDraftId);
   const gatedSource = await prepareSanitizedAiSource(clientDraftId, dnaContent, `report_${tier}_generation`);
+  const identitySource = await redactReportSource(clientDraftId, gatedSource.sanitizedText);
   const businessName = businessNameFromDna(dnaContent);
   await logReportEvent(clientDraftId, 'report_generation_started', 'success', privacyProofDefaults({
     partner: meta?.sourceMeta?.partner || 'BTAI',
@@ -958,10 +977,11 @@ async function generateOne(clientDraftId, tier, options = {}) {
     reportOutputType: spec.htmlOutputType,
     payloadType: 'sanitized_venture_dna_record',
     privacyGate: publicGateSummary(gatedSource.gate),
+    identityRedaction: { detectionMode: 'heuristic', source: identitySource.source, stats: identitySource.stats },
     privacyGateAdminApproved: !!gatedSource.adminApproved,
     startedAt: new Date(startedAt).toISOString()
   }));
-  let generatedMarkdown = await callClaude(promptForTier(tier, gatedSource.sanitizedText), spec.maxTokens);
+  let generatedMarkdown = await callClaude(promptForTier(tier, identitySource.text), spec.maxTokens);
   let completion = validateReportCompletion(generatedMarkdown, tier);
   if (!completion.completed) {
     await logReportEvent(clientDraftId, 'report_generation_quality_gate_failed', 'failed', privacyProofDefaults({
@@ -987,7 +1007,7 @@ async function generateOne(clientDraftId, tier, options = {}) {
         generationMs: Date.now() - startedAt
       }));
       const repairedMarkdown = await callClaude(
-        repairPromptForTier(tier, generatedMarkdown, gatedSource.sanitizedText, originalBlockingWarnings),
+        repairPromptForTier(tier, generatedMarkdown, identitySource.text, originalBlockingWarnings),
         Math.max(1800, Math.min(3200, Math.floor(spec.maxTokens * 0.6)))
       );
       const repairedCompletion = validateReportCompletion(repairedMarkdown, tier);
@@ -1063,7 +1083,7 @@ async function generateOne(clientDraftId, tier, options = {}) {
       throw new Error(`Report quality gate failed for ${tier}: ${completion.blockingWarnings.join(', ')}`);
     }
   }
-  const markdown = decorateReportMarkdown(generatedMarkdown, tier);
+  const markdown = decorateReportMarkdown(reidentify(generatedMarkdown, identitySource.mapping), tier);
   const validation = validateDnaOutput(markdown, { requireEvidenceLabels: false });
   validation.warnings = [...(validation.warnings || []), ...completion.warnings];
   const privacyScan = scanReportPrivacy(markdown);

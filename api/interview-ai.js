@@ -94,8 +94,8 @@ function businessDescription({ businessCategory, businessNiche } = {}) {
   return String(businessNiche || businessCategory || '').trim().slice(0, 160);
 }
 
-async function callClaude(prompt, { maxTokens = 600, explicitIdentifiers = {} } = {}) {
-  const privacy = anonymizeText(prompt, explicitIdentifiers);
+async function callClaude(prompt, { maxTokens = 600, identity = {}, participantText = '' } = {}) {
+  const privacy = anonymizeText(prompt, { ...identity, participantText });
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -116,7 +116,7 @@ async function callClaude(prompt, { maxTokens = 600, explicitIdentifiers = {} } 
 }
 
 async function researchBusiness(body) {
-  const { businessName, businessCategory, businessNiche, shareComfort, websiteUrl, companySize, departments } = body || {};
+  const { businessName, businessCategory, businessNiche, shareComfort, websiteUrl, companySize, departments, identity = {} } = body || {};
   const description = businessDescription({ businessCategory, businessNiche });
   if (!description && !websiteUrl) return { context: fallbackContext({ businessCategory, websiteUrl }) };
 
@@ -155,7 +155,7 @@ Rules:
 - Interview questions must sound industry-informed, not researched.
 - Do NOT write "your website says", "I noticed", "we saw", or anything that reveals background research to the client.`;
 
-    const text = await callClaude(prompt, { maxTokens: 1400, explicitIdentifiers: { businessName, websiteUrl: normalizedWebsiteUrl } });
+    const text = await callClaude(prompt, { maxTokens: 1400, identity: { ...identity, businessName, websiteUrl: normalizedWebsiteUrl }, participantText: description });
     const context = parseClaudeJson(text);
     return {
       context: {
@@ -172,7 +172,7 @@ Rules:
 }
 
 async function scenario(body) {
-  const { businessCategory, businessNiche, businessContext } = body || {};
+  const { businessCategory, businessNiche, businessContext, identity = {} } = body || {};
   const description = businessDescription({ businessCategory, businessNiche }) || 'small business';
   const contextBlock = businessContext ? `\n\nInternal context for tailoring only:\n${JSON.stringify(businessContext).slice(0, 3000)}\n\nUse this to choose a more relevant situation, but do not reveal or imply background research.` : '';
   const prompt = `Write ONE short, realistic customer-interaction scenario for a "${description}".
@@ -186,7 +186,7 @@ Rules:
 - Do NOT suggest how to respond. Just set up the situation.
 - Output ONLY the scenario text. No preamble, no quotes, no label.${contextBlock}`;
   try {
-    return { scenario: await callClaude(prompt, { maxTokens: 200 }) };
+    return { scenario: await callClaude(prompt, { maxTokens: 200, identity, participantText: description }) };
   } catch (err) {
     console.error('Scenario error:', err);
     return { scenario: '' };
@@ -198,7 +198,7 @@ function soloOrNoStaff(companySize, ownerWorkStatus, departments) {
 }
 
 export async function probe(body) {
-  const { domain, qa, businessCategory, businessNiche, shareComfort, companySize, ownerWorkStatus, departments = [], businessContext, sourceQuestion, sourceQuestionType, answerQualityBucket, priorityWeight, weakAnswerReason } = body || {};
+  const { domain, qa, businessCategory, businessNiche, shareComfort, companySize, ownerWorkStatus, departments = [], businessContext, sourceQuestion, sourceQuestionType, answerQualityBucket, priorityWeight, weakAnswerReason, identity = {} } = body || {};
   if (!qa) return { status: 400, body: { error: 'Missing qa' } };
   const probePrivacy = runPrivacyGate(qa, { purpose: 'interview_adaptive_probe' });
   // A probe is optional. If an answer contains information that needs review,
@@ -257,7 +257,7 @@ If no follow-up is needed, return:
   "uses_approved_category": true
 }`;
   try {
-    const raw = await callClaude(prompt, { maxTokens: 260 }) || '';
+    const raw = await callClaude(prompt, { maxTokens: 260, identity, participantText: safeQa }) || '';
     const parsed = parseClaudeJson(raw);
     if (parsed && typeof parsed === 'object') return { followup: parsed };
     return { followup: 'NONE' };
@@ -268,7 +268,7 @@ If no follow-up is needed, return:
 }
 
 async function masteryFollowup(body) {
-  const { area, answer, businessCategory, businessNiche, companySize, ownerWorkStatus, departments = [], businessContext } = body || {};
+  const { area, answer, businessCategory, businessNiche, companySize, ownerWorkStatus, departments = [], businessContext, identity = {} } = body || {};
   const description = businessDescription({ businessCategory, businessNiche }) || 'small business';
   if (!answer) return { status: 400, body: { error: 'Missing answer' } };
   const contextBlock = businessContext ? `\n\nInternal context for tailoring only:\n${JSON.stringify(businessContext).slice(0, 2500)}\n\nDo not reveal or imply background research happened.` : '';
@@ -286,7 +286,9 @@ ${contextBlock}
 
 Write ONE short follow-up question that picks up a specific thing they actually said and asks what AI handling it would change. If too vague, respond exactly: NONE.`;
   try {
-    return { followup: await callClaude(prompt, { maxTokens: 150 }) || 'NONE' };
+    const gate = runPrivacyGate(answer, { purpose: 'interview_mastery_followup' });
+    if (gate.requiresReview) return { followup: 'NONE' };
+    return { followup: await callClaude(prompt, { maxTokens: 150, identity, participantText: gate.sanitizedText || answer }) || 'NONE' };
   } catch (err) {
     console.error('Mastery follow-up error:', err);
     return { followup: 'NONE' };
