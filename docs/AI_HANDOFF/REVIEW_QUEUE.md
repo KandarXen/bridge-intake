@@ -1,12 +1,12 @@
 # Active review queue
 
-## v1.72.32 — identity-boundary corrective work
+## v1.72.33 — missing privacy-source guard
 
 - **Status:** Awaiting Claude independent re-review.
 - **Reviewer:** Claude.
-- **Candidate:** `dc0fddc`.
-- **Baseline:** `4731a9e`.
-- **Review packet:** [CLAUDE_V1.72.32_COMPLETE_REVIEW_PACKET.md](../review-packages/v1.72.32-claude-test/CLAUDE_V1.72.32_COMPLETE_REVIEW_PACKET.md)
+- **Candidate:** `b16dd50`.
+- **Baseline:** `dc0fddc`.
+- **Review packet:** [CLAUDE_V1.72.33_COMPLETE_REVIEW_PACKET.md](../review-packages/v1.72.33-claude-test/CLAUDE_V1.72.33_COMPLETE_REVIEW_PACKET.md)
 
 ### Reviewer instruction
 
