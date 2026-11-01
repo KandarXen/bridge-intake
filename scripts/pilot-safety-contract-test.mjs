@@ -30,7 +30,9 @@ assert.match(draftApi, /assertDraftAccess\(draftAccessToken, clientDraftId\)/, '
 assert.match(draftApi, /assertDraftAccess\(draftAccessToken, id\)/, 'draft loads and deletes require a capability');
 assert.match(aiApi, /assertDraftAccess\(draftAccessToken, clientDraftId\)/, 'AI generation requires a capability');
 assert.match(reportApi, /assertDraftAccess\(req\.body\?\.draftAccessToken, clientDraftId\)/, 'free report requests require a capability');
-assert.match(aiApi, /runPrivacyGate\(prompt, \{ purpose: 'venture_dna_generation' \}\)/, 'AI prompt is scanned by the privacy gate');
+assert.match(aiApi, /runPrivacyGate\(prompt, \{ purpose: 'venture_dna_generation_prompt' \}\)/, 'full AI prompt is scanned by the privacy gate');
+assert.match(aiApi, /runPrivacyGate\(participantPrivacySource, \{ purpose: 'venture_dna_generation_participant' \}\)/, 'participant source is independently scanned by the privacy gate');
+assert.match(aiApi, /sanitizedPrompt: promptGate\.sanitizedText/, 'only the sanitized full prompt is sent onward');
 assert.match(reportApi, /const bccRecipient = process\.env\.INTAKE_BCC_RECIPIENT \|\| '';/, 'free-report BCC has no hard-coded recipient');
 assert.match(reportApi, /\.\.\.\(bccRecipient \? \{ bcc: \[bccRecipient\] \} : \{\}\)/, 'free-report payload omits BCC when none is configured');
 assert.match(reportApi, /const continueInterviewUrl = `\$\{publicBaseUrl\}\/snapshot`;/, 'free-report link does not expose a draft ID');

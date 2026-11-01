@@ -123,6 +123,25 @@ export function getParticipantPrivacySource(sourceMeta = {}) {
   return String(sourceMeta?.privacyScanText || '').trim();
 }
 
+// The model prompt contains Bridge To AI's own privacy instructions (for
+// example, "do not include payroll or confidential details"). Those words
+// must never be mistaken for participant disclosures. We still scan the full
+// prompt and send only its sanitized form to the model, but only findings in
+// the separately captured participant source can put an intake into review.
+export function resolvePrivacyGates(prompt, participantPrivacySource) {
+  const promptGate = runPrivacyGate(prompt, { purpose: 'venture_dna_generation_prompt' });
+  const participantGate = runPrivacyGate(participantPrivacySource, { purpose: 'venture_dna_generation_participant' });
+  const promptOnlyQuarantine = promptGate.requiresReview && !participantGate.requiresReview;
+
+  return {
+    promptGate,
+    participantGate,
+    gate: participantGate,
+    promptOnlyQuarantine,
+    sanitizedPrompt: promptGate.sanitizedText
+  };
+}
+
 function reidentifyText(text, mapping) {
   let output = text || '';
   Object.entries(mapping || {})
@@ -308,20 +327,16 @@ export default async function handler(req, res) {
         message: 'The interview privacy source is unavailable. AI generation has been paused rather than sending unverified participant text for analysis.'
       });
     }
-    const promptPrivacyGate = runPrivacyGate(prompt, { purpose: 'venture_dna_generation' });
-    const sourcePrivacyGate = participantPrivacySource && participantPrivacySource !== prompt
-      ? runPrivacyGate(participantPrivacySource, { purpose: 'venture_dna_generation_source' })
-      : null;
-    const privacyGate = promptPrivacyGate.requiresReview
-      ? promptPrivacyGate
-      : (sourcePrivacyGate?.requiresReview ? sourcePrivacyGate : promptPrivacyGate);
+    const privacyGates = resolvePrivacyGates(prompt, participantPrivacySource);
+    const { promptGate: promptPrivacyGate, participantGate: sourcePrivacyGate, gate: privacyGate } = privacyGates;
     const privacyGateSave = await savePrivacyGateRecord(clientDraftId, privacyGate, 'venture_dna_generation');
     await logPrivacyProof(clientDraftId, 'privacy_gate_scan_completed', privacyGateSave.saved ? 'success' : 'failed', gateProofDetails(privacyGate, {
       payloadType: participantPrivacySource ? 'participant_supplied_interview_text' : 'raw_interview_prompt',
       promptGateDecision: promptPrivacyGate.decision,
       promptGateRequiresReview: promptPrivacyGate.requiresReview,
-      sourceGateDecision: sourcePrivacyGate?.decision || '',
-      sourceGateRequiresReview: !!sourcePrivacyGate?.requiresReview,
+      sourceGateDecision: sourcePrivacyGate.decision,
+      sourceGateRequiresReview: sourcePrivacyGate.requiresReview,
+      promptOnlyQuarantineSanitized: privacyGates.promptOnlyQuarantine,
       privacyGateOutputId: privacyGateSave.outputId || '',
       privacyGateSaveReason: privacyGateSave.reason || '',
       proofStatus: privacyGateSave.saved ? (privacyGate.requiresReview ? 'review_required' : 'passed') : 'failed'
@@ -352,7 +367,10 @@ export default async function handler(req, res) {
       });
     }
 
-    const gatedPrompt = promptPrivacyGate.sanitizedText;
+    // Always send the full prompt through the sanitizer. This covers any
+    // unexpected sensitive value in the composed prompt without allowing
+    // static safety wording to create a customer-facing review stop.
+    const gatedPrompt = privacyGates.sanitizedPrompt;
     const hermesPrivacy = anonymizePrompt(gatedPrompt, participantPrivacySource);
     await logPrivacyProof(clientDraftId, 'privacy_proof_anonymization_completed', 'success', {
       privacyProofType: 'anonymization',

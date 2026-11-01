@@ -1747,7 +1747,7 @@
   }
 
   .completion-layout.snapshot-simple {
-    width: min(100%, 720px);
+    width: min(100%, 900px);
     grid-template-columns: minmax(0, 1fr);
     justify-content: center;
   }
@@ -1771,7 +1771,7 @@
 
   .completion-lane {
     display: grid;
-    grid-template-columns: 72px minmax(0, 1fr) auto;
+    grid-template-columns: 56px minmax(0, 1fr) minmax(220px, 320px);
     gap: 1rem;
     align-items: center;
     border: 1px solid var(--border);
@@ -1810,7 +1810,8 @@
     display: grid;
     justify-items: end;
     gap: 0.4rem;
-    min-width: 220px;
+    min-width: 0;
+    width: 100%;
   }
 
   .email-confirm-pill {
@@ -2021,16 +2022,45 @@
 
   .complete-footer a { color: var(--bridge-teal); text-decoration: none; }
 
-  @media (max-width: 760px) {
+  /* Keep the completion message readable on tablets and narrow desktops.
+     The previous three-column layout squeezed the explanatory text into a
+     sliver before the mobile breakpoint was reached. */
+  @media (max-width: 900px) {
+    .completion-layout.snapshot-simple {
+      width: min(100%, 720px);
+    }
     .completion-lane {
-      grid-template-columns: 1fr;
+      grid-template-columns: 56px minmax(0, 1fr);
+      align-items: start;
     }
     .completion-lane-action {
+      grid-column: 2;
       justify-items: stretch;
       min-width: 0;
     }
+    .snapshot-simple .completion-lane:not(:first-child) .completion-lane-action {
+      display: none;
+    }
     .email-confirm-pill {
       max-width: 100%;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .complete-wrap {
+      padding: 1.5rem 0.75rem 2.25rem;
+    }
+    .completion-lane {
+      grid-template-columns: 48px minmax(0, 1fr);
+      gap: 0.75rem;
+      padding: 0.9rem;
+    }
+    .completion-lane-icon {
+      width: 48px;
+      height: 48px;
+    }
+    .completion-lane-action {
+      grid-column: 1 / -1;
     }
   }
 
@@ -2148,7 +2178,7 @@
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag" id="header-tag">Business Discovery Session</span>
-      <span class="header-version">v1.72.33 Preview</span>
+      <span class="header-version">v1.72.34 Preview</span>
   </div>
 </header>
 
