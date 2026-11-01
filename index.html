@@ -2178,7 +2178,7 @@
   </div>
   <div class="header-tag-wrap">
     <span class="header-tag" id="header-tag">Business Discovery Session</span>
-      <span class="header-version">v1.72.34 Preview</span>
+      <span class="header-version">v1.72.35 Preview</span>
   </div>
 </header>
 
@@ -4460,6 +4460,18 @@ function industryPackSummary() {
 function adaptQuestionForContext(q) {
   const guidance = currentIndustryGuidance();
   const industryOverrides = {
+    'Business Model & Direction|Business Snapshot': {
+      text: `Who do you serve, and what work, product, or service matters most in your ${guidance.shortLabel || 'business'} right now?`,
+      hint: `A simple overview is enough. For a ${guidance.label}, that might involve ${industryList(guidance.customerTypes)} and work such as ${industryList(guidance.opportunities)}.`
+    },
+    'AI Opportunity|Top Bottleneck': {
+      text: `What is the most frustrating repeated task or process in your ${guidance.shortLabel || 'business'} right now?`,
+      hint: `For a ${guidance.label}, this might involve ${industryList(guidance.opportunities)}. Pick the work that repeats, slows people down, or gets handled manually too often.`
+    },
+    'AI Opportunity|Frequency': {
+      text: 'How often does this come up: daily, weekly, monthly, seasonally, or mostly when things go wrong?',
+      hint: `Think about the rhythm of a ${guidance.shortLabel || 'business'}: ${industryList(guidance.workflowExamples)}. Frequency helps separate a nice-to-have from a real operational drag.`
+    },
     'Business Model & Direction|AI Fit': {
       text: 'Which parts of your business run on manual knowledge work that eats your time?',
       hint: `For a ${guidance.label}, this may include ${industryList(guidance.opportunities)}. Keep examples directional; no confidential details are needed.`
@@ -4488,6 +4500,14 @@ function adaptQuestionForContext(q) {
       text: 'How do you handle that work today?',
       hint: `For a ${guidance.shortLabel || guidance.label}, think about ${industryList(guidance.workflowExamples)}. Who starts it, what tools or notes they use, and what workaround keeps it moving?`
     },
+    'Operations & Delivery|Handoff & Delay Point': {
+      text: `Where does this work usually slow down, get repeated, or need clarification in your ${guidance.shortLabel || 'business'}?`,
+      hint: `Think about the handoffs around ${industryList(guidance.workflowExamples)}: waiting, retyping, missing information, unclear ownership, or repeated back-and-forth.`
+    },
+    'People & Decision-Making|Who Is Involved': {
+      text: `For this ${guidance.shortLabel || 'business'} workflow, which roles or people touch the work before it is finished?`,
+      hint: `Use roles rather than names. In this kind of business, that may include ${industryList(guidance.customerTypes)} as well as the owner, admin, delivery team, or outside partners.`
+    },
     'Information & Systems|Information Location': {
       text: 'Where does the information needed for this work usually live?',
       hint: `Examples: ${industryList(guidance.workflowExamples)}, plus email, spreadsheets, software, shared folders, paper forms, photos, notes, or memory.`
@@ -4511,6 +4531,10 @@ function adaptQuestionForContext(q) {
   if (!isSoloOrNoStaff()) return adapted;
 
   const overrides = {
+    'People & Decision-Making|Who Is Involved': {
+      text: 'Which parts of this work do you personally handle before it is finished?',
+      hint: 'Think about the parts only you currently do: responding, deciding, drafting, reviewing, delivering, or following up. Mention informal help only if it is genuinely involved.'
+    },
     'People & Decision-Making|Current Reality': {
       text: 'What parts of the business depend entirely on you, and what would pause if you were unavailable?',
       hint: 'Think about sales, delivery, admin, customer replies, decisions, and any informal helpers or future hires.'
@@ -4748,6 +4772,9 @@ async function nextQuestion() {
       return;
     }
 
+    const snapshotFollowupShown = maybeRunSnapshotBottleneckFollowup(currentQ, val);
+    if (snapshotFollowupShown) return;
+
     const redirected = await maybeRunAdaptiveRedirect(currentQ, val);
     if (redirected) return;
 
@@ -4835,6 +4862,70 @@ function validateProbeCandidate(candidate, domainName) {
 
   return { ok: true, question, reason: 'accepted', questionType, sensitivity };
 }
+
+// The Snapshot earns trust when it responds to the owner's stated bottleneck.
+// This is deliberately deterministic: it does not require another AI call,
+// does not ask for sensitive details, and adds at most one short follow-up.
+function snapshotBottleneckFollowup(answer = '') {
+  const text = String(answer || '').toLowerCase();
+  if (/\b(?:email|follow[ -]?up|reply|message|inbox)\b/.test(text)) {
+    return 'What usually has to be found, checked, or rewritten before you can send that follow-up?';
+  }
+  if (/\b(?:quote|estimate|proposal|scope|pricing)\b/.test(text)) {
+    return 'What information or approval do you repeatedly need before a quote, proposal, or scope can go out?';
+  }
+  if (/\b(?:schedul|booking|appointment|calendar|dispatch)\b/.test(text)) {
+    return 'What changes, missing details, or back-and-forth most often hold up scheduling?';
+  }
+  if (/\b(?:report|brief|document|note|summary|paperwork)\b/.test(text)) {
+    return 'What do you repeatedly have to gather, check, or rewrite before that document is ready?';
+  }
+
+  const packId = currentIndustryGuidance()?.id || 'general_business';
+  const fallbackByPack = {
+    professional_services_advisory: 'Where does context most often get lost between discovery, delivery, and client follow-up?',
+    trade_field_services: 'Where does information most often get lost between the inquiry, quote, scheduled work, and customer update?',
+    food_processing_manufacturing_distribution: 'Where does information most often get lost between the order, planning, production, and customer update?',
+    manufacturing_operations: 'Where does information most often get lost between the quote, work order, production, and shipment or customer update?'
+  };
+  return fallbackByPack[packId] || 'What information is most often missing or scattered when this work needs to move forward?';
+}
+
+function maybeRunSnapshotBottleneckFollowup(qIndex, answer) {
+  const q = QUESTIONS[qIndex];
+  if (!isSnapshotFirstCampaign() || q?.type !== 'Top Bottleneck' || !String(answer || '').trim()) return false;
+  const probeKey = questionProbeKey(qIndex);
+  if (domainProbes[probeKey]?.asked) return false;
+
+  activeProbe = {
+    key: probeKey,
+    domain: q.domain || 'AI Opportunity',
+    sourceQuestionIndex: qIndex,
+    sourceQuestionType: q.type || 'Top Bottleneck',
+    question: snapshotBottleneckFollowup(answer),
+    priorityWeight: 5,
+    deterministic: true
+  };
+  domainProbes[probeKey] = {
+    ...activeProbe,
+    answer: '',
+    asked: true,
+    questionType: 'clarify',
+    sensitivityLevel: 'low'
+  };
+  logHermesEvent('snapshot_bottleneck_followup_generated', 'success', {
+    domain: activeProbe.domain,
+    sourceQuestionIndex: qIndex,
+    sourceQuestionType: activeProbe.sourceQuestionType,
+    industryPack: currentIndustryGuidance()?.id || 'general_business',
+    deterministic: true,
+    sensitivityLevel: 'low'
+  });
+  saveDraft(false);
+  transitionToQuestion(qIndex, 'probe', activeProbe);
+  return true;
+}
+
 async function maybeRunAdaptiveRedirect(qIndex, answer) {
   const q = QUESTIONS[qIndex];
   if (!q || !String(answer || '').trim()) return false;

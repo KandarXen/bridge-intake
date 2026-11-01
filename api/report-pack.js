@@ -8,7 +8,7 @@ import { assertRateLimit, assertTrustedOrigin, authorizedAdminRequest, safeError
 import { assertDraftAccess } from '../lib/draft-access.js';
 import { buildIdentityRegistry, redactForModel, reidentify, retokenizeWithMapping } from '../lib/identity-redaction.js';
 
-const APP_VERSION = 'v1.72.34';
+const APP_VERSION = 'v1.72.35';
 
 const REPORTS = {
   free: {

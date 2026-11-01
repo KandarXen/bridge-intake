@@ -4,7 +4,7 @@ This is the fixed starting file for all model work. It is updated by Codex after
 
 ## Current release
 
-- **Version:** v1.72.34 private Preview corrective candidate
+- **Version:** v1.72.35 private Preview adaptive Snapshot candidate
 - **Candidate commit:** `b16dd50`
 - **Baseline commit:** `dc0fddc`
 - **Branch:** `release/v1.72.24-secure-intake`
